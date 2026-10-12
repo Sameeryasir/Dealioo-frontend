@@ -25,9 +25,35 @@ export const funnelQueryKeys = {
     [...funnelQueryKeys.all, "analytics-monthly"] as const,
   analyticsMonthlyByFunnel: (funnelId: number, months: number) =>
     [...funnelQueryKeys.analyticsMonthly(), funnelId, months] as const,
+  dashboardKpis: () => [...funnelQueryKeys.all, "dashboard-kpis"] as const,
+  dashboardKpisByFunnel: (
+    funnelId: number,
+    from = "",
+    to = "",
+    timezone = "",
+  ) =>
+    [...funnelQueryKeys.dashboardKpis(), funnelId, from, to, timezone] as const,
+  dashboardCharts: () => [...funnelQueryKeys.all, "dashboard-charts"] as const,
+  dashboardChartsByFunnel: (
+    funnelId: number,
+    from = "",
+    to = "",
+    timezone = "",
+  ) =>
+    [
+      ...funnelQueryKeys.dashboardCharts(),
+      funnelId,
+      from,
+      to,
+      timezone,
+    ] as const,
   dropoff: () => [...funnelQueryKeys.all, "dropoff"] as const,
-  dropoffByFunnel: (funnelId: number) =>
-    [...funnelQueryKeys.dropoff(), funnelId] as const,
+  dropoffByFunnel: (
+    funnelId: number,
+    from = "",
+    to = "",
+    timezone = "",
+  ) => [...funnelQueryKeys.dropoff(), funnelId, from, to, timezone] as const,
   trafficSources: () => [...funnelQueryKeys.all, "traffic-sources"] as const,
   trafficSourcesByFunnel: (funnelId: number) =>
     [...funnelQueryKeys.trafficSources(), funnelId] as const,

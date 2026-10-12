@@ -6,6 +6,29 @@ import { motion } from "framer-motion";
 import { googleBuilderInputClass } from "@/app/components/google-ads/campaign-builder/google-builder-ui";
 import { builderInputErrorClass } from "@/app/components/campaign/meta-builder/builder-ui";
 
+function lockScrollAncestors(startParent: HTMLElement | null): () => void {
+  const locked: Array<{ node: HTMLElement; overflow: string }> = [];
+  let node: HTMLElement | null = startParent;
+  while (node) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll") {
+      locked.push({ node, overflow: node.style.overflow });
+      node.style.overflow = "hidden";
+    }
+    node = node.parentElement;
+  }
+
+  const bodyOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    for (const row of locked) {
+      row.node.style.overflow = row.overflow;
+    }
+    document.body.style.overflow = bodyOverflow;
+  };
+}
+
 export function StepShell({
   step,
   total,
@@ -292,27 +315,7 @@ export function SearchableSelect({
 
   useEffect(() => {
     if (!open) return;
-
-    const locked: Array<{ node: HTMLElement; overflow: string }> = [];
-    let node: HTMLElement | null = rootRef.current?.parentElement ?? null;
-    while (node) {
-      const { overflowY } = window.getComputedStyle(node);
-      if (overflowY === "auto" || overflowY === "scroll") {
-        locked.push({ node, overflow: node.style.overflow });
-        node.style.overflow = "hidden";
-      }
-      node = node.parentElement;
-    }
-
-    const bodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      for (const row of locked) {
-        row.node.style.overflow = row.overflow;
-      }
-      document.body.style.overflow = bodyOverflow;
-    };
+    return lockScrollAncestors(rootRef.current?.parentElement ?? null);
   }, [open]);
 
   return (

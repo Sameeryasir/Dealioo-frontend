@@ -222,7 +222,7 @@ export function generateAdSuggestions(
   const url =
     resolveCampaignDestinationUrl(draft) || "https://www.example.com";
 
-  let path1 = type.toLowerCase().replace(/\s+/g, "-").slice(0, 15);
+  const path1 = type.toLowerCase().replace(/\s+/g, "-").slice(0, 15);
   let path2 = "offer";
   if (draft.goal === "LEADS") path2 = "contact";
   if (draft.goal === "SALES") path2 = "shop";
@@ -372,7 +372,7 @@ export function generateAudienceFromIdealCustomers(idealCustomers: string[]): {
   const labels = idealCustomers.map((row) => row.trim()).filter(Boolean);
   const lower = labels.map((row) => row.toLowerCase());
   let ageRanges: GoogleCampaignBuilderDraft["ageRanges"] = ["25-34", "35-44"];
-  let gender: GoogleCampaignBuilderDraft["gender"] = "ALL";
+  const gender: GoogleCampaignBuilderDraft["gender"] = "ALL";
   let householdIncome = "";
 
   if (lower.some((row) => row.includes("student"))) {

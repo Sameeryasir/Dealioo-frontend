@@ -138,7 +138,7 @@ export function buildFunnelPaymentConfirmationPath(
   query?: FunnelPublicPathQuery,
   options?: { redirectStatus?: string; paymentConfirmed?: boolean },
 ): string {
-  let path = buildFunnelPublicPath({
+  const path = buildFunnelPublicPath({
     funnelId,
     step: "confirmation",
     query,

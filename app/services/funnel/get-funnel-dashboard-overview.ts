@@ -5,37 +5,20 @@ import {
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
-import type { FunnelAnalyticsMonthly } from "@/app/services/funnel/get-analytics-overview-monthly";
-import type { FunnelStatsMonthly } from "@/app/services/funnel/get-funnel-stats-monthly";
-import type { FunnelGuestAdSources } from "@/app/services/funnel-event/get-funnel-guest-ad-sources";
+import type { FunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
+import type { FunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
 
-export type FunnelDashboardOverview = {
-  funnelId: number;
-  stats: FunnelStatsMonthly;
-  analytics: FunnelAnalyticsMonthly;
-  adSources: FunnelGuestAdSources;
-  previous: {
-    from: string;
-    to: string;
-    stats: FunnelStatsMonthly;
-    analytics: FunnelAnalyticsMonthly;
-  } | null;
+export type FunnelDashboardOverview = FunnelDashboardKpis & {
+  charts: Omit<FunnelDashboardCharts, "funnelId">;
 };
 
-function emptyAdBucket() {
-  return {
-    meta: 0,
-    google: 0,
-    other: 0,
-    unknown: 0,
-    total: 0,
-    data: [] as Array<{ month: string; meta: number; google: number }>,
-  };
+function emptyChartSeries() {
+  return { meta: 0, google: 0, data: [] as Array<{ month: string; meta: number; google: number }> };
 }
 
-function parseAdBucket(raw: unknown) {
-  if (!raw || typeof raw !== "object") return emptyAdBucket();
-  const json = raw as Partial<ReturnType<typeof emptyAdBucket>>;
+function parseChartSeries(raw: unknown) {
+  if (!raw || typeof raw !== "object") return emptyChartSeries();
+  const json = raw as Partial<ReturnType<typeof emptyChartSeries>>;
   const data = Array.isArray(json.data)
     ? json.data.map((row) => ({
         month: String(row?.month ?? ""),
@@ -46,9 +29,6 @@ function parseAdBucket(raw: unknown) {
   return {
     meta: Number(json.meta) || 0,
     google: Number(json.google) || 0,
-    other: Number(json.other) || 0,
-    unknown: Number(json.unknown) || 0,
-    total: Number(json.total) || 0,
     data,
   };
 }
@@ -99,54 +79,47 @@ export async function getFunnelDashboardOverview(
     );
   }
 
-  const json = (await res.json()) as {
-    funnelId?: number;
-    stats?: FunnelStatsMonthly;
-    analytics?: FunnelAnalyticsMonthly;
-    adSources?: Partial<FunnelGuestAdSources> & {
-      payments?: unknown;
-      pageViews?: unknown;
-      revenue?: unknown;
-    };
-    previous?: {
-      from?: string;
-      to?: string;
-      stats?: FunnelStatsMonthly;
-      analytics?: FunnelAnalyticsMonthly;
-    } | null;
-  };
-
-  const signups = parseAdBucket(json.adSources);
-  const adSources: FunnelGuestAdSources = {
-    funnelId: Number(json.funnelId) || funnelId,
-    ...signups,
-    payments: parseAdBucket(json.adSources?.payments),
-    pageViews: parseAdBucket(json.adSources?.pageViews),
-    revenue: parseAdBucket(json.adSources?.revenue),
+  const json = (await res.json()) as Partial<FunnelDashboardOverview> & {
+    charts?: Partial<FunnelDashboardOverview["charts"]>;
   };
 
   return {
     funnelId: Number(json.funnelId) || funnelId,
-    stats: (json.stats ?? {
-      funnelId,
-      months: 0,
-      currency: null,
-      data: [],
-    }) as FunnelStatsMonthly,
-    analytics: (json.analytics ?? {
-      funnelId,
-      months: 0,
-      data: [],
-    }) as FunnelAnalyticsMonthly,
-    adSources,
+    currency: json.currency ?? null,
+    signups: Number(json.signups) || 0,
+    payments: Number(json.payments) || 0,
+    revenue: Number(json.revenue) || 0,
+    uniqueVisitors: Number(json.uniqueVisitors) || 0,
+    adSources: {
+      meta: Number(json.adSources?.meta) || 0,
+      google: Number(json.adSources?.google) || 0,
+      payments: {
+        meta: Number(json.adSources?.payments?.meta) || 0,
+        google: Number(json.adSources?.payments?.google) || 0,
+      },
+      revenue: {
+        meta: Number(json.adSources?.revenue?.meta) || 0,
+        google: Number(json.adSources?.revenue?.google) || 0,
+      },
+    },
     previous:
-      json.previous?.stats && json.previous?.analytics
+      json.previous &&
+      typeof json.previous === "object" &&
+      json.previous.from != null &&
+      json.previous.to != null
         ? {
-            from: String(json.previous.from ?? ""),
-            to: String(json.previous.to ?? ""),
-            stats: json.previous.stats,
-            analytics: json.previous.analytics,
+            from: String(json.previous.from),
+            to: String(json.previous.to),
+            signups: Number(json.previous.signups) || 0,
+            payments: Number(json.previous.payments) || 0,
+            revenue: Number(json.previous.revenue) || 0,
+            uniqueVisitors: Number(json.previous.uniqueVisitors) || 0,
           }
         : null,
+    charts: {
+      signups: parseChartSeries(json.charts?.signups),
+      payments: parseChartSeries(json.charts?.payments),
+      revenue: parseChartSeries(json.charts?.revenue),
+    },
   };
 }

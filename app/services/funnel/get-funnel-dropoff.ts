@@ -6,6 +6,13 @@ import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 
+export type FunnelDropoffCounts = {
+  funnelId: number;
+  pageViews: number;
+  signups: number;
+  payments: number;
+};
+
 export type FunnelDropoffStep = {
   stepName: string;
   stepOrder: number;
@@ -14,7 +21,12 @@ export type FunnelDropoffStep = {
 
 export async function getFunnelDropoff(
   funnelId: number,
-): Promise<FunnelDropoffStep[]> {
+  options: {
+    from: string;
+    to: string;
+    timezone?: string;
+  },
+): Promise<FunnelDropoffCounts> {
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -22,8 +34,15 @@ export async function getFunnelDropoff(
     throw new Error("Valid funnel id is required.");
   }
 
+  const q = new URLSearchParams();
+  q.set("from", options.from);
+  q.set("to", options.to);
+  if (options.timezone?.trim()) {
+    q.set("timezone", options.timezone.trim());
+  }
+
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/funnel-event/funnel/${encodeURIComponent(String(funnelId))}/dropoff`,
+    `${getApiBaseUrl()}/funnel-event/funnel/${encodeURIComponent(String(funnelId))}/dropoff?${q.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -36,5 +55,11 @@ export async function getFunnelDropoff(
     );
   }
 
-  return (await res.json()) as FunnelDropoffStep[];
+  const json = (await res.json()) as Partial<FunnelDropoffCounts>;
+  return {
+    funnelId: Number(json.funnelId) || funnelId,
+    pageViews: Number(json.pageViews) || 0,
+    signups: Number(json.signups) || 0,
+    payments: Number(json.payments) || 0,
+  };
 }

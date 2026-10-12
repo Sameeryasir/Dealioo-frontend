@@ -46,7 +46,7 @@ export function useAnchoredMenu(options?: {
       top = Math.max(8, rect.top - estimatedHeight - 4);
     }
 
-    let left =
+    const left =
       align === "right"
         ? Math.max(8, rect.right - menuWidth)
         : rect.left;

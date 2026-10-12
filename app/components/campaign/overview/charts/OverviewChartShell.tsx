@@ -48,7 +48,7 @@ export function OverviewChartShell({
         aria-hidden
       />
 
-      <div className="relative shrink-0 px-4 pb-2 pt-4 sm:px-5 sm:pt-5">
+      <div className="relative shrink-0 px-4 pb-2.5 pt-4 sm:px-5 sm:pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="m-0 text-[0.84rem] font-extrabold tracking-tight text-[#07111f] sm:text-[0.88rem]">

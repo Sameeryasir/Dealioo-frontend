@@ -41,7 +41,7 @@ function DropoffStepRow({
           {Math.round(animatedCount).toLocaleString()}
         </p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
+      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
         <motion.div
           className={`h-full rounded-full ${barClass}`}
           initial={{ width: "0%" }}
@@ -111,7 +111,7 @@ export function FunnelDropoffMiniChartSkeleton() {
         aria-busy="true"
         aria-label="Loading funnel drop-off"
       >
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-5">
           {DROPOFF_SKELETON_STEPS.map((step) => (
             <DropoffStepSkeleton
               key={step.key}
@@ -174,14 +174,18 @@ export function FunnelDropoffMiniChart({
   return (
     <OverviewChartShell
       title="Funnel drop-off"
-      subtitle={caption ?? "Page view → Signup → Payment"}
+      subtitle={
+        caption
+          ? `${caption} · Page view → Signup → Payment`
+          : "Page view → Signup → Payment"
+      }
       minHeightClass="min-h-[300px]"
       className="h-full"
       accent="blue"
       stat={overall != null ? `${animatedOverall.toFixed(1)}%` : "—"}
     >
-      <div className="flex h-full min-h-0 flex-col justify-center gap-4 px-1 py-1">
-        <div className="flex flex-col gap-3.5">
+      <div className="flex h-full min-h-0 flex-col justify-center gap-5 px-1 py-2">
+        <div className="flex flex-col gap-5">
           {steps.map((step) => (
             <DropoffStepRow
               key={`${step.key}-${step.count}`}

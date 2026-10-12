@@ -13449,9 +13449,9 @@ body:has(.rd-shell--app) {
 .funnel-overview-root {
   container-type: inline-size;
   container-name: funnel-overview;
-  --funnel-overview-pad-inline: clamp(0.65rem, 2.8cqi, 1.15rem);
-  --funnel-overview-pad-block: clamp(0.75rem, 2.4cqi, 1.1rem);
-  --funnel-overview-gap: clamp(0.55rem, 1.8cqi, 1rem);
+  --funnel-overview-pad-inline: clamp(0.75rem, 3cqi, 1.35rem);
+  --funnel-overview-pad-block: clamp(0.9rem, 2.8cqi, 1.35rem);
+  --funnel-overview-gap: clamp(1rem, 2.6cqi, 1.5rem);
   --funnel-overview-chart-h: clamp(11.25rem, 52cqi, 15.625rem);
   --funnel-overview-mini-chart-h: 15.625rem;
 }
@@ -13503,8 +13503,11 @@ body:has(.rd-shell--app) {
 
 .funnel-overview-body {
   box-sizing: border-box;
+  display: flex;
   min-width: 0;
   width: 100%;
+  flex-direction: column;
+  gap: var(--funnel-overview-gap);
   padding-inline: var(--funnel-overview-pad-inline);
   padding-block: var(--funnel-overview-pad-block);
 }

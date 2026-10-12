@@ -2,7 +2,7 @@
 
 import CampaignBuilderStepHost from "@/app/components/google-ads/campaign-builder/CampaignBuilderStepHost";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -481,6 +481,52 @@ export function CampaignBuilderWizard({
     clearPublishedDraftLocally,
   ]);
 
+  const persistProgressAndClose = useCallback(async () => {
+    if (publishSuccess) {
+      clearPublishedDraftLocally();
+      applyWorkingCopy(buildFreshDraft(), 1);
+      skipAutosave.current = true;
+      onClose();
+      return;
+    }
+
+    const activeDraftId = serverDraftIdRef.current;
+    const activeDraft = {
+      ...formDataRef.current,
+      currentStep: currentStepRef.current,
+    };
+    if (activeDraftId) {
+      try {
+        const saved = await updateGoogleDraftProgress(
+          businessId,
+          activeDraftId,
+          {
+            expectedVersion: serverVersionRef.current ?? 1,
+            currentStep: uiStepToBeProgressStep(activeDraft.currentStep),
+            goalDetailSubstep: activeDraft.goalDetailSubstep,
+          },
+        );
+        if (typeof saved.version === "number") {
+          rememberServerVersion(saved.version, saved.id);
+        }
+      } catch (err) {
+        if (err instanceof GoogleDraftConflictError) {
+          setGoalSaveError(err.message || DRAFT_CONFLICT_MESSAGE);
+        }
+      }
+      saveGoogleCampaignDraft(businessId, activeDraft);
+    }
+    onClose();
+  }, [
+    applyWorkingCopy,
+    buildFreshDraft,
+    businessId,
+    clearPublishedDraftLocally,
+    onClose,
+    publishSuccess,
+    rememberServerVersion,
+  ]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -495,7 +541,7 @@ export function CampaignBuilderWizard({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prev;
     };
-  }, [open, publishing, savingGoal]);
+  }, [open, persistProgressAndClose, publishing, savingGoal]);
 
   useEffect(() => {
     if (!open) return;
@@ -1033,46 +1079,6 @@ export function CampaignBuilderWizard({
     goToStep(Math.min(step + 1, TOTAL_WIZARD_STEPS));
   };
 
-  
-  const persistProgressAndClose = async () => {
-    if (publishSuccess) {
-      clearPublishedDraftLocally();
-      applyWorkingCopy(buildFreshDraft(), 1);
-      skipAutosave.current = true;
-      onClose();
-      return;
-    }
-
-    const activeDraftId = serverDraftIdRef.current;
-    const activeDraft = {
-      ...formDataRef.current,
-      currentStep: currentStepRef.current,
-    };
-    if (activeDraftId) {
-      try {
-        const saved = await updateGoogleDraftProgress(
-          businessId,
-          activeDraftId,
-          {
-            expectedVersion: serverVersionRef.current ?? 1,
-            currentStep: uiStepToBeProgressStep(activeDraft.currentStep),
-            goalDetailSubstep: activeDraft.goalDetailSubstep,
-          },
-        );
-        if (typeof saved.version === "number") {
-          rememberServerVersion(saved.version, saved.id);
-        }
-      } catch (err) {
-        if (err instanceof GoogleDraftConflictError) {
-          setGoalSaveError(err.message || DRAFT_CONFLICT_MESSAGE);
-        }
-        
-      }
-      saveGoogleCampaignDraft(businessId, activeDraft);
-    }
-    onClose();
-  };
-
   const handlePublish = async () => {
     const allErrors = validateAllRequiredSteps(draft);
     if (Object.keys(allErrors).length > 0) {
@@ -1218,12 +1224,9 @@ export function CampaignBuilderWizard({
     }
   };
 
-  if (!open) return null;
+  const progressPct = Math.round((step / TOTAL_WIZARD_STEPS) * 100);
 
-  const progressPct = useMemo(
-    () => Math.round((step / TOTAL_WIZARD_STEPS) * 100),
-    [step],
-  );
+  if (!open) return null;
 
   const isLastStep = step === TOTAL_WIZARD_STEPS;
   const primaryLabel = isLastStep

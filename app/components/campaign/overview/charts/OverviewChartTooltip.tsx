@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Change summary:
- * - What: Prefer payload.actualValue when present (e.g. revenue line visual floor).
- * - Why: Chart may boost tiny points for visibility; hover must still show real $.
- * - Related: BusinessRevenueMiniChart
- * - MCP context 7: display-only; never invent money from the plot transform.
- */
-
 type PayloadItem = {
   name?: string;
   value?: number;
@@ -26,8 +18,8 @@ const SERIES_COLORS: Record<string, string> = {
   "Paid After Signup": "#34a853",
   Meta: "#1877f2",
   meta: "#1877f2",
-  Google: "#34a853",
-  google: "#34a853",
+  Google: "#fbbc04",
+  google: "#fbbc04",
 };
 
 export function OverviewChartTooltip({
@@ -61,7 +53,6 @@ export function OverviewChartTooltip({
       <ul className="m-0 space-y-1.5 p-0">
         {rows.map((item, index) => {
           const row = item.payload;
-          // Prefer actualValue when charts boost tiny points for visibility.
           const value =
             typeof row?.actualValue === "number"
               ? Number(row.actualValue)

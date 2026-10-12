@@ -33,7 +33,7 @@ export const OVERVIEW_CHART_COLORS = {
 
 export const OVERVIEW_AD_SOURCE_COLORS = {
   meta: "#1877f2",
-  google: "#ea4335",
+  google: "#fbbc04",
 } as const;
 
 export const OVERVIEW_MINI_LINE_CHART_MARGIN = {
