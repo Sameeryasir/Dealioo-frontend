@@ -14,6 +14,7 @@ export type FunnelDashboardChartSeries = {
 
 export type FunnelDashboardCharts = {
   funnelId: number;
+  uniqueVisitors: FunnelDashboardChartSeries;
   signups: FunnelDashboardChartSeries;
   payments: FunnelDashboardChartSeries;
   revenue: FunnelDashboardChartSeries;
@@ -83,6 +84,7 @@ export async function getFunnelDashboardCharts(
   const json = (await res.json()) as Partial<FunnelDashboardCharts>;
   return {
     funnelId: Number(json.funnelId) || funnelId,
+    uniqueVisitors: parseSeries(json.uniqueVisitors),
     signups: parseSeries(json.signups),
     payments: parseSeries(json.payments),
     revenue: parseSeries(json.revenue),

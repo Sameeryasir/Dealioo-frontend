@@ -591,6 +591,12 @@ export function FunnelOverviewPanel({
   const signupsAdBreakdown = kpis
     ? metaGoogleBreakdown(kpis.adSources.meta, kpis.adSources.google)
     : undefined;
+  const uniqueVisitorsAdBreakdown = kpis
+    ? metaGoogleBreakdown(
+        kpis.adSources.uniqueVisitors.meta,
+        kpis.adSources.uniqueVisitors.google,
+      )
+    : undefined;
   const paymentsAdBreakdown = kpis
     ? metaGoogleBreakdown(
         kpis.adSources.payments.meta,
@@ -608,6 +614,10 @@ export function FunnelOverviewPanel({
       }))
     : undefined;
   const visitorsAdSeries = useMemo(
+    () => buildVisitorsAdSourceSeries(charts?.uniqueVisitors.data ?? []),
+    [charts?.uniqueVisitors.data],
+  );
+  const signupsAdSeries = useMemo(
     () => buildVisitorsAdSourceSeries(charts?.signups.data ?? []),
     [charts?.signups.data],
   );
@@ -851,7 +861,7 @@ export function FunnelOverviewPanel({
                   icon={Users}
                   iconBg={DASHBOARD_KPI_ICON.blue}
                   hoverTone="blue"
-                  breakdown={signupsAdBreakdown}
+                  breakdown={uniqueVisitorsAdBreakdown}
                   showComparison={showComparison}
                   changePercent={percentChange(
                     kpis.uniqueVisitors,
@@ -894,8 +904,8 @@ export function FunnelOverviewPanel({
                 <VisitorsAdSourcesMiniChart
                   title="Unique visitors"
                   data={visitorsAdSeries}
-                  metaTotal={charts.signups.meta}
-                  googleTotal={charts.signups.google}
+                  metaTotal={charts.uniqueVisitors.meta}
+                  googleTotal={charts.uniqueVisitors.google}
                   caption={periodLabel}
                   accent="blue"
                 />
@@ -906,7 +916,7 @@ export function FunnelOverviewPanel({
               >
                 <VisitorsAdSourcesMiniChart
                   title="Signups"
-                  data={visitorsAdSeries}
+                  data={signupsAdSeries}
                   metaTotal={charts.signups.meta}
                   googleTotal={charts.signups.google}
                   caption={periodLabel}

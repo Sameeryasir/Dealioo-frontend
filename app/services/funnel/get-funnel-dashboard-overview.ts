@@ -93,6 +93,10 @@ export async function getFunnelDashboardOverview(
     adSources: {
       meta: Number(json.adSources?.meta) || 0,
       google: Number(json.adSources?.google) || 0,
+      uniqueVisitors: {
+        meta: Number(json.adSources?.uniqueVisitors?.meta) || 0,
+        google: Number(json.adSources?.uniqueVisitors?.google) || 0,
+      },
       payments: {
         meta: Number(json.adSources?.payments?.meta) || 0,
         google: Number(json.adSources?.payments?.google) || 0,
@@ -117,6 +121,7 @@ export async function getFunnelDashboardOverview(
           }
         : null,
     charts: {
+      uniqueVisitors: parseChartSeries(json.charts?.uniqueVisitors),
       signups: parseChartSeries(json.charts?.signups),
       payments: parseChartSeries(json.charts?.payments),
       revenue: parseChartSeries(json.charts?.revenue),

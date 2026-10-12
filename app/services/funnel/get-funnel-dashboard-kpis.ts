@@ -16,6 +16,7 @@ export type FunnelDashboardKpis = {
   adSources: {
     meta: number;
     google: number;
+    uniqueVisitors: { meta: number; google: number };
     payments: { meta: number; google: number };
     revenue: { meta: number; google: number };
   };
@@ -86,6 +87,10 @@ export async function getFunnelDashboardKpis(
     adSources: {
       meta: Number(json.adSources?.meta) || 0,
       google: Number(json.adSources?.google) || 0,
+      uniqueVisitors: {
+        meta: Number(json.adSources?.uniqueVisitors?.meta) || 0,
+        google: Number(json.adSources?.uniqueVisitors?.google) || 0,
+      },
       payments: {
         meta: Number(json.adSources?.payments?.meta) || 0,
         google: Number(json.adSources?.payments?.google) || 0,
