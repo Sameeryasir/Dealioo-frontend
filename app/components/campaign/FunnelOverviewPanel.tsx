@@ -50,7 +50,7 @@ import {
   getFunnelStatsMonthly,
   type FunnelStatsMonthlyPoint,
 } from "@/app/services/funnel/get-funnel-stats-monthly";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -522,7 +522,6 @@ export function FunnelOverviewPanel({
     ],
     enabled: funnelId != null && funnelId > 0,
     staleTime: 30_000,
-    placeholderData: keepPreviousData,
     queryFn: () =>
       getFunnelDashboardOverview(funnelId!, {
         from: periodRange.from,
@@ -541,7 +540,6 @@ export function FunnelOverviewPanel({
     ),
     enabled: funnelId != null && funnelId > 0,
     staleTime: 30_000,
-    placeholderData: keepPreviousData,
     queryFn: () =>
       getFunnelDropoff(funnelId!, {
         from: periodRange.from,
@@ -636,13 +634,14 @@ export function FunnelOverviewPanel({
 
   const dashboardReady =
     kpis != null && charts != null && dropoffQuery.data != null;
-  const isPeriodRefreshing =
-    dashboardReady &&
-    (overviewQuery.isFetching || dropoffQuery.isFetching);
   const showSkeleton =
     isFunnelIdLoading ||
     (funnelId != null &&
       !dashboardReady &&
+      (overviewQuery.isPending ||
+        dropoffQuery.isPending ||
+        overviewQuery.isFetching ||
+        dropoffQuery.isFetching) &&
       !overviewQuery.isError &&
       !dropoffQuery.isError);
   const showNoFunnelMessage = !showSkeleton && funnelId == null;
@@ -694,10 +693,8 @@ export function FunnelOverviewPanel({
 
           {!showSkeleton && dashboardReady && kpis && charts && dropoffQuery.data ? (
           <motion.div
-            key="overview-content"
-            className={`funnel-overview-content transition-opacity duration-200 ${
-              isPeriodRefreshing ? "pointer-events-none opacity-55" : "opacity-100"
-            }`}
+            key={`${periodRange.from}:${periodRange.to}`}
+            className="funnel-overview-content"
             variants={funnelPanelStagger}
             initial="hidden"
             animate="show"
