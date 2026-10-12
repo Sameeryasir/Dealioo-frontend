@@ -54,6 +54,15 @@ export function resolveRestaurantMembers(row: ActivityMonthlyPoint): number {
   return row.restaurantMembers ?? 0;
 }
 
+// --- Orders channel helpers (Orders KPI Funnel / Store tags) ---
+export function resolveFunnelOrders(row: ActivityMonthlyPoint): number {
+  return row.funnelOrders ?? 0;
+}
+
+export function resolveInStoreOrders(row: ActivityMonthlyPoint): number {
+  return row.inStoreOrders ?? 0;
+}
+
 export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
   checkIns: number;
   revenueCents: number;
@@ -63,6 +72,8 @@ export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
   inStoreCheckIns: number;
   funnelMembers: number;
   restaurantMembers: number;
+  funnelOrders: number;
+  inStoreOrders: number;
 } {
   return points.reduce(
     (acc, row) => ({
@@ -76,6 +87,8 @@ export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
       funnelMembers: acc.funnelMembers + resolveFunnelMembers(row),
       restaurantMembers:
         acc.restaurantMembers + resolveRestaurantMembers(row),
+      funnelOrders: acc.funnelOrders + resolveFunnelOrders(row),
+      inStoreOrders: acc.inStoreOrders + resolveInStoreOrders(row),
     }),
     {
       checkIns: 0,
@@ -86,6 +99,8 @@ export function sumActivityFromMonthly(points: ActivityMonthlyPoint[]): {
       inStoreCheckIns: 0,
       funnelMembers: 0,
       restaurantMembers: 0,
+      funnelOrders: 0,
+      inStoreOrders: 0,
     },
   );
 }

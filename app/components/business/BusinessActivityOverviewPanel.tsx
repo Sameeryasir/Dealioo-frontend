@@ -664,7 +664,7 @@ export function BusinessActivityOverviewPanel({
                 ]}
               />
               <OverviewKpiTile
-                label="Guests"
+                label="Active Guests"
                 value={activeGuests}
                 hint="Unique guests in this period"
                 icon={UserRound}
