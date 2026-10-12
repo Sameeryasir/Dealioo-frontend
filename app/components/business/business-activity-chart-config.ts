@@ -54,7 +54,6 @@ export function resolveRestaurantMembers(row: ActivityMonthlyPoint): number {
   return row.restaurantMembers ?? 0;
 }
 
-// --- Orders channel helpers (Orders KPI Funnel / Store tags) ---
 export function resolveFunnelOrders(row: ActivityMonthlyPoint): number {
   return row.funnelOrders ?? 0;
 }

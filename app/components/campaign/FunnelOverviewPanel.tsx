@@ -48,12 +48,11 @@ import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
-import { getAnalyticsOverviewMonthly } from "@/app/services/funnel/get-analytics-overview-monthly";
+import { getFunnelDashboardOverview } from "@/app/services/funnel/get-funnel-dashboard-overview";
 import {
   getFunnelStatsMonthly,
   type FunnelStatsMonthlyPoint,
 } from "@/app/services/funnel/get-funnel-stats-monthly";
-import { getFunnelGuestAdSources } from "@/app/services/funnel-event/get-funnel-guest-ad-sources";
 import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
@@ -515,96 +514,24 @@ export function FunnelOverviewPanel({
     calendarMode === "month" && monthFilter === currentActivityMonthKey();
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  const statsQuery = useQuery({
+  const overviewQuery = useQuery({
     queryKey: [
-      "funnel-stats-range",
+      "funnel-dashboard-overview",
       funnelId,
       periodRange.from,
       periodRange.to,
-      viewerTimeZone,
-    ],
-    enabled: funnelId != null && funnelId > 0,
-    staleTime: 5_000,
-    queryFn: () =>
-      getFunnelStatsMonthly(funnelId!, {
-        from: periodRange.from,
-        to: periodRange.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const previousStatsQuery = useQuery({
-    queryKey: [
-      "funnel-stats-previous",
-      funnelId,
       previousRange?.from ?? null,
       previousRange?.to ?? null,
       viewerTimeZone,
     ],
-    enabled:
-      funnelId != null &&
-      funnelId > 0 &&
-      previousRange?.from != null &&
-      previousRange?.to != null,
-    staleTime: 5_000,
-    queryFn: () =>
-      getFunnelStatsMonthly(funnelId!, {
-        from: previousRange!.from,
-        to: previousRange!.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const analyticsQuery = useQuery({
-    queryKey: [
-      "funnel-analytics-range",
-      funnelId,
-      periodRange.from,
-      periodRange.to,
-      viewerTimeZone,
-    ],
     enabled: funnelId != null && funnelId > 0,
-    staleTime: 5_000,
+    staleTime: 30_000,
     queryFn: () =>
-      getAnalyticsOverviewMonthly(funnelId!, {
+      getFunnelDashboardOverview(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const previousAnalyticsQuery = useQuery({
-    queryKey: [
-      "funnel-analytics-previous",
-      funnelId,
-      previousRange?.from ?? null,
-      previousRange?.to ?? null,
-      viewerTimeZone,
-    ],
-    enabled:
-      funnelId != null &&
-      funnelId > 0 &&
-      previousRange?.from != null &&
-      previousRange?.to != null,
-    staleTime: 5_000,
-    queryFn: () =>
-      getAnalyticsOverviewMonthly(funnelId!, {
-        from: previousRange!.from,
-        to: previousRange!.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const adSourcesQuery = useQuery({
-    queryKey: [
-      "funnel-guest-ad-sources",
-      funnelId,
-      periodRange.from,
-      periodRange.to,
-      viewerTimeZone,
-    ],
-    enabled: funnelId != null && funnelId > 0,
-    staleTime: 5_000,
-    queryFn: () =>
-      getFunnelGuestAdSources(funnelId!, {
-        from: periodRange.from,
-        to: periodRange.to,
+        previousFrom: previousRange?.from,
+        previousTo: previousRange?.to,
         timezone: viewerTimeZone,
       }),
   });
@@ -615,22 +542,22 @@ export function FunnelOverviewPanel({
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
 
-  const statsMonthly = statsQuery.data;
-  const analyticsMonthly = analyticsQuery.data;
-  const adSources = adSourcesQuery.data;
+  const statsMonthly = overviewQuery.data?.stats;
+  const analyticsMonthly = overviewQuery.data?.analytics;
+  const adSources = overviewQuery.data?.adSources;
   const previousStatsTotals = useMemo(
     () =>
-      previousStatsQuery.data?.data
-        ? sumStatsFromMonthly(previousStatsQuery.data.data)
+      overviewQuery.data?.previous?.stats?.data
+        ? sumStatsFromMonthly(overviewQuery.data.previous.stats.data)
         : null,
-    [previousStatsQuery.data],
+    [overviewQuery.data],
   );
   const previousAnalyticsTotals = useMemo(
     () =>
-      previousAnalyticsQuery.data?.data
-        ? sumAnalyticsFromMonthly(previousAnalyticsQuery.data.data)
+      overviewQuery.data?.previous?.analytics?.data
+        ? sumAnalyticsFromMonthly(overviewQuery.data.previous.analytics.data)
         : null,
-    [previousAnalyticsQuery.data],
+    [overviewQuery.data],
   );
   const peakMonth = useMemo(
     () =>
@@ -697,7 +624,7 @@ export function FunnelOverviewPanel({
 
   const showSkeleton =
     isFunnelIdLoading ||
-    (funnelId != null && (statsQuery.isPending || analyticsQuery.isPending));
+    (funnelId != null && overviewQuery.isPending);
   const showNoFunnelMessage = !showSkeleton && funnelId == null;
 
   const statsPoints = useMemo(() => {
@@ -717,11 +644,9 @@ export function FunnelOverviewPanel({
   const alertMessage =
     showSkeleton || dismissedErrorFunnelId === funnelId
       ? null
-      : statsQuery.isError
-        ? "Could not load funnel stats for this period."
-        : analyticsQuery.isError
-          ? "Could not load behavior analytics for this period."
-          : null;
+      : overviewQuery.isError
+        ? "Could not load campaign overview stats for this period."
+        : null;
 
   const monthlyStatsTotals = useMemo(
     () => (statsPoints ? sumStatsFromMonthly(statsPoints) : null),

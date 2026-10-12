@@ -58,7 +58,6 @@ export type ActivityMonthlyPoint = {
   prepaidRevenueCents: number;
   extraItemsRevenueCents?: number;
   orders?: number;
-  // Funnel = online checkout; In-store = scanner/counter (Orders KPI tags).
   funnelOrders?: number;
   inStoreOrders?: number;
   members?: number;
