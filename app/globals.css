@@ -15463,6 +15463,27 @@ body:has(.rd-shell--app) {
   height: 100%;
 }
 
+@keyframes funnel-editor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.funnel-editor-enter {
+  animation: funnel-editor-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-editor-enter {
+    animation: none;
+  }
+}
+
 .editor-funnel-step-thumb img {
   transform: none;
 }

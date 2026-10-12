@@ -2,27 +2,19 @@
 
 import dynamic from "next/dynamic";
 import type { CrmTemplateEditorProps } from "@/app/components/crm-template-editor/CrmTemplateEditor";
+import { warmupFunnelEditorChunk } from "@/app/lib/funnel-editor-warmup";
 
-function CrmTemplateEditorLoading() {
-  return (
-    <div
-      className="flex h-full min-h-[20rem] w-full flex-1 items-center justify-center bg-[#f4f8ff] text-sm text-slate-500"
-      aria-busy="true"
-      aria-label="Loading funnel editor"
-    >
-      Loading funnel editor…
-    </div>
-  );
-}
-
-export const LazyCrmTemplateEditor = dynamic(
+export const LazyCrmTemplateEditor = dynamic<CrmTemplateEditorProps>(
   () =>
-    import("@/app/components/crm-template-editor/CrmTemplateEditor").then(
-      (mod) => mod.CrmTemplateEditor,
-    ),
+    warmupFunnelEditorChunk().then((mod) => {
+      const { CrmTemplateEditor } = mod as typeof import(
+        "@/app/components/crm-template-editor/CrmTemplateEditor"
+      );
+      return CrmTemplateEditor;
+    }),
   {
     ssr: false,
-    loading: () => <CrmTemplateEditorLoading />,
+    loading: () => null,
   },
 );
 

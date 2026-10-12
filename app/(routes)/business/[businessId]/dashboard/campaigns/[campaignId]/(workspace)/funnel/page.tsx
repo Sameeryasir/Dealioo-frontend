@@ -1,12 +1,16 @@
 "use client";
 
+import { FunnelEditorPageShell } from "@/app/components/crm-template-editor/FunnelEditorPageShell";
 import { LazyCrmTemplateEditor } from "@/app/components/crm-template-editor/LazyCrmTemplateEditor";
+import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
 import { useCampaignByIdQuery } from "@/app/hooks/use-campaigns-by-business-query";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
-import { InvalidRouteMessage } from "@/app/components/InvalidRouteMessage";
+import { useFunnelEditorWarmup } from "@/app/hooks/use-funnel-editor-warmup";
+import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
+import { warmupFunnelEditorChunk } from "@/app/lib/funnel-editor-warmup";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function CampaignFunnelPage() {
   const router = useRouter();
@@ -19,11 +23,29 @@ export default function CampaignFunnelPage() {
     () => parseRoutePositiveInt(params.campaignId),
     [params.campaignId],
   );
+  const funnelHref =
+    businessId != null && campaignId != null
+      ? campaignDashboardHref(businessId, campaignId, "funnel")
+      : null;
+
   const { data: campaign } = useCampaignByIdQuery(campaignId ?? undefined);
   const { can, isFetched, isOwnerLike } = useBusinessMembershipPermissions(
     businessId ?? null,
   );
   const canAccess = isOwnerLike || can("funnels_edit");
+  const [editorReady, setEditorReady] = useState(false);
+
+  useFunnelEditorWarmup(Boolean(funnelHref && (!isFetched || canAccess)), funnelHref);
+
+  useEffect(() => {
+    let cancelled = false;
+    void warmupFunnelEditorChunk().finally(() => {
+      if (!cancelled) setEditorReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isFetched || campaignId == null || businessId == null) return;
@@ -36,12 +58,12 @@ export default function CampaignFunnelPage() {
     return <InvalidRouteMessage />;
   }
 
-  if (!isFetched || !canAccess) {
+  if (!isFetched || !canAccess || !editorReady) {
     return null;
   }
 
   return (
-    <div className="funnel-editor-host flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <FunnelEditorPageShell>
       <LazyCrmTemplateEditor
         embedded
         businessId={businessId}
@@ -52,6 +74,6 @@ export default function CampaignFunnelPage() {
         campaignOffer={campaign?.offer}
         campaignType={campaign?.campaignType}
       />
-    </div>
+    </FunnelEditorPageShell>
   );
 }

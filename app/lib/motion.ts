@@ -12,16 +12,16 @@ export const panelStagger = {
 export const funnelPanelStagger = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.06 },
+    transition: { staggerChildren: 0.04, delayChildren: 0.02 },
   },
 };
 
 export const funnelPanelItem = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: standardEase },
+    transition: { duration: 0.26, ease: standardEase },
   },
 };
 
