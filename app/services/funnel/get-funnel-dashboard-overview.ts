@@ -87,6 +87,7 @@ export async function getFunnelDashboardOverview(
       method: "GET",
       headers: { Accept: "application/json" },
     },
+    45_000,
   );
 
   if (!res.ok) {
