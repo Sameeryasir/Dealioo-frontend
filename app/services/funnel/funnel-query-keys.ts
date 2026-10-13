@@ -30,9 +30,19 @@ export const funnelQueryKeys = {
     funnelId: number,
     from = "",
     to = "",
+    previousFrom: string | null = null,
+    previousTo: string | null = null,
     timezone = "",
   ) =>
-    [...funnelQueryKeys.dashboardKpis(), funnelId, from, to, timezone] as const,
+    [
+      ...funnelQueryKeys.dashboardKpis(),
+      funnelId,
+      from,
+      to,
+      previousFrom,
+      previousTo,
+      timezone,
+    ] as const,
   dashboardCharts: () => [...funnelQueryKeys.all, "dashboard-charts"] as const,
   dashboardChartsByFunnel: (
     funnelId: number,

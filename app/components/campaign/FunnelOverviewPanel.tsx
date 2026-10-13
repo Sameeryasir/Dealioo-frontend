@@ -43,7 +43,8 @@ import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
-import { getFunnelDashboardOverview } from "@/app/services/funnel/get-funnel-dashboard-overview";
+import { getFunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
+import { getFunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
 import { getFunnelDropoff } from "@/app/services/funnel/get-funnel-dropoff";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import {
@@ -510,24 +511,39 @@ export function FunnelOverviewPanel({
     calendarMode === "month" && monthFilter === currentActivityMonthKey();
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  const overviewQuery = useQuery({
-    queryKey: [
-      "funnel-dashboard-overview",
-      funnelId,
+  const kpisQuery = useQuery({
+    queryKey: funnelQueryKeys.dashboardKpisByFunnel(
+      funnelId ?? 0,
       periodRange.from,
       periodRange.to,
       previousRange?.from ?? null,
       previousRange?.to ?? null,
       viewerTimeZone,
-    ],
+    ),
     enabled: funnelId != null && funnelId > 0,
     staleTime: 30_000,
     queryFn: () =>
-      getFunnelDashboardOverview(funnelId!, {
+      getFunnelDashboardKpis(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
         previousFrom: previousRange?.from,
         previousTo: previousRange?.to,
+        timezone: viewerTimeZone,
+      }),
+  });
+  const chartsQuery = useQuery({
+    queryKey: funnelQueryKeys.dashboardChartsByFunnel(
+      funnelId ?? 0,
+      periodRange.from,
+      periodRange.to,
+      viewerTimeZone,
+    ),
+    enabled: funnelId != null && funnelId > 0,
+    staleTime: 30_000,
+    queryFn: () =>
+      getFunnelDashboardCharts(funnelId!, {
+        from: periodRange.from,
+        to: periodRange.to,
         timezone: viewerTimeZone,
       }),
   });
@@ -554,9 +570,8 @@ export function FunnelOverviewPanel({
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
 
-  const overview = overviewQuery.data;
-  const kpis = overview ?? null;
-  const charts = overview?.charts ?? null;
+  const kpis = kpisQuery.data ?? null;
+  const charts = chartsQuery.data ?? null;
   const previousKpis = kpis?.previous ?? null;
   const peakMonth = useMemo(
     () =>
@@ -632,24 +647,29 @@ export function FunnelOverviewPanel({
     number | null
   >(null);
 
-  const dashboardReady =
-    kpis != null && charts != null && dropoffQuery.data != null;
-  const showSkeleton =
+  const kpisReady = kpis != null;
+  const chartsReady = charts != null && dropoffQuery.data != null;
+  const showFullSkeleton =
     isFunnelIdLoading ||
     (funnelId != null &&
-      !dashboardReady &&
-      (overviewQuery.isPending ||
-        dropoffQuery.isPending ||
-        overviewQuery.isFetching ||
-        dropoffQuery.isFetching) &&
-      !overviewQuery.isError &&
-      !dropoffQuery.isError);
-  const showNoFunnelMessage = !showSkeleton && funnelId == null;
+      !kpisReady &&
+      (kpisQuery.isPending || kpisQuery.isFetching) &&
+      !kpisQuery.isError);
+  const showChartsSkeleton =
+    kpisReady &&
+    !chartsReady &&
+    !chartsQuery.isError &&
+    !dropoffQuery.isError &&
+    (chartsQuery.isPending ||
+      chartsQuery.isFetching ||
+      dropoffQuery.isPending ||
+      dropoffQuery.isFetching);
+  const showNoFunnelMessage = !showFullSkeleton && funnelId == null;
 
   const alertMessage =
-    showSkeleton || dismissedErrorFunnelId === funnelId
+    showFullSkeleton || dismissedErrorFunnelId === funnelId
       ? null
-      : overviewQuery.isError || dropoffQuery.isError
+      : kpisQuery.isError || chartsQuery.isError || dropoffQuery.isError
         ? "Could not load campaign overview stats for this period."
         : null;
 
@@ -686,12 +706,12 @@ export function FunnelOverviewPanel({
       ) : (
         <div
           className={`rd-premium-panel__body ${
-            showSkeleton ? panelSkeletonPadClass : panelBodyPadClass
+            showFullSkeleton ? panelSkeletonPadClass : panelBodyPadClass
           }`}
         >
-          {showSkeleton ? <OverviewSkeleton /> : null}
+          {showFullSkeleton ? <OverviewSkeleton /> : null}
 
-          {!showSkeleton && dashboardReady && kpis && charts && dropoffQuery.data ? (
+          {!showFullSkeleton && kpisReady && kpis ? (
           <motion.div
             key={`${periodRange.from}:${periodRange.to}`}
             className="funnel-overview-content"
@@ -871,86 +891,123 @@ export function FunnelOverviewPanel({
               </motion.div>
             </motion.section>
 
-            <motion.section
-              className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
-              aria-label="Funnel drop-off"
-              variants={funnelPanelItem}
-            >
-              <motion.div
-                className="funnel-overview-chart-slot"
+            {showChartsSkeleton ? (
+              <motion.section
+                className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
+                aria-label="Loading campaign charts"
                 variants={funnelPanelItem}
               >
-                <FunnelDropoffMiniChart
-                  pageViews={dropoffQuery.data.pageViews}
-                  signups={dropoffQuery.data.signups}
-                  payments={dropoffQuery.data.payments}
-                  caption={periodLabel}
-                />
-              </motion.div>
-            </motion.section>
+                <div className="funnel-overview-chart-slot">
+                  <FunnelDropoffMiniChartSkeleton />
+                </div>
+                {(
+                  [
+                    { title: "Unique visitors", accent: "blue" as const },
+                    { title: "Signups", accent: "green" as const },
+                    { title: "Payments", accent: "orange" as const },
+                    {
+                      title: "Revenue",
+                      accent:
+                        calendarMode === "day"
+                          ? ("orange" as const)
+                          : ("pink" as const),
+                    },
+                  ] as const
+                ).map((chart) => (
+                  <div key={chart.title} className="funnel-overview-chart-slot">
+                    <OverviewLineChartSkeleton
+                      title={chart.title}
+                      accent={chart.accent}
+                    />
+                  </div>
+                ))}
+              </motion.section>
+            ) : null}
 
-            <motion.section
-              className="funnel-overview-chart-grid"
-              aria-label="Campaign charts"
-              variants={funnelPanelItem}
-            >
-              <motion.div
-                className="funnel-overview-chart-slot"
-                variants={funnelPanelItem}
-              >
-                <VisitorsAdSourcesMiniChart
-                  title="Unique visitors"
-                  data={visitorsAdSeries}
-                  metaTotal={charts.uniqueVisitors.meta}
-                  googleTotal={charts.uniqueVisitors.google}
-                  caption={periodLabel}
-                  accent="blue"
-                />
-              </motion.div>
-              <motion.div
-                className="funnel-overview-chart-slot"
-                variants={funnelPanelItem}
-              >
-                <VisitorsAdSourcesMiniChart
-                  title="Signups"
-                  data={signupsAdSeries}
-                  metaTotal={charts.signups.meta}
-                  googleTotal={charts.signups.google}
-                  caption={periodLabel}
-                  accent="green"
-                />
-              </motion.div>
-              <motion.div
-                className="funnel-overview-chart-slot"
-                variants={funnelPanelItem}
-              >
-                <VisitorsAdSourcesMiniChart
-                  title="Payments"
-                  data={paymentsAdSeries}
-                  metaTotal={charts.payments.meta}
-                  googleTotal={charts.payments.google}
-                  caption={periodLabel}
-                  accent="orange"
-                />
-              </motion.div>
-              <motion.div
-                className="funnel-overview-chart-slot"
-                variants={funnelPanelItem}
-              >
-                <VisitorsAdSourcesMiniChart
-                  title="Revenue"
-                  data={revenueAdSeries}
-                  metaTotal={charts.revenue.meta}
-                  googleTotal={charts.revenue.google}
-                  caption={periodLabel}
-                  accent={calendarMode === "day" ? "orange" : "pink"}
-                  yAxisWidth={52}
-                  formatTotal={(cents) =>
-                    formatCents(cents, revenueCurrency)
-                  }
-                />
-              </motion.div>
-            </motion.section>
+            {chartsReady && charts && dropoffQuery.data ? (
+              <>
+                <motion.section
+                  className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
+                  aria-label="Funnel drop-off"
+                  variants={funnelPanelItem}
+                >
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <FunnelDropoffMiniChart
+                      pageViews={dropoffQuery.data.pageViews}
+                      signups={dropoffQuery.data.signups}
+                      payments={dropoffQuery.data.payments}
+                      caption={periodLabel}
+                    />
+                  </motion.div>
+                </motion.section>
+
+                <motion.section
+                  className="funnel-overview-chart-grid"
+                  aria-label="Campaign charts"
+                  variants={funnelPanelItem}
+                >
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <VisitorsAdSourcesMiniChart
+                      title="Unique visitors"
+                      data={visitorsAdSeries}
+                      metaTotal={charts.uniqueVisitors.meta}
+                      googleTotal={charts.uniqueVisitors.google}
+                      caption={periodLabel}
+                      accent="blue"
+                    />
+                  </motion.div>
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <VisitorsAdSourcesMiniChart
+                      title="Signups"
+                      data={signupsAdSeries}
+                      metaTotal={charts.signups.meta}
+                      googleTotal={charts.signups.google}
+                      caption={periodLabel}
+                      accent="green"
+                    />
+                  </motion.div>
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <VisitorsAdSourcesMiniChart
+                      title="Payments"
+                      data={paymentsAdSeries}
+                      metaTotal={charts.payments.meta}
+                      googleTotal={charts.payments.google}
+                      caption={periodLabel}
+                      accent="orange"
+                    />
+                  </motion.div>
+                  <motion.div
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <VisitorsAdSourcesMiniChart
+                      title="Revenue"
+                      data={revenueAdSeries}
+                      metaTotal={charts.revenue.meta}
+                      googleTotal={charts.revenue.google}
+                      caption={periodLabel}
+                      accent={calendarMode === "day" ? "orange" : "pink"}
+                      yAxisWidth={52}
+                      formatTotal={(cents) =>
+                        formatCents(cents, revenueCurrency)
+                      }
+                    />
+                  </motion.div>
+                </motion.section>
+              </>
+            ) : null}
           </motion.div>
           ) : null}
         </div>
