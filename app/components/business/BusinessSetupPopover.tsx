@@ -106,7 +106,7 @@ function CompletedStepRow({ step }: { step: BusinessSetupStep }) {
         <span className="org-biz-setup-step-title">{step.label}</span>
       </span>
       <span className="org-biz-setup-step-check" aria-hidden>
-        <Check className="size-3" strokeWidth={3} />
+        <Check className="size-4" strokeWidth={2.75} />
       </span>
     </span>
   );
@@ -226,7 +226,7 @@ export function BusinessSetupPopover({
                   <div className="org-biz-setup-modal-head-row">
                     <div className="org-biz-setup-head-copy">
                       <span className="org-biz-setup-head-icon" aria-hidden>
-                        <ClipboardCheck className="size-5" strokeWidth={2.2} />
+                        <ClipboardCheck className="size-7" strokeWidth={2.1} />
                       </span>
                       <div>
                         <p className="org-biz-setup-popover-title">
