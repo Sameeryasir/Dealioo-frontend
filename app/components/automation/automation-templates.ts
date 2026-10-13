@@ -436,6 +436,7 @@ export const PAYMENT_REMINDER_TEMPLATE: AutomationTemplate = {
         frequency: "interval",
         interval: 2,
         unit: "minutes",
+        executionMode: "graph",
       },
     },
     {
