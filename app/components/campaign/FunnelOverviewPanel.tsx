@@ -387,7 +387,7 @@ function OverviewHighlightSkeleton() {
 function OverviewSkeleton() {
   const lineChartSkeletons = [
     { title: "Unique visitors", accent: "blue" as const },
-    { title: "Signups", accent: "green" as const },
+    { title: "Unpaid signups", accent: "green" as const },
     { title: "Payments", accent: "orange" as const },
     { title: "Revenue", accent: "pink" as const },
   ];
@@ -900,7 +900,7 @@ export function FunnelOverviewPanel({
             >
               <motion.div className="h-full" variants={funnelPanelItem}>
                 <OverviewKpiTile
-                  label="Signups"
+                  label="Unpaid signups"
                   value={kpis.signups}
                   hint={periodLabel}
                   icon={UserPlus}
@@ -1051,7 +1051,7 @@ export function FunnelOverviewPanel({
                 {(
                   [
                     { title: "Unique visitors", accent: "blue" as const },
-                    { title: "Signups", accent: "green" as const },
+                    { title: "Unpaid signups", accent: "green" as const },
                     { title: "Payments", accent: "orange" as const },
                     {
                       title: "Revenue",
@@ -1115,7 +1115,7 @@ export function FunnelOverviewPanel({
                     variants={funnelPanelItem}
                   >
                     <VisitorsAdSourcesMiniChart
-                      title="Signups"
+                      title="Unpaid signups"
                       data={signupsAdSeries}
                       metaTotal={charts.signups.meta}
                       googleTotal={charts.signups.google}
