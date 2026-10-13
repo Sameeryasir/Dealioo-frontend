@@ -1,5 +1,6 @@
 "use client";
 
+import { AdSpendSection } from "@/app/components/ads/AdSpendCards";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import {
@@ -30,11 +31,18 @@ import {
   resolveActivityDateRange,
   resolveActivityPreviousComparisonRange,
 } from "@/app/lib/activity-month-filter";
-import { businessActivityQueryKeys } from "@/app/lib/ads-stats-query-keys";
+import {
+  adsStatsQueryKeys,
+  businessActivityQueryKeys,
+} from "@/app/lib/ads-stats-query-keys";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
+import { isPositiveInt } from "@/app/lib/numbers";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
+import { getBusinessMetaSpend } from "@/app/services/facebook/get-business-meta-spend";
+import { getBusinessGoogleSpend } from "@/app/services/google-ads/get-business-google-spend";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
@@ -379,10 +387,62 @@ export function BusinessActivityOverviewPanel({
     [currentYear, yearPeakQuery.data?.data],
   );
 
+  const adsInsightsPeriod = monthFilter;
+  const adsMonthLabel = formatActivityMonthLabel(monthFilter);
+  const adsSpendEnabled =
+    calendarMode === "month" &&
+    isPositiveInt(businessId) &&
+    hasAuthSession();
+
+  const metaSpendQuery = useQuery({
+    queryKey:
+      businessId != null
+        ? adsStatsQueryKeys.businessMetaSpend(businessId, adsInsightsPeriod)
+        : adsStatsQueryKeys.metaDisabled(),
+    enabled: adsSpendEnabled,
+    staleTime: 60_000,
+    queryFn: () => getBusinessMetaSpend(businessId!, adsInsightsPeriod),
+  });
+
+  const googleSpendQuery = useQuery({
+    queryKey:
+      businessId != null
+        ? adsStatsQueryKeys.businessGoogleSpend(businessId, adsInsightsPeriod)
+        : adsStatsQueryKeys.googleDisabled(),
+    enabled: adsSpendEnabled,
+    staleTime: 60_000,
+    queryFn: () => getBusinessGoogleSpend(businessId!, adsInsightsPeriod),
+  });
+
+  const metaAdsSpendCents = useMemo(() => {
+    const spend = metaSpendQuery.data?.spend;
+    if (spend == null || !Number.isFinite(spend)) return 0;
+    return Math.round(spend * 100);
+  }, [metaSpendQuery.data?.spend]);
+
+  const googleAdsSpendCents = useMemo(() => {
+    const spend = googleSpendQuery.data?.spend;
+    if (spend == null || !Number.isFinite(spend)) return 0;
+    return Math.round(spend * 100);
+  }, [googleSpendQuery.data?.spend]);
+
+  const adsSpendCurrency =
+    metaSpendQuery.data?.currency?.trim() ||
+    googleSpendQuery.data?.currency?.trim() ||
+    "usd";
+  const metaSpendLoading =
+    adsSpendEnabled &&
+    metaSpendQuery.isPending &&
+    metaSpendQuery.data == null;
+  const googleSpendLoading =
+    adsSpendEnabled &&
+    googleSpendQuery.isPending &&
+    googleSpendQuery.data == null;
+
   const periodLabel =
     calendarMode === "day"
       ? formatActivityDateLabel(dateFilter)
-      : formatActivityMonthLabel(monthFilter);
+      : adsMonthLabel;
   const comparisonLabel =
     calendarMode === "day" ? "same day last month" : "previous month";
   const periodInProgress =
@@ -751,6 +811,34 @@ export function BusinessActivityOverviewPanel({
                 ]}
               />
             </section>
+
+            {adsSpendEnabled ? (
+              <AdSpendSection
+                monthLabel={adsMonthLabel}
+                subtitle={`Collected stats for the published ads across this business · ${adsMonthLabel}`}
+                currency={adsSpendCurrency}
+                metaLoading={metaSpendLoading}
+                googleLoading={googleSpendLoading}
+                meta={{
+                  spendCents: metaAdsSpendCents,
+                  linkedCount:
+                    metaSpendQuery.data?.linkedMetaCampaignCount ?? 0,
+                  impressions: metaSpendQuery.data?.impressions ?? 0,
+                  reach: metaSpendQuery.data?.reach ?? 0,
+                  clicks: metaSpendQuery.data?.clicks ?? 0,
+                  ctr: metaSpendQuery.data?.ctr ?? null,
+                }}
+                google={{
+                  spendCents: googleAdsSpendCents,
+                  linkedCount:
+                    googleSpendQuery.data?.linkedGoogleCampaignCount ?? 0,
+                  impressions: googleSpendQuery.data?.impressions ?? 0,
+                  reach: googleSpendQuery.data?.reach ?? 0,
+                  clicks: googleSpendQuery.data?.clicks ?? 0,
+                  ctr: googleSpendQuery.data?.ctr ?? null,
+                }}
+              />
+            ) : null}
 
             <section className="rd-premium-section" aria-label="Performance charts">
               <div className="mb-1 px-0.5">

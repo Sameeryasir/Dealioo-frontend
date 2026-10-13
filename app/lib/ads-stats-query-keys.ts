@@ -9,6 +9,7 @@ export const adsStatsQueryKeys = {
       page: number;
       pageSize: number;
       query: string;
+      campaignIds?: string[];
     },
   ) =>
     [
@@ -19,9 +20,31 @@ export const adsStatsQueryKeys = {
       options.page,
       options.pageSize,
       options.query,
+      ...(options.campaignIds?.length
+        ? [options.campaignIds.slice().sort().join(",")]
+        : []),
     ] as const,
   facebookConnection: (businessId: number) =>
     [...adsStatsQueryKeys.meta(), "connection", businessId] as const,
+  businessMetaSpend: (businessId: number, period: string) =>
+    [
+      ...adsStatsQueryKeys.meta(),
+      "business-meta-spend",
+      businessId,
+      period,
+    ] as const,
+  dealioCampaignMetaSpend: (
+    businessId: number,
+    campaignId: number,
+    period: string,
+  ) =>
+    [
+      ...adsStatsQueryKeys.meta(),
+      "dealio-campaign-meta-spend",
+      businessId,
+      campaignId,
+      period,
+    ] as const,
   google: () => [...adsStatsQueryKeys.all, "google"] as const,
   googleDisabled: () => [...adsStatsQueryKeys.google(), "disabled"] as const,
   googleCampaignStats: (
@@ -33,6 +56,25 @@ export const adsStatsQueryKeys = {
       "campaign-stats",
       businessId,
       options.period,
+    ] as const,
+  businessGoogleSpend: (businessId: number, period: string) =>
+    [
+      ...adsStatsQueryKeys.google(),
+      "business-google-spend",
+      businessId,
+      period,
+    ] as const,
+  dealioCampaignGoogleSpend: (
+    businessId: number,
+    campaignId: number,
+    period: string,
+  ) =>
+    [
+      ...adsStatsQueryKeys.google(),
+      "dealio-campaign-google-spend",
+      businessId,
+      campaignId,
+      period,
     ] as const,
 };
 

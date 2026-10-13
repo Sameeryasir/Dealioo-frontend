@@ -14,6 +14,10 @@ import {
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import {
+  AdSpendCard,
+  AdSpendCardSkeleton,
+} from "@/app/components/ads/AdSpendCards";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { OverviewPeriodFilter } from "@/app/components/campaign/overview/OverviewPeriodFilter";
 import {
@@ -37,12 +41,16 @@ import {
   resolveActivityDateRange,
   resolveActivityPreviousComparisonRange,
 } from "@/app/lib/activity-month-filter";
+import { adsStatsQueryKeys } from "@/app/lib/ads-stats-query-keys";
+import { hasAuthSession } from "@/app/lib/auth-session";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { useCountUp } from "@/app/hooks/use-count-up";
 import { formatCents } from "@/app/lib/money";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/motion";
+import { isPositiveInt } from "@/app/lib/numbers";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import { getDealioCampaignMetaSpend } from "@/app/services/facebook/get-dealio-campaign-meta-spend";
 import { getFunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
 import { getFunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
 import { getFunnelDropoff } from "@/app/services/funnel/get-funnel-dropoff";
@@ -51,6 +59,7 @@ import {
   getFunnelStatsMonthly,
   type FunnelStatsMonthlyPoint,
 } from "@/app/services/funnel/get-funnel-stats-monthly";
+import { getDealioCampaignGoogleSpend } from "@/app/services/google-ads/get-dealio-campaign-google-spend";
 import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
@@ -190,11 +199,11 @@ function OverviewKpiBreakdown({
   const usePills = items.some((item) => item.color);
   if (usePills) {
     return (
-      <ul className="m-0 mt-1.5 flex list-none flex-wrap items-center gap-1.5 p-0">
+      <ul className="m-0 mt-1.5 flex list-none flex-nowrap items-center gap-1 overflow-hidden p-0">
         {items.map((item) => (
           <li
             key={item.label}
-            className="inline-flex items-center gap-1 rounded-full bg-[#f8fafc] px-2 py-0.5 ring-1 ring-[#e8edf5]"
+            className="inline-flex min-w-0 max-w-[50%] items-center gap-1 rounded-full bg-[#f8fafc] px-1.5 py-0.5 ring-1 ring-[#e8edf5]"
           >
             {item.color ? (
               <span
@@ -203,10 +212,13 @@ function OverviewKpiBreakdown({
                 aria-hidden
               />
             ) : null}
-            <span className="text-[0.65rem] font-semibold text-slate-600">
+            <span className="shrink-0 text-[0.62rem] font-semibold text-slate-600">
               {item.label}
             </span>
-            <span className="text-[0.65rem] font-extrabold tabular-nums text-[#07111f]">
+            <span
+              className="truncate text-[0.62rem] font-extrabold tabular-nums text-[#07111f]"
+              title={item.value}
+            >
               {item.value}
             </span>
           </li>
@@ -465,6 +477,8 @@ function NoFunnelEmptyState({
 }
 
 export function FunnelOverviewPanel({
+  businessId = null,
+  campaignId = null,
   funnelId,
   isFunnelIdLoading = false,
   onCreateFunnel,
@@ -493,10 +507,12 @@ export function FunnelOverviewPanel({
       resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
     );
   }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
+  const adsInsightsPeriod = monthFilter;
+  const adsMonthLabel = formatActivityMonthLabel(monthFilter);
   const periodLabel =
     calendarMode === "day"
       ? formatActivityDateLabel(dateFilter)
-      : formatActivityMonthLabel(monthFilter);
+      : adsMonthLabel;
   const previousRange = useMemo(
     () =>
       resolveActivityPreviousComparisonRange(
@@ -569,6 +585,81 @@ export function FunnelOverviewPanel({
     staleTime: 60_000,
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
+
+  const adsSpendEnabled =
+    calendarMode === "month" &&
+    isPositiveInt(businessId) &&
+    isPositiveInt(campaignId) &&
+    hasAuthSession();
+
+  const metaSpendQuery = useQuery({
+    queryKey:
+      businessId != null && campaignId != null
+        ? adsStatsQueryKeys.dealioCampaignMetaSpend(
+            businessId,
+            campaignId,
+            adsInsightsPeriod,
+          )
+        : adsStatsQueryKeys.metaDisabled(),
+    enabled: adsSpendEnabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      getDealioCampaignMetaSpend(
+        businessId!,
+        campaignId!,
+        adsInsightsPeriod,
+      ),
+  });
+
+  const googleSpendQuery = useQuery({
+    queryKey:
+      businessId != null && campaignId != null
+        ? adsStatsQueryKeys.dealioCampaignGoogleSpend(
+            businessId,
+            campaignId,
+            adsInsightsPeriod,
+          )
+        : adsStatsQueryKeys.googleDisabled(),
+    enabled: adsSpendEnabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      getDealioCampaignGoogleSpend(
+        businessId!,
+        campaignId!,
+        adsInsightsPeriod,
+      ),
+  });
+
+  const metaAdsSpendCents = useMemo(() => {
+    const spend = metaSpendQuery.data?.spend;
+    if (spend == null || !Number.isFinite(spend)) return 0;
+    return Math.round(spend * 100);
+  }, [metaSpendQuery.data?.spend]);
+
+  const linkedMetaCampaignCount =
+    metaSpendQuery.data?.linkedMetaCampaignCount ?? 0;
+
+  const googleAdsSpendCents = useMemo(() => {
+    const spend = googleSpendQuery.data?.spend;
+    if (spend == null || !Number.isFinite(spend)) return 0;
+    return Math.round(spend * 100);
+  }, [googleSpendQuery.data?.spend]);
+
+  const linkedGoogleCampaignCount =
+    googleSpendQuery.data?.linkedGoogleCampaignCount ?? 0;
+
+  const adsSpendCurrency =
+    metaSpendQuery.data?.currency?.trim() ||
+    googleSpendQuery.data?.currency?.trim() ||
+    null;
+  const metaSpendLoading =
+    adsSpendEnabled &&
+    metaSpendQuery.isPending &&
+    metaSpendQuery.data == null;
+  const googleSpendLoading =
+    adsSpendEnabled &&
+    googleSpendQuery.isPending &&
+    googleSpendQuery.data == null;
 
   const kpis = kpisQuery.data ?? null;
   const charts = chartsQuery.data ?? null;
@@ -890,6 +981,63 @@ export function FunnelOverviewPanel({
                 />
               </motion.div>
             </motion.section>
+
+            {adsSpendEnabled ? (
+              <motion.section
+                className="funnel-overview-ad-spend"
+                aria-label={`Ad spend for ${adsMonthLabel}`}
+                variants={funnelPanelStagger}
+              >
+                <motion.div
+                  className="funnel-overview-ad-spend__heading"
+                  variants={funnelPanelItem}
+                >
+                  <p className="funnel-overview-ad-spend__title">Ad spend</p>
+                  <p className="funnel-overview-ad-spend__subtitle">
+                    Collected stats for the published ads on this campaign ·{" "}
+                    {adsMonthLabel}
+                  </p>
+                </motion.div>
+                <div className="funnel-overview-ad-spend__grid">
+                  <motion.div className="h-full" variants={funnelPanelItem}>
+                    {metaSpendLoading ? (
+                      <AdSpendCardSkeleton accent="meta" />
+                    ) : (
+                      <AdSpendCard
+                        provider="Meta Ads"
+                        spendCents={metaAdsSpendCents}
+                        currency={adsSpendCurrency ?? revenueCurrency}
+                        monthLabel={adsMonthLabel}
+                        linkedCount={linkedMetaCampaignCount}
+                        accent="meta"
+                        impressions={metaSpendQuery.data?.impressions ?? 0}
+                        reach={metaSpendQuery.data?.reach ?? 0}
+                        clicks={metaSpendQuery.data?.clicks ?? 0}
+                        ctr={metaSpendQuery.data?.ctr ?? null}
+                      />
+                    )}
+                  </motion.div>
+                  <motion.div className="h-full" variants={funnelPanelItem}>
+                    {googleSpendLoading ? (
+                      <AdSpendCardSkeleton accent="google" />
+                    ) : (
+                      <AdSpendCard
+                        provider="Google Ads"
+                        spendCents={googleAdsSpendCents}
+                        currency={adsSpendCurrency ?? revenueCurrency}
+                        monthLabel={adsMonthLabel}
+                        linkedCount={linkedGoogleCampaignCount}
+                        accent="google"
+                        impressions={googleSpendQuery.data?.impressions ?? 0}
+                        reach={googleSpendQuery.data?.reach ?? 0}
+                        clicks={googleSpendQuery.data?.clicks ?? 0}
+                        ctr={googleSpendQuery.data?.ctr ?? null}
+                      />
+                    )}
+                  </motion.div>
+                </div>
+              </motion.section>
+            ) : null}
 
             {showChartsSkeleton ? (
               <motion.section
