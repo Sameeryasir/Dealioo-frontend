@@ -9,7 +9,13 @@ import { isPositiveInt } from "@/app/lib/numbers";
 export type FunnelDashboardChartSeries = {
   meta: number;
   google: number;
-  data: Array<{ month: string; meta: number; google: number }>;
+  inStore: number;
+  data: Array<{
+    month: string;
+    meta: number;
+    google: number;
+    inStore: number;
+  }>;
 };
 
 export type FunnelDashboardCharts = {
@@ -21,7 +27,7 @@ export type FunnelDashboardCharts = {
 };
 
 function emptySeries(): FunnelDashboardChartSeries {
-  return { meta: 0, google: 0, data: [] };
+  return { meta: 0, google: 0, inStore: 0, data: [] };
 }
 
 function parseSeries(raw: unknown): FunnelDashboardChartSeries {
@@ -32,11 +38,13 @@ function parseSeries(raw: unknown): FunnelDashboardChartSeries {
         month: String(row?.month ?? ""),
         meta: Number(row?.meta) || 0,
         google: Number(row?.google) || 0,
+        inStore: Number(row?.inStore) || 0,
       }))
     : [];
   return {
     meta: Number(json.meta) || 0,
     google: Number(json.google) || 0,
+    inStore: Number(json.inStore) || 0,
     data,
   };
 }

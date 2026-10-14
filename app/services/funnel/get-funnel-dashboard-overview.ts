@@ -13,7 +13,17 @@ export type FunnelDashboardOverview = FunnelDashboardKpis & {
 };
 
 function emptyChartSeries() {
-  return { meta: 0, google: 0, data: [] as Array<{ month: string; meta: number; google: number }> };
+  return {
+    meta: 0,
+    google: 0,
+    inStore: 0,
+    data: [] as Array<{
+      month: string;
+      meta: number;
+      google: number;
+      inStore: number;
+    }>,
+  };
 }
 
 function parseChartSeries(raw: unknown) {
@@ -24,11 +34,13 @@ function parseChartSeries(raw: unknown) {
         month: String(row?.month ?? ""),
         meta: Number(row?.meta) || 0,
         google: Number(row?.google) || 0,
+        inStore: Number(row?.inStore) || 0,
       }))
     : [];
   return {
     meta: Number(json.meta) || 0,
     google: Number(json.google) || 0,
+    inStore: Number(json.inStore) || 0,
     data,
   };
 }
@@ -96,14 +108,17 @@ export async function getFunnelDashboardOverview(
       uniqueVisitors: {
         meta: Number(json.adSources?.uniqueVisitors?.meta) || 0,
         google: Number(json.adSources?.uniqueVisitors?.google) || 0,
+        inStore: Number(json.adSources?.uniqueVisitors?.inStore) || 0,
       },
       payments: {
         meta: Number(json.adSources?.payments?.meta) || 0,
         google: Number(json.adSources?.payments?.google) || 0,
+        inStore: Number(json.adSources?.payments?.inStore) || 0,
       },
       revenue: {
         meta: Number(json.adSources?.revenue?.meta) || 0,
         google: Number(json.adSources?.revenue?.google) || 0,
+        inStore: Number(json.adSources?.revenue?.inStore) || 0,
       },
     },
     previous:

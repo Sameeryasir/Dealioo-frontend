@@ -26,20 +26,22 @@ import {
   type CampaignReviewRecord,
   type CampaignReviewSummary,
 } from "@/app/services/campaign-review/campaign-review-api";
+import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import {
   Activity,
   Calendar,
   Check,
+  ChevronDown,
   Copy,
   Download,
   Mail,
-  MessageSquareText,
   Search,
   Star,
   UserRound,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 const reviewsCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -210,6 +212,123 @@ function ReviewsTableSkeleton() {
   );
 }
 
+const REVIEW_RATING_OPTIONS: Array<{ value: number | null; label: string }> = [
+  { value: null, label: "All stars" },
+  { value: 5, label: "5 stars" },
+  { value: 4, label: "4 stars" },
+  { value: 3, label: "3 stars" },
+  { value: 2, label: "2 stars" },
+  { value: 1, label: "1 star" },
+];
+
+function RatingOptionLabel({ value }: { value: number | null }) {
+  if (value == null) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        All
+        <Star
+          className="size-3.5 fill-[#f5b301] text-[#f5b301]"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span>{value}</span>
+      <Star
+        className="size-3.5 fill-[#f5b301] text-[#f5b301]"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+    </span>
+  );
+}
+
+function ReviewsRatingFilter({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) {
+  const {
+    open,
+    setOpen,
+    mounted,
+    anchorRef,
+    menuRef,
+    menuPosition,
+    menuStyle,
+  } = useAnchoredMenu({
+    width: 132,
+    align: "left",
+    estimatedHeight: 220,
+  });
+
+  const menu =
+    open && menuPosition ? (
+      <div ref={menuRef}>
+        <div
+          role="listbox"
+          aria-label="Filter by rating"
+          style={menuStyle}
+          className="overflow-hidden rounded-xl border border-[#e8edf5] bg-white py-1 shadow-[0_12px_32px_rgba(15,23,42,0.1)]"
+        >
+          {REVIEW_RATING_OPTIONS.map((option) => {
+            const selected = option.value === value;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold transition ${
+                  selected
+                    ? "bg-[#eff6ff] text-[#1877f2]"
+                    : "text-[#07111f] hover:bg-[#f8fafc]"
+                }`}
+              >
+                <RatingOptionLabel value={option.value} />
+                {selected ? (
+                  <Check className="size-3.5 shrink-0" aria-hidden />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ) : null;
+
+  return (
+    <div ref={anchorRef} className="relative h-9">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Filter by rating"
+        className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-[#07111f] outline-none transition hover:border-[#0B69FC]/35 focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15"
+      >
+        <RatingOptionLabel value={value} />
+        <ChevronDown
+          className={`size-3.5 shrink-0 text-slate-400 transition ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
+      </button>
+      {mounted && menu ? createPortal(menu, document.body) : null}
+    </div>
+  );
+}
+
 function ReviewsPanelHeader({
   total,
   summary,
@@ -282,31 +401,10 @@ function ReviewsPanelHeader({
               className="h-9 w-44 rounded-xl border border-[#e8edf5] bg-white pl-8 pr-3 text-xs leading-none text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15 sm:w-56"
             />
           </label>
-          <label className="block h-9">
-            <span className="sr-only">Filter by rating</span>
-            <select
-              value={ratingFilter == null ? "" : String(ratingFilter)}
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (!raw) {
-                  setRatingFilter(null);
-                  return;
-                }
-                const next = Number.parseInt(raw, 10);
-                setRatingFilter(
-                  Number.isFinite(next) && next >= 1 && next <= 5 ? next : null,
-                );
-              }}
-              className="h-9 cursor-pointer rounded-xl border border-[#e8edf5] bg-white px-3 text-xs font-semibold text-[#07111f] outline-none focus:border-[#0B69FC]/40 focus:ring-2 focus:ring-[#0B69FC]/15"
-            >
-              <option value="">All stars</option>
-              {[5, 4, 3, 2, 1].map((stars) => (
-                <option key={stars} value={stars}>
-                  {stars}★
-                </option>
-              ))}
-            </select>
-          </label>
+          <ReviewsRatingFilter
+            value={ratingFilter}
+            onChange={setRatingFilter}
+          />
           <div className="flex flex-wrap items-center gap-1.5">
             <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
               <button
@@ -368,10 +466,6 @@ function ReviewsPanelHeader({
         <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#fde68a] bg-[#fffbeb] px-3 text-[0.72rem] font-semibold text-[#92400e]">
           <Star className="size-3.5 fill-[#f5b301] text-[#f5b301]" aria-hidden />
           Avg {avgLabel}
-        </span>
-        <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-3 text-[0.72rem] font-semibold text-slate-500">
-          {summary.requestsSent}{" "}
-          {summary.requestsSent === 1 ? "request sent" : "requests sent"}
         </span>
       </div>
     </div>
@@ -463,11 +557,6 @@ function ReviewMobileCard({
           {review.guestEmail}
         </p>
       ) : null}
-      <p className="m-0 mt-2 text-[0.8rem] font-medium leading-relaxed text-slate-700">
-        {review.comment || (
-          <span className="italic text-slate-400">No written comment</span>
-        )}
-      </p>
     </article>
   );
 }
@@ -482,7 +571,7 @@ function ReviewsTableSection({
   return (
     <div>
       <div className="table-h-scroll hidden md:block">
-        <table className="w-full min-w-[52rem] border-collapse">
+        <table className="w-full min-w-[40rem] border-collapse">
           <thead>
             <motion.tr
               variants={tableHeaderReveal}
@@ -517,14 +606,6 @@ function ReviewsTableSection({
                 <TableColumnHeader
                   icon={Star}
                   label="Rating"
-                  iconClassName={TABLE_HEAD_ICON_CLASS}
-                  labelClassName={TABLE_HEAD_LABEL_CLASS}
-                />
-              </th>
-              <th className={thClass}>
-                <TableColumnHeader
-                  icon={MessageSquareText}
-                  label="Feedback"
                   iconClassName={TABLE_HEAD_ICON_CLASS}
                   labelClassName={TABLE_HEAD_LABEL_CLASS}
                 />
@@ -595,18 +676,6 @@ function ReviewsTableSection({
                         {review.rating}.0
                       </span>
                     </div>
-                  </td>
-                  <td className={tdClass}>
-                    {review.comment ? (
-                      <p
-                        className="m-0 max-w-[18rem] truncate text-sm font-normal text-slate-700"
-                        title={review.comment}
-                      >
-                        {review.comment}
-                      </p>
-                    ) : (
-                      <span className="italic text-slate-300">No comment</span>
-                    )}
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-slate-600">
@@ -694,8 +763,16 @@ export function CampaignReviewsPanel({
     periodRange,
   );
 
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [alertDismissed, setAlertDismissed] = useState(false);
+  const [exportAlert, setExportAlert] = useState<string | null>(null);
+  const [queryAlertDismissed, setQueryAlertDismissed] = useState(false);
+  const [alertCampaignId, setAlertCampaignId] = useState(campaignId);
+
+  // Reset alerts when switching campaigns (render-time sync, not an effect).
+  if (alertCampaignId !== campaignId) {
+    setAlertCampaignId(campaignId);
+    setQueryAlertDismissed(false);
+    setExportAlert(null);
+  }
 
   const pageSize = meta?.limit ?? CAMPAIGN_REVIEWS_PAGE_SIZE;
   const rowOffset = useMemo(
@@ -712,16 +789,9 @@ export function CampaignReviewsPanel({
   const showTable = !showSkeleton && !error && reviews.length > 0;
   const showCenteredEmpty = showNoFunnelMessage || showNoRecords;
   const total = meta?.total ?? 0;
-
-  useEffect(() => {
-    if (showSkeleton || !error || alertDismissed) return;
-    setAlertMessage(error);
-  }, [error, showSkeleton, alertDismissed]);
-
-  useEffect(() => {
-    setAlertDismissed(false);
-    setAlertMessage(null);
-  }, [campaignId]);
+  const queryAlert =
+    !showSkeleton && error && !queryAlertDismissed ? error : null;
+  const alertMessage = exportAlert ?? queryAlert;
 
   const clearReviewsFilters = () => {
     setSearch("");
@@ -755,7 +825,7 @@ export function CampaignReviewsPanel({
       } while (exportPage <= totalPages && exportPage <= 40);
       exportReviewsCsv(collected);
     } catch (err: unknown) {
-      setAlertMessage(
+      setExportAlert(
         err instanceof Error ? err.message : "Could not export reviews.",
       );
     } finally {
@@ -872,8 +942,8 @@ export function CampaignReviewsPanel({
       open={alertMessage != null}
       message={alertMessage ?? ""}
       onClose={() => {
-        setAlertMessage(null);
-        setAlertDismissed(true);
+        setExportAlert(null);
+        if (error) setQueryAlertDismissed(true);
       }}
     />
   );

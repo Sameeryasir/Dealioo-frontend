@@ -7,12 +7,13 @@ import {
   DollarSign,
   Layers,
   Plus,
+  Store,
   Trophy,
   UserPlus,
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AdSpendCard,
@@ -30,6 +31,10 @@ import {
   VisitorsAdSourcesMiniChart,
 } from "@/app/components/campaign/overview/charts/VisitorsAdSourcesMiniChart";
 import { formatMonthLabel } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  GoogleAdsLogo,
+  MetaLogo,
+} from "@/app/components/landing/LandingIntegrationLogos";
 import { Skeleton } from "@/app/components/skeleton";
 import {
   currentActivityDateKey,
@@ -189,6 +194,26 @@ function OverviewKpiChange({
   );
 }
 
+function OverviewKpiSourceIcon({ label }: { label: string }): ReactNode {
+  const key = label.trim().toLowerCase();
+  if (key === "meta") {
+    return <MetaLogo className="size-3 shrink-0" />;
+  }
+  if (key === "google") {
+    return <GoogleAdsLogo className="size-3 shrink-0" />;
+  }
+  if (key === "in store") {
+    return (
+      <Store
+        className="size-3 shrink-0 text-slate-500"
+        strokeWidth={2.25}
+        aria-hidden
+      />
+    );
+  }
+  return null;
+}
+
 function OverviewKpiBreakdown({
   items,
 }: {
@@ -199,30 +224,39 @@ function OverviewKpiBreakdown({
   const usePills = items.some((item) => item.color);
   if (usePills) {
     return (
-      <ul className="m-0 mt-1.5 flex list-none flex-nowrap items-center gap-1 overflow-hidden p-0">
-        {items.map((item) => (
-          <li
-            key={item.label}
-            className="inline-flex min-w-0 max-w-[50%] items-center gap-1 rounded-full bg-[#f8fafc] px-1.5 py-0.5 ring-1 ring-[#e8edf5]"
-          >
-            {item.color ? (
-              <span
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: item.color }}
-                aria-hidden
-              />
-            ) : null}
-            <span className="shrink-0 text-[0.62rem] font-semibold text-slate-600">
-              {item.label}
-            </span>
-            <span
-              className="truncate text-[0.62rem] font-extrabold tabular-nums text-[#07111f]"
-              title={item.value}
+      <ul className="m-0 mt-1.5 flex list-none flex-nowrap items-center gap-2.5 overflow-hidden p-0">
+        {items.map((item) => {
+          const sourceIcon = <OverviewKpiSourceIcon label={item.label} />;
+          const hasKnownSourceIcon =
+            ["meta", "google", "in store"].includes(
+              item.label.trim().toLowerCase(),
+            );
+          return (
+            <li
+              key={item.label}
+              className="inline-flex min-w-0 shrink items-center gap-1"
+              title={`${item.label} ${item.value}`}
+              aria-label={`${item.label} ${item.value}`}
             >
-              {item.value}
-            </span>
-          </li>
-        ))}
+              {hasKnownSourceIcon ? (
+                sourceIcon
+              ) : item.color ? (
+                <span
+                  className="size-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                  aria-hidden
+                />
+              ) : (
+                <span className="shrink-0 text-[0.62rem] font-semibold text-slate-600">
+                  {item.label}
+                </span>
+              )}
+              <span className="min-w-0 truncate whitespace-nowrap text-[0.62rem] font-extrabold tabular-nums text-[#07111f]">
+                {item.value}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     );
   }
@@ -663,6 +697,7 @@ export function FunnelOverviewPanel({
 
   const kpis = kpisQuery.data ?? null;
   const charts = chartsQuery.data ?? null;
+  const dropoff = dropoffQuery.data ?? null;
   const previousKpis = kpis?.previous ?? null;
   const peakMonth = useMemo(
     () =>
@@ -692,26 +727,41 @@ export function FunnelOverviewPanel({
       color: OVERVIEW_AD_SOURCE_COLORS.google,
     },
   ];
+  const metaGoogleInStoreBreakdown = (
+    meta: number,
+    google: number,
+    inStore: number,
+  ): Array<{ label: string; value: string; color: string }> => [
+    ...metaGoogleBreakdown(meta, google),
+    {
+      label: "In store",
+      value: String(inStore),
+      color: OVERVIEW_AD_SOURCE_COLORS.inStore,
+    },
+  ];
   const signupsAdBreakdown = kpis
     ? metaGoogleBreakdown(kpis.adSources.meta, kpis.adSources.google)
     : undefined;
   const uniqueVisitorsAdBreakdown = kpis
-    ? metaGoogleBreakdown(
+    ? metaGoogleInStoreBreakdown(
         kpis.adSources.uniqueVisitors.meta,
         kpis.adSources.uniqueVisitors.google,
+        kpis.adSources.uniqueVisitors.inStore,
       )
     : undefined;
   const paymentsAdBreakdown = kpis
-    ? metaGoogleBreakdown(
+    ? metaGoogleInStoreBreakdown(
         kpis.adSources.payments.meta,
         kpis.adSources.payments.google,
+        kpis.adSources.payments.inStore,
       )
     : undefined;
   const revenueCurrency = kpis?.currency ?? "usd";
   const revenueAdBreakdown = kpis
-    ? metaGoogleBreakdown(
+    ? metaGoogleInStoreBreakdown(
         kpis.adSources.revenue.meta,
         kpis.adSources.revenue.google,
+        kpis.adSources.revenue.inStore,
       ).map((item) => ({
         ...item,
         value: formatCents(Number(item.value) || 0, revenueCurrency),
@@ -739,7 +789,8 @@ export function FunnelOverviewPanel({
   >(null);
 
   const kpisReady = kpis != null;
-  const chartsReady = charts != null && dropoffQuery.data != null;
+  const chartsReady = charts != null;
+  const dropoffReady = dropoff != null;
   const showFullSkeleton =
     isFunnelIdLoading ||
     (funnelId != null &&
@@ -750,11 +801,12 @@ export function FunnelOverviewPanel({
     kpisReady &&
     !chartsReady &&
     !chartsQuery.isError &&
+    (chartsQuery.isPending || chartsQuery.isFetching);
+  const showDropoffSkeleton =
+    kpisReady &&
+    !dropoffReady &&
     !dropoffQuery.isError &&
-    (chartsQuery.isPending ||
-      chartsQuery.isFetching ||
-      dropoffQuery.isPending ||
-      dropoffQuery.isFetching);
+    (dropoffQuery.isPending || dropoffQuery.isFetching);
   const showNoFunnelMessage = !showFullSkeleton && funnelId == null;
 
   const alertMessage =
@@ -1039,15 +1091,38 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {showChartsSkeleton ? (
+            {showDropoffSkeleton || dropoffReady ? (
               <motion.section
                 className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
+                aria-label={
+                  dropoffReady ? "Funnel drop-off" : "Loading funnel drop-off"
+                }
+                variants={funnelPanelItem}
+              >
+                <motion.div
+                  className="funnel-overview-chart-slot"
+                  variants={funnelPanelItem}
+                >
+                  {dropoff ? (
+                    <FunnelDropoffMiniChart
+                      pageViews={dropoff.pageViews}
+                      signups={dropoff.signups}
+                      payments={dropoff.payments}
+                      caption={periodLabel}
+                    />
+                  ) : (
+                    <FunnelDropoffMiniChartSkeleton />
+                  )}
+                </motion.div>
+              </motion.section>
+            ) : null}
+
+            {showChartsSkeleton ? (
+              <motion.section
+                className="funnel-overview-chart-grid"
                 aria-label="Loading campaign charts"
                 variants={funnelPanelItem}
               >
-                <div className="funnel-overview-chart-slot">
-                  <FunnelDropoffMiniChartSkeleton />
-                </div>
                 {(
                   [
                     { title: "Unique visitors", accent: "blue" as const },
@@ -1072,26 +1147,8 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {chartsReady && charts && dropoffQuery.data ? (
+            {chartsReady && charts ? (
               <>
-                <motion.section
-                  className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
-                  aria-label="Funnel drop-off"
-                  variants={funnelPanelItem}
-                >
-                  <motion.div
-                    className="funnel-overview-chart-slot"
-                    variants={funnelPanelItem}
-                  >
-                    <FunnelDropoffMiniChart
-                      pageViews={dropoffQuery.data.pageViews}
-                      signups={dropoffQuery.data.signups}
-                      payments={dropoffQuery.data.payments}
-                      caption={periodLabel}
-                    />
-                  </motion.div>
-                </motion.section>
-
                 <motion.section
                   className="funnel-overview-chart-grid"
                   aria-label="Campaign charts"
@@ -1106,6 +1163,8 @@ export function FunnelOverviewPanel({
                       data={visitorsAdSeries}
                       metaTotal={charts.uniqueVisitors.meta}
                       googleTotal={charts.uniqueVisitors.google}
+                      inStoreTotal={charts.uniqueVisitors.inStore}
+                      showInStore
                       caption={periodLabel}
                       accent="blue"
                     />
@@ -1132,6 +1191,8 @@ export function FunnelOverviewPanel({
                       data={paymentsAdSeries}
                       metaTotal={charts.payments.meta}
                       googleTotal={charts.payments.google}
+                      inStoreTotal={charts.payments.inStore}
+                      showInStore
                       caption={periodLabel}
                       accent="orange"
                     />
@@ -1145,6 +1206,8 @@ export function FunnelOverviewPanel({
                       data={revenueAdSeries}
                       metaTotal={charts.revenue.meta}
                       googleTotal={charts.revenue.google}
+                      inStoreTotal={charts.revenue.inStore}
+                      showInStore
                       caption={periodLabel}
                       accent={calendarMode === "day" ? "orange" : "pink"}
                       yAxisWidth={52}

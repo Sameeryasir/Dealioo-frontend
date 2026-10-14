@@ -58,6 +58,8 @@ export function FunnelRevenueMiniChart({
     ...row,
     value: row.value / 100,
   }));
+  const hasData =
+    totalRevenueCents > 0 || data.some((row) => Number(row.value) > 0);
 
   return (
     <OverviewChartShell
@@ -71,7 +73,9 @@ export function FunnelRevenueMiniChart({
       <div className="h-[250px] w-full min-w-0">
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-            <OverviewChartGradientDefs stops={gradient.stops} />
+            {hasData ? (
+              <OverviewChartGradientDefs stops={gradient.stops} />
+            ) : null}
             <CartesianGrid
               strokeDasharray="4 6"
               stroke="#e8edf5"
@@ -98,37 +102,41 @@ export function FunnelRevenueMiniChart({
               }
             />
             <Tooltip content={<OverviewChartTooltip />} />
-            <Area
-              id={`${gradient.lineId}-fill`}
-              type="monotone"
-              dataKey="value"
-              stroke="none"
-              fill={`url(#${gradient.areaId})`}
-              fillOpacity={1}
-              tooltipType="none"
-              {...OVERVIEW_LINE_ANIMATION}
-            />
-            <Line
-              id={`${gradient.lineId}-stroke`}
-              type="monotone"
-              dataKey="value"
-              name="Revenue"
-              stroke={strokeColor}
-              strokeWidth={3}
-              {...OVERVIEW_LINE_ANIMATION}
-              dot={{
-                r: 3.5,
-                fill: "#ffffff",
-                stroke: strokeColor,
-                strokeWidth: 2.5,
-              }}
-              activeDot={{
-                r: 6,
-                fill: strokeColor,
-                stroke: "#ffffff",
-                strokeWidth: 3,
-              }}
-            />
+            {hasData ? (
+              <>
+                <Area
+                  id={`${gradient.lineId}-fill`}
+                  type="monotone"
+                  dataKey="value"
+                  stroke="none"
+                  fill={`url(#${gradient.areaId})`}
+                  fillOpacity={1}
+                  tooltipType="none"
+                  {...OVERVIEW_LINE_ANIMATION}
+                />
+                <Line
+                  id={`${gradient.lineId}-stroke`}
+                  type="monotone"
+                  dataKey="value"
+                  name="Revenue"
+                  stroke={strokeColor}
+                  strokeWidth={3}
+                  {...OVERVIEW_LINE_ANIMATION}
+                  dot={{
+                    r: 3.5,
+                    fill: "#ffffff",
+                    stroke: strokeColor,
+                    strokeWidth: 2.5,
+                  }}
+                  activeDot={{
+                    r: 6,
+                    fill: strokeColor,
+                    stroke: "#ffffff",
+                    strokeWidth: 3,
+                  }}
+                />
+              </>
+            ) : null}
           </LineChart>
         </ResponsiveContainer>
       </div>
