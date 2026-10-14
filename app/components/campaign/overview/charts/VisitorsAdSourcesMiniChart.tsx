@@ -108,11 +108,11 @@ export function VisitorsAdSourcesMiniChart({
       };
     }
   }
-  const periodWinner = resolveWinner(
-    metaTotal,
-    googleTotal,
-    showInStore ? inStoreTotal : 0,
-  );
+  const inStoreForWinner = showInStore ? inStoreTotal : 0;
+  const hasSourceStats = metaTotal + googleTotal + inStoreForWinner > 0;
+  const periodWinner = hasSourceStats
+    ? resolveWinner(metaTotal, googleTotal, inStoreForWinner)
+    : null;
 
   const legendItems = [
     {

@@ -2,9 +2,9 @@ export const CAMPAIGN_DASHBOARD_TABS = [
   { id: "overview", label: "Overview" },
   { id: "guests", label: "Guests" },
   { id: "orders", label: "Orders" },
-  { id: "reviews", label: "Reviews" },
   { id: "funnel", label: "Funnel" },
   { id: "automations", label: "Automations" },
+  { id: "reviews", label: "Reviews" },
 ] as const;
 
 export type CampaignDashboardTabId =

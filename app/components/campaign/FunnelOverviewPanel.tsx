@@ -68,7 +68,7 @@ import { useQuery } from "@tanstack/react-query";
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
-type AdSourceWinner = "meta" | "google" | "tie";
+type AdSourceWinner = "meta" | "google" | "inStore" | "tie";
 
 function percentChange(
   current: number,
@@ -82,10 +82,41 @@ function percentChange(
 function resolveAdSourceWinner(
   meta: number,
   google: number,
+  inStore = 0,
 ): AdSourceWinner | null {
-  if (meta <= 0 && google <= 0) return null;
-  if (meta === google) return "tie";
-  return meta > google ? "meta" : "google";
+  const max = Math.max(meta, google, inStore);
+  if (max <= 0) return null;
+  const leaders = [
+    meta === max ? ("meta" as const) : null,
+    google === max ? ("google" as const) : null,
+    inStore === max ? ("inStore" as const) : null,
+  ].filter((value): value is Exclude<AdSourceWinner, "tie"> => value != null);
+  if (leaders.length !== 1) return "tie";
+  return leaders[0];
+}
+
+function AdSourceWinnerIcon({ winner }: { winner: AdSourceWinner }) {
+  if (winner === "meta") {
+    return <MetaLogo className="size-3.5 shrink-0" />;
+  }
+  if (winner === "google") {
+    return <GoogleAdsLogo className="size-3.5 shrink-0" />;
+  }
+  if (winner === "inStore") {
+    return (
+      <Store
+        className="size-3.5 shrink-0 text-slate-500"
+        strokeWidth={2.25}
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden>
+      <MetaLogo className="size-3 shrink-0" />
+      <GoogleAdsLogo className="size-3 shrink-0" />
+    </span>
+  );
 }
 
 function findPeakFunnelMonthInYear(
@@ -559,7 +590,6 @@ export function FunnelOverviewPanel({
     calendarMode === "month" && monthFilter === currentActivityMonthKey();
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  // One API for KPIs + charts + dropoff (same pattern as business dashboard summary).
   const overviewQuery = useQuery({
     queryKey: funnelQueryKeys.dashboardOverviewByFunnel(
       funnelId ?? 0,
@@ -674,9 +704,20 @@ export function FunnelOverviewPanel({
   );
   const sourceWinner = useMemo(() => {
     if (!kpis) return null;
+    const hasStats =
+      kpis.signups > 0 ||
+      kpis.payments > 0 ||
+      kpis.revenue > 0 ||
+      kpis.uniqueVisitors > 0;
+    if (!hasStats) return null;
+
     const meta = kpis.adSources.meta + kpis.adSources.payments.meta;
     const google = kpis.adSources.google + kpis.adSources.payments.google;
-    return resolveAdSourceWinner(meta, google);
+    const inStore =
+      kpis.adSources.payments.inStore + kpis.adSources.uniqueVisitors.inStore;
+    if (meta + google + inStore <= 0) return null;
+
+    return resolveAdSourceWinner(meta, google, inStore);
   }, [kpis]);
 
   const showComparison = previousRange != null && previousKpis != null;
@@ -860,18 +901,7 @@ export function FunnelOverviewPanel({
                 ) : null}
                 {sourceWinner ? (
                   <div className="flex min-w-0 items-center gap-2 rounded-xl bg-[#f8fafc] px-3 py-2 ring-1 ring-[#e8edf5]">
-                    <span
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor:
-                          sourceWinner === "google"
-                            ? OVERVIEW_AD_SOURCE_COLORS.google
-                            : sourceWinner === "meta"
-                              ? OVERVIEW_AD_SOURCE_COLORS.meta
-                              : "#94a3b8",
-                      }}
-                      aria-hidden
-                    />
+                    <AdSourceWinnerIcon winner={sourceWinner} />
                     <p className="m-0 text-[0.72rem] font-semibold text-slate-600">
                       Winner ·{" "}
                       <span
@@ -882,14 +912,18 @@ export function FunnelOverviewPanel({
                               ? OVERVIEW_AD_SOURCE_COLORS.google
                               : sourceWinner === "meta"
                                 ? OVERVIEW_AD_SOURCE_COLORS.meta
-                                : "#07111f",
+                                : sourceWinner === "inStore"
+                                  ? OVERVIEW_AD_SOURCE_COLORS.inStore
+                                  : "#07111f",
                         }}
                       >
                         {sourceWinner === "tie"
-                          ? "Meta & Google tied"
+                          ? "Tied"
                           : sourceWinner === "meta"
                             ? "Meta"
-                            : "Google"}
+                            : sourceWinner === "google"
+                              ? "Google"
+                              : "In store"}
                       </span>
                       <span className="font-medium text-slate-500">
                         {" "}

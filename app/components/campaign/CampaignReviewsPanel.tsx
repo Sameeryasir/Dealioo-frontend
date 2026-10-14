@@ -767,7 +767,6 @@ export function CampaignReviewsPanel({
   const [queryAlertDismissed, setQueryAlertDismissed] = useState(false);
   const [alertCampaignId, setAlertCampaignId] = useState(campaignId);
 
-  // Reset alerts when switching campaigns (render-time sync, not an effect).
   if (alertCampaignId !== campaignId) {
     setAlertCampaignId(campaignId);
     setQueryAlertDismissed(false);
