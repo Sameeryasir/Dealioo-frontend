@@ -411,7 +411,14 @@ export function CampaignAdsPanel({
     async (campaign: FacebookAdCampaign) => {
       if (!canCreateMetaCampaign) return;
       const existing = draftByMetaCampaignId[campaign.id];
-      if (existing) {
+      const existingHasMedia = Boolean(
+        existing?.adCreativeData?.imageUrl?.trim() ||
+          existing?.adCreativeData?.thumbnailUrl?.trim() ||
+          existing?.adCreativeData?.carouselCards?.some((card) =>
+            Boolean(card.imageUrl?.trim()),
+          ),
+      );
+      if (existing && existingHasMedia) {
         openBuilderWithDraft(existing);
         return;
       }
@@ -425,7 +432,11 @@ export function CampaignAdsPanel({
         void queryClient.invalidateQueries({
           queryKey: metaCampaignDraftQueryKeys.byBusiness(businessId),
         });
-        toast.success("Campaign imported into the builder.");
+        toast.success(
+          existing
+            ? "Campaign refreshed in the builder."
+            : "Campaign imported into the builder.",
+        );
         openBuilderWithDraft(imported);
       } catch (e) {
         const message =

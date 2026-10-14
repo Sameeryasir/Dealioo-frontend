@@ -31,7 +31,6 @@ import {
   formatObjective,
   formatPlacements,
   formatSchedule,
-  getCreativeMediaLinks,
   getCreativePreviewUrl,
 } from "@/app/lib/meta-review-helpers";
 import {
@@ -155,7 +154,6 @@ export function ReviewPublishStep({
   }, [adCreativeData.facebookPageId, businessId]);
 
   const previewUrl = getCreativePreviewUrl(adCreativeData);
-  const mediaLinks = getCreativeMediaLinks(adCreativeData);
   const specialCategories =
     campaignData.specialAdCategories.length > 0
       ? campaignData.specialAdCategories.join(", ")
@@ -473,30 +471,6 @@ export function ReviewPublishStep({
                     Go back to Step 3 and upload an image or video.
                   </p>
                 </div>
-              )}
-            </ReviewSection>
-
-            <ReviewSection title="Media sent to Meta">
-              {mediaLinks.length > 0 ? (
-                <ul className="space-y-2">
-                  {mediaLinks.map((link) => (
-                    <li key={`${link.label}-${link.url}`}>
-                      <p className="text-xs text-slate-500">{link.label}</p>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-0.5 block break-all text-xs text-[#1877f2] hover:underline"
-                      >
-                        {link.url}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-amber-800">
-                  No image or video link is saved on this draft yet.
-                </p>
               )}
             </ReviewSection>
           </aside>

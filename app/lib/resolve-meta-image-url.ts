@@ -67,6 +67,15 @@ export function pickMetaImageUrl(raw: string | undefined | null): string {
   return validateMetaImageUrl(resolved) ? "" : resolved;
 }
 
+function isMetaCdnHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host.includes("fbcdn.net") ||
+    host.includes("facebook.com") ||
+    host.endsWith("fbsbx.com")
+  );
+}
+
 export function validateMetaImageUrl(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return "Image URL is required.";
@@ -87,7 +96,7 @@ export function validateMetaImageUrl(url: string): string | null {
     return "Upload an image below or paste a direct link to a .jpg/.png file, not a folder.";
   }
 
-  if (!META_IMAGE_EXT.test(path)) {
+  if (!isMetaCdnHost(parsed.hostname) && !META_IMAGE_EXT.test(path)) {
     return "Image URL must end with .jpg, .jpeg, .png, or .webp.";
   }
 
