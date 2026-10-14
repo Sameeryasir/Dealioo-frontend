@@ -7,9 +7,11 @@ import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
 import type { FunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
 import type { FunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
+import type { FunnelDropoffCounts } from "@/app/services/funnel/get-funnel-dropoff";
 
 export type FunnelDashboardOverview = FunnelDashboardKpis & {
   charts: Omit<FunnelDashboardCharts, "funnelId">;
+  dropoff: Omit<FunnelDropoffCounts, "funnelId">;
 };
 
 function emptyChartSeries() {
@@ -93,6 +95,7 @@ export async function getFunnelDashboardOverview(
 
   const json = (await res.json()) as Partial<FunnelDashboardOverview> & {
     charts?: Partial<FunnelDashboardOverview["charts"]>;
+    dropoff?: Partial<FunnelDashboardOverview["dropoff"]>;
   };
 
   return {
@@ -140,6 +143,11 @@ export async function getFunnelDashboardOverview(
       signups: parseChartSeries(json.charts?.signups),
       payments: parseChartSeries(json.charts?.payments),
       revenue: parseChartSeries(json.charts?.revenue),
+    },
+    dropoff: {
+      pageViews: Number(json.dropoff?.pageViews) || 0,
+      signups: Number(json.dropoff?.signups) || 0,
+      payments: Number(json.dropoff?.payments) || 0,
     },
   };
 }

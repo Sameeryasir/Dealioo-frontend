@@ -56,9 +56,7 @@ import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/mot
 import { isPositiveInt } from "@/app/lib/numbers";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { getDealioCampaignMetaSpend } from "@/app/services/facebook/get-dealio-campaign-meta-spend";
-import { getFunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
-import { getFunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
-import { getFunnelDropoff } from "@/app/services/funnel/get-funnel-dropoff";
+import { getFunnelDashboardOverview } from "@/app/services/funnel/get-funnel-dashboard-overview";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import {
   getFunnelStatsMonthly,
@@ -561,8 +559,9 @@ export function FunnelOverviewPanel({
     calendarMode === "month" && monthFilter === currentActivityMonthKey();
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  const kpisQuery = useQuery({
-    queryKey: funnelQueryKeys.dashboardKpisByFunnel(
+  // One API for KPIs + charts + dropoff (same pattern as business dashboard summary).
+  const overviewQuery = useQuery({
+    queryKey: funnelQueryKeys.dashboardOverviewByFunnel(
       funnelId ?? 0,
       periodRange.from,
       periodRange.to,
@@ -573,43 +572,11 @@ export function FunnelOverviewPanel({
     enabled: funnelId != null && funnelId > 0,
     staleTime: 30_000,
     queryFn: () =>
-      getFunnelDashboardKpis(funnelId!, {
+      getFunnelDashboardOverview(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
         previousFrom: previousRange?.from,
         previousTo: previousRange?.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const chartsQuery = useQuery({
-    queryKey: funnelQueryKeys.dashboardChartsByFunnel(
-      funnelId ?? 0,
-      periodRange.from,
-      periodRange.to,
-      viewerTimeZone,
-    ),
-    enabled: funnelId != null && funnelId > 0,
-    staleTime: 30_000,
-    queryFn: () =>
-      getFunnelDashboardCharts(funnelId!, {
-        from: periodRange.from,
-        to: periodRange.to,
-        timezone: viewerTimeZone,
-      }),
-  });
-  const dropoffQuery = useQuery({
-    queryKey: funnelQueryKeys.dropoffByFunnel(
-      funnelId ?? 0,
-      periodRange.from,
-      periodRange.to,
-      viewerTimeZone,
-    ),
-    enabled: funnelId != null && funnelId > 0,
-    staleTime: 30_000,
-    queryFn: () =>
-      getFunnelDropoff(funnelId!, {
-        from: periodRange.from,
-        to: periodRange.to,
         timezone: viewerTimeZone,
       }),
   });
@@ -695,9 +662,10 @@ export function FunnelOverviewPanel({
     googleSpendQuery.isPending &&
     googleSpendQuery.data == null;
 
-  const kpis = kpisQuery.data ?? null;
-  const charts = chartsQuery.data ?? null;
-  const dropoff = dropoffQuery.data ?? null;
+  const overview = overviewQuery.data ?? null;
+  const kpis = overview;
+  const charts = overview?.charts ?? null;
+  const dropoff = overview?.dropoff ?? null;
   const previousKpis = kpis?.previous ?? null;
   const peakMonth = useMemo(
     () =>
@@ -788,31 +756,19 @@ export function FunnelOverviewPanel({
     number | null
   >(null);
 
-  const kpisReady = kpis != null;
-  const chartsReady = charts != null;
-  const dropoffReady = dropoff != null;
+  const overviewReady = overview != null;
   const showFullSkeleton =
     isFunnelIdLoading ||
     (funnelId != null &&
-      !kpisReady &&
-      (kpisQuery.isPending || kpisQuery.isFetching) &&
-      !kpisQuery.isError);
-  const showChartsSkeleton =
-    kpisReady &&
-    !chartsReady &&
-    !chartsQuery.isError &&
-    (chartsQuery.isPending || chartsQuery.isFetching);
-  const showDropoffSkeleton =
-    kpisReady &&
-    !dropoffReady &&
-    !dropoffQuery.isError &&
-    (dropoffQuery.isPending || dropoffQuery.isFetching);
+      !overviewReady &&
+      (overviewQuery.isPending || overviewQuery.isFetching) &&
+      !overviewQuery.isError);
   const showNoFunnelMessage = !showFullSkeleton && funnelId == null;
 
   const alertMessage =
     showFullSkeleton || dismissedErrorFunnelId === funnelId
       ? null
-      : kpisQuery.isError || chartsQuery.isError || dropoffQuery.isError
+      : overviewQuery.isError
         ? "Could not load campaign overview stats for this period."
         : null;
 
@@ -854,7 +810,7 @@ export function FunnelOverviewPanel({
         >
           {showFullSkeleton ? <OverviewSkeleton /> : null}
 
-          {!showFullSkeleton && kpisReady && kpis ? (
+          {!showFullSkeleton && overviewReady && kpis ? (
           <motion.div
             key={`${periodRange.from}:${periodRange.to}`}
             className="funnel-overview-content"
@@ -1091,63 +1047,27 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {showDropoffSkeleton || dropoffReady ? (
+            {dropoff ? (
               <motion.section
                 className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
-                aria-label={
-                  dropoffReady ? "Funnel drop-off" : "Loading funnel drop-off"
-                }
+                aria-label="Funnel drop-off"
                 variants={funnelPanelItem}
               >
                 <motion.div
                   className="funnel-overview-chart-slot"
                   variants={funnelPanelItem}
                 >
-                  {dropoff ? (
-                    <FunnelDropoffMiniChart
-                      pageViews={dropoff.pageViews}
-                      signups={dropoff.signups}
-                      payments={dropoff.payments}
-                      caption={periodLabel}
-                    />
-                  ) : (
-                    <FunnelDropoffMiniChartSkeleton />
-                  )}
+                  <FunnelDropoffMiniChart
+                    pageViews={dropoff.pageViews}
+                    signups={dropoff.signups}
+                    payments={dropoff.payments}
+                    caption={periodLabel}
+                  />
                 </motion.div>
               </motion.section>
             ) : null}
 
-            {showChartsSkeleton ? (
-              <motion.section
-                className="funnel-overview-chart-grid"
-                aria-label="Loading campaign charts"
-                variants={funnelPanelItem}
-              >
-                {(
-                  [
-                    { title: "Unique visitors", accent: "blue" as const },
-                    { title: "Unpaid signups", accent: "green" as const },
-                    { title: "Payments", accent: "orange" as const },
-                    {
-                      title: "Revenue",
-                      accent:
-                        calendarMode === "day"
-                          ? ("orange" as const)
-                          : ("pink" as const),
-                    },
-                  ] as const
-                ).map((chart) => (
-                  <div key={chart.title} className="funnel-overview-chart-slot">
-                    <OverviewLineChartSkeleton
-                      title={chart.title}
-                      accent={chart.accent}
-                    />
-                  </div>
-                ))}
-              </motion.section>
-            ) : null}
-
-            {chartsReady && charts ? (
+            {charts ? (
               <>
                 <motion.section
                   className="funnel-overview-chart-grid"

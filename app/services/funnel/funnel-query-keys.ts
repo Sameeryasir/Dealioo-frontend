@@ -25,6 +25,25 @@ export const funnelQueryKeys = {
     [...funnelQueryKeys.all, "analytics-monthly"] as const,
   analyticsMonthlyByFunnel: (funnelId: number, months: number) =>
     [...funnelQueryKeys.analyticsMonthly(), funnelId, months] as const,
+  dashboardOverview: () =>
+    [...funnelQueryKeys.all, "dashboard-overview"] as const,
+  dashboardOverviewByFunnel: (
+    funnelId: number,
+    from = "",
+    to = "",
+    previousFrom: string | null = null,
+    previousTo: string | null = null,
+    timezone = "",
+  ) =>
+    [
+      ...funnelQueryKeys.dashboardOverview(),
+      funnelId,
+      from,
+      to,
+      previousFrom,
+      previousTo,
+      timezone,
+    ] as const,
   dashboardKpis: () => [...funnelQueryKeys.all, "dashboard-kpis"] as const,
   dashboardKpisByFunnel: (
     funnelId: number,
