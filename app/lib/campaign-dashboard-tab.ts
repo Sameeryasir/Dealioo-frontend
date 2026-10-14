@@ -2,6 +2,7 @@ export const CAMPAIGN_DASHBOARD_TABS = [
   { id: "overview", label: "Overview" },
   { id: "guests", label: "Guests" },
   { id: "orders", label: "Orders" },
+  { id: "reviews", label: "Reviews" },
   { id: "funnel", label: "Funnel" },
   { id: "automations", label: "Automations" },
 ] as const;
@@ -29,6 +30,7 @@ export function campaignDashboardTabFromPathname(
   const rest = pathname.slice(base.length).replace(/^\//, "").split("/")[0] ?? "";
   if (rest === "guests") return "guests";
   if (rest === "orders") return "orders";
+  if (rest === "reviews") return "reviews";
   if (rest === "funnel") return "funnel";
   if (rest === "automations") return "automations";
   return "overview";

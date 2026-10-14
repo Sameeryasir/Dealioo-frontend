@@ -16,22 +16,16 @@ import type {
 const UI_TRIGGER_TO_API: Record<string, string> = {
   Signup: "signup",
   Payment: "payment",
-  "Funnel Complete": "funnel_completed",
   "Abandoned Checkout": "abandoned_checkout",
-  "First Purchase": "first_purchase",
-  "No Visit": "no_visit",
-  "Win-back": "no_visit",
+  "Ask Review": "ask_review",
   "Cron Job": "cron",
 };
 
 const API_TRIGGER_TO_UI: Record<string, string> = {
   signup: "Signup",
   payment: "Payment",
-  funnel_completed: "Funnel Complete",
-  funnel_complete: "Funnel Complete",
   abandoned_checkout: "Abandoned Checkout",
-  first_purchase: "First Purchase",
-  no_visit: "Win-back",
+  ask_review: "Ask Review",
   cron: "Cron Job",
 };
 

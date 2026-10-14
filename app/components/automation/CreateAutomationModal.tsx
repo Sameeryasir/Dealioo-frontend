@@ -15,7 +15,6 @@ import {
   MessageSquare,
   Percent,
   Plus,
-  RotateCcw,
   ShoppingCart,
   Sparkles,
   Star,
@@ -47,9 +46,7 @@ const TRIGGERS = [
   "Payment",
   "Signup",
   "Abandoned Checkout",
-  "First Purchase",
-  "Funnel Complete",
-  "Win-back",
+  "Ask Review",
 ] as const;
 type CreateTriggerOption = (typeof TRIGGERS)[number];
 
@@ -141,24 +138,6 @@ function templateListVisual(templateId: string): {
       accentClass: "bg-gradient-to-br from-[#f59e0b] to-[#ea580c] shadow-orange-500/25",
     };
   }
-  if (templateId === "first_purchase") {
-    return {
-      icon: Sparkles,
-      accentClass: "bg-gradient-to-br from-[#34d399] to-[#059669] shadow-emerald-500/25",
-    };
-  }
-  if (templateId === "funnel_complete") {
-    return {
-      icon: GitBranch,
-      accentClass: "bg-gradient-to-br from-[#818cf8] to-[#4f46e5] shadow-indigo-500/25",
-    };
-  }
-  if (templateId === "win_back") {
-    return {
-      icon: RotateCcw,
-      accentClass: "bg-gradient-to-br from-[#fb7185] to-[#e11d48] shadow-rose-500/25",
-    };
-  }
   if (templateId === "payment_reminder") {
     return {
       icon: CreditCard,
@@ -177,6 +156,12 @@ function templateListVisual(templateId: string): {
       accentClass: "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-500/25",
     };
   }
+  if (templateId === "ask_review") {
+    return {
+      icon: Star,
+      accentClass: "bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/25",
+    };
+  }
   return {
     icon: ShoppingCart,
     accentClass: "bg-gradient-to-br from-[#3b82f6] to-[#1877f2] shadow-[#1877f2]/25",
@@ -191,12 +176,8 @@ function templateNodeIcon(kind: AutomationTemplateNodeDef["kind"]): LucideIcon {
       return UserPlus;
     case "abandoned_checkout_trigger":
       return ShoppingCart;
-    case "first_purchase_trigger":
-      return Sparkles;
-    case "funnel_complete":
-      return GitBranch;
-    case "win_back_trigger":
-      return RotateCcw;
+    case "ask_review_trigger":
+      return Star;
     case "cron_trigger":
       return CalendarClock;
     case "wait":
@@ -223,9 +204,7 @@ function templateNodeTone(kind: AutomationTemplateNodeDef["kind"]): string {
     case "signup_trigger":
     case "payment_trigger":
     case "abandoned_checkout_trigger":
-    case "first_purchase_trigger":
-    case "funnel_complete":
-    case "win_back_trigger":
+    case "ask_review_trigger":
       return flowPreviewHeaderClass("signup_trigger");
     case "cron_trigger":
       return flowPreviewHeaderClass("cron_trigger");
@@ -500,7 +479,7 @@ function CreateAutomationModalBody({
                   <ChoiceCard
                     icon={Download}
                     title="Import template"
-                    description="Start from a proven template — Payment Reminder, Prepaid Offer, or Signup automation."
+                    description="Start from a proven template — Payment Reminder, Prepaid Offer, or Signup."
                     accentClass="bg-gradient-to-br from-sky-500 to-[#1877f2] shadow-[#1877f2]/25"
                     onClick={() => setStep("import-list")}
                   />

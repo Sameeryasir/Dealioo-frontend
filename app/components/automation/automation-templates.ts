@@ -157,239 +157,6 @@ export const ABANDONED_CHECKOUT_TEMPLATE: AutomationTemplate = {
 /** @deprecated Prefer ABANDONED_CHECKOUT_TEMPLATE */
 export const ABANDONED_CART_TEMPLATE = ABANDONED_CHECKOUT_TEMPLATE;
 
-export const FIRST_PURCHASE_TEMPLATE: AutomationTemplate = {
-  id: "first_purchase",
-  name: "First Purchase",
-  category: "Guest Journey",
-  description:
-    "Welcome guests after their first paid purchase. Edit the delay and message anytime, or rebuild the flow your way.",
-  trigger: "First Purchase",
-  purpose: "funnel_payment",
-  nodes: [
-    {
-      key: "trigger",
-      kind: "first_purchase_trigger",
-      label: "First purchase",
-      summary: "Starts on a guest’s first paid purchase for this funnel.",
-      config: {
-        trigger: "first_purchase",
-        title: "First purchase",
-        description: "Starts on a guest’s first paid purchase for this funnel.",
-        executionMode: "graph",
-      },
-    },
-    {
-      key: "wait",
-      kind: "wait",
-      label: "Wait",
-      summary: "10 minutes — change this delay anytime",
-      config: { delay: 10, unit: "minutes" },
-    },
-    {
-      key: "tag_first_purchase",
-      kind: "tag_customer",
-      label: "Tag guest",
-      summary: 'Label guest as "first-purchase"',
-      config: {
-        tag: "first-purchase",
-        action: "tag",
-      },
-    },
-    {
-      key: "email_welcome",
-      kind: "send_email",
-      label: "Welcome email",
-      summary: "Thank them for their first purchase — edit freely",
-      config: {
-        subject: "Thanks for your first purchase!",
-        template: "Payment reminder",
-        message:
-          "Hi [First Name] — thank you for your first purchase with us. We’re glad you’re here. Reply anytime if you need help.",
-        headline: "Welcome aboard",
-        ctaLabel: "View my pass",
-      },
-    },
-    {
-      key: "sms_welcome",
-      kind: "send_sms",
-      label: "Welcome SMS",
-      summary: "Short thank-you text — edit freely",
-      config: {
-        message:
-          "Hi [First Name] — thanks for your first purchase! We’re excited to see you. Text us anytime if you need anything.",
-        linkLabel: "View pass",
-      },
-    },
-  ],
-  connections: [
-    { sourceKey: "trigger", targetKey: "wait" },
-    { sourceKey: "wait", targetKey: "tag_first_purchase" },
-    { sourceKey: "tag_first_purchase", targetKey: "email_welcome" },
-    { sourceKey: "email_welcome", targetKey: "sms_welcome" },
-  ],
-};
-
-export const FUNNEL_COMPLETE_TEMPLATE: AutomationTemplate = {
-  id: "funnel_complete",
-  name: "Funnel Complete",
-  category: "Guest Journey",
-  description:
-    "Act when a guest finishes the funnel path. Ask for a review or send a thank-you — fully editable.",
-  trigger: "Funnel Complete",
-  purpose: "funnel_signup",
-  nodes: [
-    {
-      key: "trigger",
-      kind: "funnel_complete",
-      label: "Funnel completed",
-      summary: "Starts when a guest completes the funnel path.",
-      config: {
-        trigger: "funnel_completed",
-        title: "Funnel completed",
-        description: "Starts when a guest completes the funnel path.",
-        executionMode: "graph",
-      },
-    },
-    {
-      key: "wait",
-      kind: "wait",
-      label: "Wait",
-      summary: "30 minutes — change this delay anytime",
-      config: { delay: 30, unit: "minutes" },
-    },
-    {
-      key: "tag_completed",
-      kind: "tag_customer",
-      label: "Tag guest",
-      summary: 'Label guest as "funnel-completed"',
-      config: {
-        tag: "funnel-completed",
-        action: "tag",
-      },
-    },
-    {
-      key: "email_thanks",
-      kind: "send_email",
-      label: "Thank-you email",
-      summary: "Celebrate completion — edit the message anytime",
-      config: {
-        subject: "Thanks for completing your signup",
-        template: "Payment reminder",
-        message:
-          "Hi [First Name] — you finished the funnel. Thanks for joining us. Here’s a quick next step if you need it.",
-        headline: "You’re all set",
-        ctaLabel: "Open my offers",
-      },
-    },
-    {
-      key: "ask_review",
-      kind: "reviews",
-      label: "Ask for review",
-      summary: "Optional review request — add your HTTPS review link",
-      config: {
-        action: "ask_review",
-        workflowKind: "ask_review",
-        channel: "email",
-        reviewUrl: "https://",
-        subject: "How was your experience?",
-        message:
-          "Hi [First Name] — if you have a moment, we’d love a quick review. It helps other guests find us.",
-        ctaLabel: "Leave a review",
-      },
-    },
-  ],
-  connections: [
-    { sourceKey: "trigger", targetKey: "wait" },
-    { sourceKey: "wait", targetKey: "tag_completed" },
-    { sourceKey: "tag_completed", targetKey: "email_thanks" },
-    { sourceKey: "email_thanks", targetKey: "ask_review" },
-  ],
-};
-
-export const WIN_BACK_TEMPLATE: AutomationTemplate = {
-  id: "win_back",
-  name: "Win-back",
-  category: "Revenue Recovery",
-  description:
-    "Re-engage quiet guests who haven’t visited in a while. Change inactive days, schedule, and messages anytime.",
-  trigger: "Win-back",
-  purpose: "funnel_signup",
-  nodes: [
-    {
-      key: "trigger",
-      kind: "win_back_trigger",
-      label: "Win-back",
-      summary: "Finds guests with no visit for 30 days on a daily schedule.",
-      config: {
-        trigger: "no_visit",
-        inactiveDays: 30,
-        frequency: "daily",
-        time: "09:00",
-        dayOfWeek: "monday",
-        title: "Win-back",
-        description:
-          "Finds guests with no visit for your inactive-days setting.",
-        executionMode: "graph",
-      },
-    },
-    {
-      key: "tag_win_back",
-      kind: "tag_customer",
-      label: "Tag guest",
-      summary: 'Label guest as "win-back" so you don’t over-message',
-      config: {
-        tag: "win-back",
-        action: "tag",
-      },
-    },
-    {
-      key: "email_return",
-      kind: "send_email",
-      label: "Return email",
-      summary: "Invite them back — edit freely",
-      config: {
-        subject: "We miss you — come back anytime",
-        template: "Payment reminder",
-        message:
-          "Hi [First Name] — it’s been a while. We’d love to see you again. Tap below when you’re ready to come back.",
-        headline: "Come back soon",
-        ctaLabel: "View offer",
-      },
-    },
-    {
-      key: "sms_return",
-      kind: "send_sms",
-      label: "Return SMS",
-      summary: "Short win-back text — edit freely",
-      config: {
-        message:
-          "Hi [First Name] — we miss you! Stop by anytime. Reply STOP to opt out.",
-        linkLabel: "View offer",
-      },
-    },
-    {
-      key: "coupon_return",
-      kind: "create_coupon",
-      label: "Return offer",
-      summary: "Optional coupon / reward email — edit freely",
-      config: {
-        rewardName: "Welcome back offer",
-        expirationNote: "Expires in 14 days",
-        subject: "A little something to welcome you back",
-        message:
-          "Hi [First Name] — here’s a return offer when you’re ready to visit again.",
-        ctaLabel: "View offer",
-      },
-    },
-  ],
-  connections: [
-    { sourceKey: "trigger", targetKey: "tag_win_back" },
-    { sourceKey: "tag_win_back", targetKey: "email_return" },
-    { sourceKey: "email_return", targetKey: "sms_return" },
-    { sourceKey: "sms_return", targetKey: "coupon_return" },
-  ],
-};
-
 const QR_PASS_EMAIL_CONFIG = {
   subject: "Your QR pass is ready — add to Wallet",
   template: "QR pass guide",
@@ -1227,6 +994,58 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
     { sourceKey: "wait_weekend_pass", targetKey: "filter_weekend_pass" },
     { sourceKey: "filter_weekend_pass", targetKey: "sms_weekend_pass" },
     { sourceKey: "sms_weekend_pass", targetKey: "sms_weekend_pass_hours" },
+  ],
+};
+
+export const ASK_REVIEW_TEMPLATE: AutomationTemplate = {
+  id: "ask_review",
+  name: "Ask Review",
+  category: "Guest Journey",
+  description:
+    "When activated, finds paid guests who have not submitted a review yet, then asks for feedback. Edit the delay and message anytime.",
+  trigger: "Ask Review",
+  purpose: "funnel_payment",
+  nodes: [
+    {
+      key: "trigger",
+      kind: "ask_review_trigger",
+      label: "Ask Review",
+      summary:
+        "On activate: finds paid guests who have not submitted a review yet.",
+      config: {
+        trigger: "ask_review",
+        title: "Ask Review",
+        description:
+          "When activated, finds paid guests who have not submitted a review yet.",
+        executionMode: "graph",
+      },
+    },
+    {
+      key: "wait",
+      kind: "wait",
+      label: "Wait",
+      summary: "1 day — change this delay anytime",
+      config: { delay: 1, unit: "days" },
+    },
+    {
+      key: "ask_review_email",
+      kind: "reviews",
+      label: "Ask for review",
+      summary: "Sends a Give Feedback button — replies show on Reviews",
+      config: {
+        action: "ask_review",
+        workflowKind: "ask_review",
+        channel: "email",
+        subject: "How was your experience?",
+        message:
+          "Hi [First Name] — thanks for your purchase. If you have a moment, we’d love your quick feedback on this campaign.",
+        ctaLabel: "Give Feedback",
+      },
+    },
+  ],
+  connections: [
+    { sourceKey: "trigger", targetKey: "wait" },
+    { sourceKey: "wait", targetKey: "ask_review_email" },
   ],
 };
 

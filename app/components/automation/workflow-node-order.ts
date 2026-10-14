@@ -11,9 +11,7 @@ const TRIGGER_NODE_KINDS = new Set<WorkflowNodeKind>([
   "signup_trigger",
   "payment_trigger",
   "abandoned_checkout_trigger",
-  "first_purchase_trigger",
-  "funnel_complete",
-  "win_back_trigger",
+  "ask_review_trigger",
   "cron_trigger",
 ]);
 
@@ -67,11 +65,20 @@ export function isPaymentStartingTrigger(nodes: WorkflowNode[]): boolean {
   return nodes.length > 0 && isPaymentTriggerNode(nodes[0]);
 }
 
+export function isAskReviewTriggerNode(node: WorkflowNode): boolean {
+  return node.kind === "ask_review_trigger";
+}
+
+export function isAskReviewStartingTrigger(nodes: WorkflowNode[]): boolean {
+  return nodes.length > 0 && isAskReviewTriggerNode(nodes[0]!);
+}
+
 export function isManualRunDisabledFlow(nodes: WorkflowNode[]): boolean {
   return (
     isCronStartingTrigger(nodes) ||
     isSignupStartingTrigger(nodes) ||
-    isPaymentStartingTrigger(nodes)
+    isPaymentStartingTrigger(nodes) ||
+    isAskReviewStartingTrigger(nodes)
   );
 }
 

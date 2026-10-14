@@ -37,14 +37,12 @@ const TRIGGER_DEFAULT_CONFIG_BY_KIND: Partial<
   signup_trigger: SIGNUP_TRIGGER_DEFAULT_CONFIG,
   payment_trigger: { trigger: "payment" },
   abandoned_checkout_trigger: { trigger: "abandoned_checkout" },
-  first_purchase_trigger: { trigger: "first_purchase" },
-  funnel_complete: { trigger: "funnel_completed" },
-  win_back_trigger: {
-    trigger: "no_visit",
-    inactiveDays: 30,
-    frequency: "daily",
-    time: "09:00",
-    dayOfWeek: "monday",
+  ask_review_trigger: {
+    trigger: "ask_review",
+    title: "Ask Review",
+    description:
+      "When activated, finds paid guests who have not submitted a review yet.",
+    executionMode: "graph",
   },
   cron_trigger: {
     trigger: "cron",
@@ -78,9 +76,7 @@ const BLOCK_TO_NODE_TYPE: Record<WorkflowNodeKind, ApiNodeType> = {
   signup_trigger: "trigger",
   payment_trigger: "trigger",
   abandoned_checkout_trigger: "trigger",
-  first_purchase_trigger: "trigger",
-  funnel_complete: "trigger",
-  win_back_trigger: "trigger",
+  ask_review_trigger: "trigger",
   cron_trigger: "trigger",
   wait: "wait",
   delay: "wait",
@@ -116,13 +112,9 @@ export function nodeTypeToBlockKind(
   if (type === "trigger") {
     const trigger = config?.trigger;
     if (trigger === "payment") return "payment_trigger";
-    if (trigger === "funnel_complete" || trigger === "funnel_completed") {
-      return "funnel_complete";
-    }
     if (trigger === "cron") return "cron_trigger";
     if (trigger === "abandoned_checkout") return "abandoned_checkout_trigger";
-    if (trigger === "first_purchase") return "first_purchase_trigger";
-    if (trigger === "no_visit") return "win_back_trigger";
+    if (trigger === "ask_review") return "ask_review_trigger";
     return "signup_trigger";
   }
   if (type === "wait" && config?.isParallelSplit === true) {

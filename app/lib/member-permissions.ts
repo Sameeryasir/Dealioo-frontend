@@ -56,6 +56,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
     "campaigns_delete",
     "campaigns_guests",
     "campaigns_orders",
+    "campaigns_reviews",
     "meta_campaigns_create",
     "meta_campaigns_delete",
     "google_campaigns_create",
@@ -258,6 +259,12 @@ export const PERMISSION_OPTIONS: {
     label: "Campaign orders",
     description: "See orders placed through this campaign.",
     icon: ShoppingBag,
+  },
+  {
+    value: "campaigns_reviews",
+    label: "Campaign reviews",
+    description: "See guest reviews and feedback for this campaign.",
+    icon: Eye,
   },
   {
     value: "campaigns_delete",

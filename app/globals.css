@@ -4826,6 +4826,30 @@ body {
     background: currentColor;
   }
 
+  .org-campaign-card-rating {
+    @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide;
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+
+  .org-campaign-card-rating--empty {
+    color: #64748b;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  .org-campaign-card-rating-score {
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  .org-campaign-card-rating-count {
+    font-weight: 600;
+    color: #a16207;
+    opacity: 0.85;
+  }
+
   .org-campaign-card-price {
     color: #07111f;
   }
@@ -13923,6 +13947,47 @@ body:has(.rd-shell--app) {
   overflow-y: auto;
   padding-inline: var(--funnel-orders-pad-inline);
   padding-block: var(--funnel-orders-pad-block);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.campaign-immersive-reviews,
+.funnel-reviews-root {
+  container-type: inline-size;
+  container-name: funnel-reviews;
+  --funnel-reviews-pad-inline: clamp(0.65rem, 2.8cqi, 1.15rem);
+  --funnel-reviews-pad-block: clamp(0.75rem, 2.4cqi, 1.1rem);
+}
+
+.campaign-immersive-reviews {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.funnel-reviews-panel {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.funnel-reviews-body {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  flex: 1 1 0%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-inline: var(--funnel-reviews-pad-inline);
+  padding-block: var(--funnel-reviews-pad-block);
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
 }

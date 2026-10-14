@@ -29,27 +29,11 @@ const TRIGGER_PURPOSE_BY_UI: Record<string, TriggerPurposeMeta> = {
     description:
       "Recover guests who started checkout but have not paid yet.",
   },
-  "First Purchase": {
+  "Ask Review": {
     purpose: "funnel_payment",
-    label: "First purchase",
-    description: "Runs only on a guest’s first paid purchase.",
-  },
-  "Funnel Complete": {
-    purpose: "funnel_signup",
-    label: "Funnel completed",
-    description: "Runs when a guest finishes the funnel path.",
-  },
-  "Win-back": {
-    purpose: "funnel_signup",
-    label: "Win-back",
+    label: "Ask for review (paid, no review yet)",
     description:
-      "Re-engages guests who have not visited for your chosen number of days.",
-  },
-  "No Visit": {
-    purpose: "funnel_signup",
-    label: "Win-back",
-    description:
-      "Re-engages guests who have not visited for your chosen number of days.",
+      "When activated, finds paid guests who have not submitted a review yet and starts the flow for them.",
   },
 };
 
@@ -58,10 +42,7 @@ const TRIGGER_PURPOSE_BY_API: Record<string, TriggerPurposeMeta> = {
   payment: TRIGGER_PURPOSE_BY_UI.Payment!,
   signup: TRIGGER_PURPOSE_BY_UI.Signup!,
   abandoned_checkout: TRIGGER_PURPOSE_BY_UI["Abandoned Checkout"]!,
-  first_purchase: TRIGGER_PURPOSE_BY_UI["First Purchase"]!,
-  funnel_completed: TRIGGER_PURPOSE_BY_UI["Funnel Complete"]!,
-  funnel_complete: TRIGGER_PURPOSE_BY_UI["Funnel Complete"]!,
-  no_visit: TRIGGER_PURPOSE_BY_UI["Win-back"]!,
+  ask_review: TRIGGER_PURPOSE_BY_UI["Ask Review"]!,
 };
 
 const PURPOSE_FALLBACK_LABEL: Record<string, string> = {
@@ -77,9 +58,7 @@ const TRIGGER_PURPOSE_BY_KIND: Record<string, TriggerPurposeMeta> = {
   payment_trigger: TRIGGER_PURPOSE_BY_UI.Payment!,
   signup_trigger: TRIGGER_PURPOSE_BY_UI.Signup!,
   abandoned_checkout_trigger: TRIGGER_PURPOSE_BY_UI["Abandoned Checkout"]!,
-  first_purchase_trigger: TRIGGER_PURPOSE_BY_UI["First Purchase"]!,
-  funnel_complete: TRIGGER_PURPOSE_BY_UI["Funnel Complete"]!,
-  win_back_trigger: TRIGGER_PURPOSE_BY_UI["Win-back"]!,
+  ask_review_trigger: TRIGGER_PURPOSE_BY_UI["Ask Review"]!,
 };
 
 export function resolvePurposeMetaForTrigger(

@@ -4,7 +4,14 @@ import { DealPriceDisplay } from "@/app/components/DealPriceDisplay";
 import { BusinessProfileImage } from "@/app/components/business/BusinessProfileImage";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
-import { CalendarDays, MoreVertical, Pencil, Tag, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  MoreVertical,
+  Pencil,
+  Star,
+  Tag,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import {
   useCallback,
@@ -73,6 +80,13 @@ export default function CampaignFunnelCard({
         ? "Postpaid"
         : null;
   const created = formatCreatedDate(funnel.createdAt);
+  const totalReviews = Math.max(0, Math.floor(Number(funnel.totalReviews) || 0));
+  const averageRating =
+    totalReviews > 0 &&
+    funnel.averageRating != null &&
+    Number.isFinite(Number(funnel.averageRating))
+      ? Math.round(Number(funnel.averageRating) * 10) / 10
+      : null;
 
   const campaignHref = `/business/${businessId}/dashboard/campaigns/${funnel.id}`;
   const campaignName = funnel.campaignName?.trim() ?? "";
@@ -302,18 +316,46 @@ export default function CampaignFunnelCard({
               <h3 className="org-campaign-card-title m-0 line-clamp-2 min-w-0 text-[0.95rem] font-extrabold leading-snug sm:text-[1rem]">
                 {title}
               </h3>
-              {funnel.published === true ||
-              funnel.status?.trim().toLowerCase() === "published" ? (
-                <span className="org-campaign-card-status org-campaign-card-status--published mt-1.5">
-                  <span className="org-campaign-card-status-dot" aria-hidden />
-                  Published
-                </span>
-              ) : (
-                <span className="org-campaign-card-status org-campaign-card-status--unpublished mt-1.5">
-                  <span className="org-campaign-card-status-dot" aria-hidden />
-                  Unpublished
-                </span>
-              )}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {funnel.published === true ||
+                funnel.status?.trim().toLowerCase() === "published" ? (
+                  <span className="org-campaign-card-status org-campaign-card-status--published">
+                    <span className="org-campaign-card-status-dot" aria-hidden />
+                    Published
+                  </span>
+                ) : (
+                  <span className="org-campaign-card-status org-campaign-card-status--unpublished">
+                    <span className="org-campaign-card-status-dot" aria-hidden />
+                    Unpublished
+                  </span>
+                )}
+                {averageRating != null ? (
+                  <span
+                    className="org-campaign-card-rating"
+                    aria-label={`${averageRating} out of 5 from ${totalReviews} review${totalReviews === 1 ? "" : "s"}`}
+                  >
+                    <Star
+                      className="size-3 shrink-0 fill-current"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="org-campaign-card-rating-score tabular-nums">
+                      {averageRating.toFixed(1)}
+                    </span>
+                    <span className="org-campaign-card-rating-count">
+                      ({totalReviews})
+                    </span>
+                  </span>
+                ) : (
+                  <span
+                    className="org-campaign-card-rating org-campaign-card-rating--empty"
+                    aria-label="No ratings yet"
+                  >
+                    <Star className="size-3 shrink-0" strokeWidth={2} aria-hidden />
+                    <span>No ratings yet</span>
+                  </span>
+                )}
+              </div>
               {description ? (
                 <p className="org-campaign-card-desc m-0 mt-1.5 line-clamp-3 text-left text-[0.68rem] leading-relaxed sm:text-[0.72rem]">
                   {description}

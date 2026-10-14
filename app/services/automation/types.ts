@@ -32,11 +32,36 @@ export const AUTOMATION_PURPOSE_OPTIONS: {
   },
 ];
 
-export const CRON_AUTOMATION_PURPOSE_OPTIONS = AUTOMATION_PURPOSE_OPTIONS.filter(
-  (option) =>
-    option.value === "funnel_signup_payment_reminder" ||
-    option.value === "funnel_signup",
-);
+export const CRON_AUTOMATION_PURPOSE_OPTIONS: {
+  value: AutomationPurpose;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "funnel_signup_payment_reminder",
+    label: "Payment reminder (unpaid signups)",
+    description:
+      "On your schedule, nudge guests who signed up but have not paid yet.",
+  },
+  {
+    value: "funnel_signup",
+    label: "Signup / all eligible guests",
+    description:
+      "On your schedule, run the flow for guests on this campaign funnel.",
+  },
+  {
+    value: "funnel_payment",
+    label: "Prepaid / paid guests",
+    description:
+      "On your schedule, target guests who already completed payment.",
+  },
+  {
+    value: "funnel_abandoned_checkout_reminder",
+    label: "Abandoned checkout",
+    description:
+      "On your schedule, recover guests who started checkout but did not pay.",
+  },
+];
 
 export type AutomationStatusResponse = {
   id: number;

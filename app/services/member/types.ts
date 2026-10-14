@@ -12,6 +12,7 @@ export const CAMPAIGN_ACTION_PERMISSIONS = [
 export const CAMPAIGN_WORKSPACE_PERMISSIONS = [
   "campaigns_guests",
   "campaigns_orders",
+  "campaigns_reviews",
 ] as const;
 
 export type CampaignActionPermission =

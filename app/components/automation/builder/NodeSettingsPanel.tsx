@@ -411,10 +411,7 @@ function hasEditableSettings(kind: WorkflowNode["kind"]): boolean {
     "delay",
     "parallel_split",
     "cron_trigger",
-    "win_back_trigger",
     "abandoned_checkout_trigger",
-    "first_purchase_trigger",
-    "funnel_complete",
     "send_email",
     "condition",
     "send_sms",
@@ -448,7 +445,6 @@ function buildConfigForNode(
     expirationNote: string;
     reviewChannel: "email" | "sms";
     reviewUrl: string;
-    inactiveDays: number;
   },
 ): Record<string, unknown> {
   const primaryCtaLabel = values.ctaLabels[0]?.trim() ?? "";
@@ -468,22 +464,13 @@ function buildConfigForNode(
         time: values.cronTime,
         dayOfWeek: values.cronDayOfWeek,
       };
-    case "win_back_trigger":
-      if (values.cronFrequency === "interval") {
-        return {
-          trigger: "no_visit",
-          inactiveDays: Math.max(1, Math.min(values.inactiveDays || 30, 365)),
-          frequency: "interval",
-          interval: clampCronInterval(values.cronInterval),
-          unit: values.cronIntervalUnit,
-        };
-      }
+    case "ask_review_trigger":
       return {
-        trigger: "no_visit",
-        inactiveDays: Math.max(1, Math.min(values.inactiveDays || 30, 365)),
-        frequency: values.cronFrequency,
-        time: values.cronTime,
-        dayOfWeek: values.cronDayOfWeek,
+        trigger: "ask_review",
+        title: "Ask Review",
+        description:
+          "When activated, finds paid guests who have not submitted a review yet.",
+        executionMode: "graph",
       };
     case "wait":
     case "delay":
@@ -541,10 +528,10 @@ function buildConfigForNode(
         action: "ask_review",
         workflowKind: "ask_review",
         channel: values.reviewChannel,
-        reviewUrl: values.reviewUrl.trim(),
+        reviewUrl: "",
         subject: values.subject.trim(),
         message: values.message.trim(),
-        ctaLabel: primaryCtaLabel || "Leave a review",
+        ctaLabel: primaryCtaLabel || "Give Feedback",
       };
     default:
       return {};
@@ -838,9 +825,6 @@ function NodeSettingsForm({
   const [reviewUrl, setReviewUrl] = useState(() =>
     configString(config, "reviewUrl", ""),
   );
-  const [inactiveDays, setInactiveDays] = useState(() =>
-    Math.max(1, Math.min(configNumber(config, "inactiveDays", 30), 365)),
-  );
 
   const configKey = JSON.stringify(node.config ?? {});
 
@@ -888,9 +872,6 @@ function NodeSettingsForm({
       configString(saved, "channel", "email") === "sms" ? "sms" : "email",
     );
     setReviewUrl(configString(saved, "reviewUrl", ""));
-    setInactiveDays(
-      Math.max(1, Math.min(configNumber(saved, "inactiveDays", 30), 365)),
-    );
   }, [node, configKey]);
 
   const cronPreview = formatCronScheduleSummary({
@@ -922,7 +903,6 @@ function NodeSettingsForm({
     expirationNote,
     reviewChannel,
     reviewUrl,
-    inactiveDays,
   };
 
   const buildNextConfig = useCallback((): Record<string, unknown> => {
@@ -995,7 +975,6 @@ function NodeSettingsForm({
           expirationNote,
           reviewChannel,
           reviewUrl,
-          inactiveDays,
         }),
         node.kind,
       );
@@ -1024,7 +1003,6 @@ function NodeSettingsForm({
         expirationNote,
         reviewChannel,
         reviewUrl,
-        inactiveDays,
       }),
       node.kind,
     );
@@ -1040,7 +1018,6 @@ function NodeSettingsForm({
     delay,
     expirationNote,
     filterRows,
-    inactiveDays,
     message,
     node,
     prepaidBundled,
@@ -1121,7 +1098,6 @@ function NodeSettingsForm({
   const scheduleWarning = useMemo(() => {
     if (
       node.kind !== "cron_trigger" &&
-      node.kind !== "win_back_trigger" &&
       node.kind !== "wait" &&
       node.kind !== "delay"
     ) {
@@ -1149,7 +1125,6 @@ function NodeSettingsForm({
       expirationNote,
       reviewChannel,
       reviewUrl,
-      inactiveDays,
     });
     const validation = validatePaymentReminderSchedule(nodes, automationPurpose, {
       nodeId: node.id,
@@ -1252,28 +1227,6 @@ function NodeSettingsForm({
           </p>
         </SettingsSection>
       )}
-      {node.kind === "first_purchase_trigger" && (
-        <SettingsSection
-          title="First purchase"
-          description="Starts only on a guest’s first paid purchase. Build welcome email/SMS after this and edit anytime."
-        >
-          <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm text-slate-600">
-            Tip: keep messages short and personal. Tagging helps you avoid
-            repeating the same welcome later.
-          </p>
-        </SettingsSection>
-      )}
-      {node.kind === "funnel_complete" && (
-        <SettingsSection
-          title="Funnel completed"
-          description="Starts when a guest finishes the funnel path. Add thank-you, review, or upsell steps after this."
-        >
-          <p className="m-0 rounded-xl border border-[#e8edf5] bg-[#f8fafc] px-3 py-2.5 text-sm text-slate-600">
-            Tip: for Ask for review, paste a full HTTPS review link in that
-            step’s settings.
-          </p>
-        </SettingsSection>
-      )}
       {node.kind === "cron_trigger" && (
         <CronSettings
           frequency={cronFrequency}
@@ -1291,44 +1244,6 @@ function NodeSettingsForm({
           onIntervalChange={setCronInterval}
           onIntervalUnitChange={setCronIntervalUnit}
         />
-      )}
-      {node.kind === "win_back_trigger" && (
-        <SettingsSection
-          title="Win-back"
-          description="Finds guests who have not visited for a while, then runs on a schedule."
-        >
-          <FormField label="Inactive days">
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={inactiveDays}
-              onChange={(e) =>
-                setInactiveDays(
-                  Math.max(1, Math.min(Number(e.target.value) || 30, 365)),
-                )
-              }
-              className={inputClass()}
-              {...lockedInputProps(readOnly, onEditBlocked)}
-            />
-          </FormField>
-          <CronSettings
-            frequency={cronFrequency}
-            time={cronTime}
-            dayOfWeek={cronDayOfWeek}
-            interval={cronInterval}
-            intervalUnit={cronIntervalUnit}
-            summary={cronPreview}
-            scheduleWarning={scheduleWarning}
-            readOnly={readOnly}
-            onEditBlocked={onEditBlocked}
-            onFrequencyChange={setCronFrequency}
-            onTimeChange={setCronTime}
-            onDayOfWeekChange={setCronDayOfWeek}
-            onIntervalChange={setCronInterval}
-            onIntervalUnitChange={setCronIntervalUnit}
-          />
-        </SettingsSection>
       )}
       {node.kind === "tag_customer" && (
         <SettingsSection
@@ -1390,7 +1305,7 @@ function NodeSettingsForm({
       {node.kind === "reviews" && (
         <SettingsSection
           title="Ask for review"
-          description="Sends a review request over email or SMS. Review link must be HTTPS."
+          description="Sends a Give Feedback button that opens Dealio’s feedback form. Responses show on the campaign Reviews tab."
         >
           <FormField label="Channel">
             <select
@@ -1405,15 +1320,6 @@ function NodeSettingsForm({
               <option value="email">Email</option>
               <option value="sms">SMS</option>
             </select>
-          </FormField>
-          <FormField label="Review URL (HTTPS)">
-            <input
-              value={reviewUrl}
-              onChange={(e) => setReviewUrl(e.target.value)}
-              placeholder="https://..."
-              className={inputClass()}
-              {...lockedInputProps(readOnly, onEditBlocked)}
-            />
           </FormField>
           {reviewChannel === "email" ? (
             <FormField label="Email subject">

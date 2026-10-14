@@ -21,7 +21,7 @@ import {
   RotateCcw,
   Send,
   ShoppingCart,
-  Sparkles,
+  Star,
   Trash2,
   UserPlus,
   X,
@@ -122,12 +122,8 @@ function triggerIcon(node: WorkflowNode): LucideIcon {
       return CreditCard;
     case "abandoned_checkout_trigger":
       return ShoppingCart;
-    case "first_purchase_trigger":
-      return Sparkles;
-    case "funnel_complete":
-      return GitBranch;
-    case "win_back_trigger":
-      return RotateCcw;
+    case "ask_review_trigger":
+      return Star;
     default:
       return UserPlus;
   }
@@ -143,12 +139,8 @@ function triggerDisplayTitle(node: WorkflowNode): string {
       return "Signup";
     case "abandoned_checkout_trigger":
       return "Abandoned checkout";
-    case "first_purchase_trigger":
-      return "First purchase";
-    case "funnel_complete":
-      return "Funnel completed";
-    case "win_back_trigger":
-      return "Win-back";
+    case "ask_review_trigger":
+      return "Ask Review";
     default:
       return getTriggerTitle(node);
   }
@@ -165,22 +157,11 @@ function triggerDisplayBody(node: WorkflowNode): string {
     }
     return `${schedule}. Checks unpaid guests, then continues the flow.`;
   }
-  if (node.kind === "win_back_trigger") {
-    const days = Number(node.config?.inactiveDays ?? 30);
-    const schedule = formatCronScheduleSummary({
-      ...node.config,
-      trigger: "cron",
-    });
-    return `Guests with no visit for ${Number.isFinite(days) ? days : 30} days. ${schedule}.`;
-  }
   if (node.kind === "abandoned_checkout_trigger") {
     return "Starts when a guest signs up / starts checkout but has not paid.";
   }
-  if (node.kind === "first_purchase_trigger") {
-    return "Starts on a guest's first paid purchase for this funnel.";
-  }
-  if (node.kind === "funnel_complete") {
-    return "Starts when a guest completes the funnel path (signup or paid).";
+  if (node.kind === "ask_review_trigger") {
+    return "On activate: finds paid guests who have not submitted a review yet.";
   }
   return getTriggerDescription(node);
 }

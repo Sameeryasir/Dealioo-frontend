@@ -1435,22 +1435,6 @@ export function AutomationBuilderPage({
       </div>
     ) : null;
 
-  const detailsHeader =
-    automation != null ? (
-      <div className="shrink-0 border-b border-zinc-200/70 bg-white px-3 py-2.5 sm:px-4">
-        <div className="min-w-0">
-          <h1 className="truncate text-sm font-bold tracking-tight text-[#07111f] sm:text-base">
-            {automation.name}
-          </h1>
-          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-zinc-500 sm:text-[0.8125rem]">
-            {automation.description.trim()
-              ? automation.description
-              : "No description yet."}
-          </p>
-        </div>
-      </div>
-    ) : null;
-
   const topbarCenterPortal =
     topbarCenterHost != null
       ? createPortal(
@@ -1486,7 +1470,6 @@ export function AutomationBuilderPage({
     >
       {topbarCenterPortal}
       {topbarActionsPortal}
-      {detailsHeader}
       {builderAlerts}
       <AnimatePresence mode="wait">
       {tab === "builder" ? (

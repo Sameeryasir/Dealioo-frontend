@@ -31,6 +31,7 @@ export function getVisibleCampaignHeaderTabs(options: {
       overview: true,
       guests: can("campaigns_guests"),
       orders: can("campaigns_orders"),
+      reviews: can("campaigns_reviews"),
       funnel: can("funnels_edit"),
       automations: hasAnyAutomationPermission(permissionList ?? []),
     };

@@ -16,6 +16,8 @@ export type Funnel = {
   status: string;
   createdAt: string;
   updatedAt: string;
+  averageRating?: number | null;
+  totalReviews?: number;
 };
 
 export const CAMPAIGNS_PAGE_SIZE = 6;
@@ -119,6 +121,25 @@ function coerceCampaign(value: unknown): Funnel | null {
             ? o.updated_at.toISOString()
             : createdAt;
 
+  const totalReviewsRaw = o.totalReviews ?? o.total_reviews;
+  const totalReviews =
+    typeof totalReviewsRaw === "number" && Number.isFinite(totalReviewsRaw)
+      ? Math.max(0, Math.floor(totalReviewsRaw))
+      : typeof totalReviewsRaw === "string" && /^\d+$/.test(totalReviewsRaw)
+        ? Number.parseInt(totalReviewsRaw, 10)
+        : 0;
+  const averageRatingRaw = o.averageRating ?? o.average_rating;
+  const averageParsed =
+    averageRatingRaw == null || averageRatingRaw === ""
+      ? null
+      : Number(averageRatingRaw);
+  const averageRating =
+    totalReviews > 0 &&
+    averageParsed != null &&
+    Number.isFinite(averageParsed)
+      ? Math.round(averageParsed * 10) / 10
+      : null;
+
   return {
     id,
     businessId,
@@ -142,6 +163,8 @@ function coerceCampaign(value: unknown): Funnel | null {
     status,
     createdAt,
     updatedAt,
+    averageRating,
+    totalReviews,
   };
 }
 

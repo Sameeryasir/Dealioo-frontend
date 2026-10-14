@@ -59,6 +59,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
           { key: "campaigns_delete", label: "Delete campaigns" },
           { key: "campaigns_guests", label: "Campaign guests" },
           { key: "campaigns_orders", label: "Campaign orders" },
+          { key: "campaigns_reviews", label: "Campaign reviews" },
           { key: "automations", label: "Automation" },
           { key: "funnels_edit", label: "Funnel" },
         ],

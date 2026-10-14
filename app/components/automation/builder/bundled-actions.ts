@@ -444,7 +444,7 @@ export function normalizePaymentReminderWorkflowNodes(
       (node.kind === "cron_trigger" ||
         node.kind === "signup_trigger" ||
         node.kind === "payment_trigger" ||
-        node.kind === "funnel_complete") &&
+        node.kind === "ask_review_trigger") &&
       (node.config?.executionMode === "graph" ||
         node.config?.isCustomGraph === true),
   );

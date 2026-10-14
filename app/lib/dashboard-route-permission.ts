@@ -74,6 +74,9 @@ export function dashboardRouteNeed(
     if (tab === "orders") {
       return { kind: "permission", permission: "campaigns_orders" };
     }
+    if (tab === "reviews") {
+      return { kind: "permission", permission: "campaigns_reviews" };
+    }
     if (tab === "funnel" || tab === "experience") {
       return { kind: "permission", permission: "funnels_edit" };
     }

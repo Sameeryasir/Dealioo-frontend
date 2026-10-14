@@ -10,7 +10,6 @@ import {
   Clock,
   CreditCard,
   Filter,
-  GitBranch,
   LayoutTemplate,
   Mail,
   MessageSquare,
@@ -18,9 +17,8 @@ import {
   PanelLeft,
   PanelRight,
   Play,
-  RotateCcw,
   ShoppingCart,
-  Sparkles,
+  Star,
   UserPlus,
   Workflow,
   X,
@@ -30,10 +28,8 @@ import { automationEase } from "@/app/lib/motion";
 
 type TriggerKey =
   | "abandoned_checkout"
-  | "first_purchase"
-  | "funnel_complete"
-  | "win_back"
   | "payment"
+  | "ask_review"
   | "signup"
   | "cron"
   | "generic";
@@ -62,25 +58,14 @@ function resolveTriggerKey(raw?: string | null): TriggerKey {
   ) {
     return "abandoned_checkout";
   }
-  if (value === "first_purchase" || value.includes("first_purchase")) {
-    return "first_purchase";
-  }
-  if (
-    value === "funnel_complete" ||
-    value === "funnel_completed" ||
-    value.includes("funnel_complete")
-  ) {
-    return "funnel_complete";
-  }
-  if (
-    value === "win_back" ||
-    value === "win-back" ||
-    value === "no_visit" ||
-    value.includes("win")
-  ) {
-    return "win_back";
-  }
   if (value === "payment") return "payment";
+  if (
+    value === "ask_review" ||
+    value === "ask-review" ||
+    value.includes("ask_review")
+  ) {
+    return "ask_review";
+  }
   if (value === "signup") return "signup";
   if (value === "cron" || value === "cron_job") return "cron";
   return "generic";
@@ -121,76 +106,6 @@ function triggerMeta(key: TriggerKey): {
           },
         ],
       };
-    case "first_purchase":
-      return {
-        icon: Sparkles,
-        label: "First Purchase",
-        whenItRuns:
-          "Starts only on a guest’s first paid purchase for this funnel — not repeat buys.",
-        startFormat:
-          "Start with First purchase, add a short Wait, then welcome email or SMS.",
-        demoNodes: [
-          {
-            kind: "trigger",
-            title: "First purchase",
-            body: "First paid purchase",
-          },
-          { kind: "wait", title: "Wait", body: "10 minutes" },
-          {
-            kind: "email",
-            title: "Welcome email",
-            body: "Thanks for buying",
-          },
-        ],
-      };
-    case "funnel_complete":
-      return {
-        icon: GitBranch,
-        label: "Funnel Complete",
-        whenItRuns:
-          "Starts when a guest finishes the funnel path (signup or paid).",
-        startFormat:
-          "Start with Funnel completed, wait a bit, then thank-you and optional review ask.",
-        demoNodes: [
-          {
-            kind: "trigger",
-            title: "Funnel completed",
-            body: "Guest finished funnel",
-          },
-          { kind: "wait", title: "Wait", body: "30 minutes" },
-          {
-            kind: "email",
-            title: "Thank-you email",
-            body: "You’re all set",
-          },
-        ],
-      };
-    case "win_back":
-      return {
-        icon: RotateCcw,
-        label: "Win-back",
-        whenItRuns:
-          "Runs on a schedule for guests inactive for your chosen number of days.",
-        startFormat:
-          "Set inactive days on Win-back, then tag + return email/SMS.",
-        demoNodes: [
-          {
-            kind: "trigger",
-            title: "Win-back",
-            body: "No visit for 30 days",
-          },
-          {
-            kind: "email",
-            title: "Return email",
-            body: "We miss you",
-          },
-          {
-            kind: "sms",
-            title: "Return SMS",
-            body: "Come back anytime",
-          },
-        ],
-      };
     case "payment":
       return {
         icon: CreditCard,
@@ -205,6 +120,28 @@ function triggerMeta(key: TriggerKey): {
             kind: "email",
             title: "Thank-you email",
             body: "Pass / follow-up",
+          },
+        ],
+      };
+    case "ask_review":
+      return {
+        icon: Star,
+        label: "Ask Review",
+        whenItRuns:
+          "When activated, finds paid guests who have not submitted a review yet and starts the flow for them.",
+        startFormat:
+          "Start with Ask Review, optional Wait, then Ask for Review email/SMS.",
+        demoNodes: [
+          {
+            kind: "trigger",
+            title: "Ask Review",
+            body: "Paid guests, no review yet",
+          },
+          { kind: "wait", title: "Wait", body: "Optional delay" },
+          {
+            kind: "email",
+            title: "Ask for review",
+            body: "Give Feedback button",
           },
         ],
       };
