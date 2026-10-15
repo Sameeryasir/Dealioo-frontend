@@ -10,8 +10,10 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Shield,
   Trash2,
   UserPlus,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -23,6 +25,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { InvitePermissionSections } from "@/app/components/business/BusinessPermissionsMatrix";
 import { Skeleton } from "@/app/components/skeleton";
+import { TableColumnHeader } from "@/app/components/TableColumnHeader";
+import {
+  TABLE_HEAD_ICON_CLASS,
+  TABLE_HEAD_LABEL_CLASS,
+} from "@/app/lib/dashboard-brand-tones";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { getSetupUser } from "@/app/lib/setup-user";
 import { standardEase } from "@/app/lib/motion";
@@ -56,6 +63,11 @@ import {
 } from "@/app/services/member/types";
 
 const MEMBERS_PAGE_SIZE = 8;
+
+const thClass =
+  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
+const tdClass =
+  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
 
 function memberInitials(member: BusinessMemberListItem): string {
   const parts = member.name.trim().split(/\s+/).filter(Boolean);
@@ -115,17 +127,45 @@ function memberStatusLabel(status: BusinessMemberListItem["status"]) {
 
 function MembersTableSkeleton() {
   return (
-    <div className="space-y-3 p-5">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="flex items-center gap-3">
-          <Skeleton className="size-10 rounded-full" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-56" />
-          </div>
-          <Skeleton className="h-7 w-20 rounded-full" />
-        </div>
-      ))}
+    <div className="table-h-scroll" aria-busy="true" aria-label="Loading team">
+      <table className="w-full min-w-[40rem] border-collapse">
+        <thead>
+          <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <th key={i} className={thClass}>
+                <Skeleton className="h-3 w-14" />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 5 }).map((_, index) => (
+            <tr
+              key={index}
+              className="border-b border-[#f1f5f9] last:border-0"
+            >
+              <td className={tdClass}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Skeleton className="size-8 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                </div>
+              </td>
+              <td className={tdClass}>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </td>
+              <td className={tdClass}>
+                <Skeleton className="h-4 w-24" />
+              </td>
+              <td className={tdClass}>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -771,50 +811,60 @@ export function BusinessMembersPanel({
   return (
     <>
       <section className={embedded ? "space-y-5" : "space-y-6"}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#0f172a] sm:text-[1.75rem]">
-              Team
-            </h1>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              {isLoading
-                ? "Loading workspace access…"
-                : `${total} ${total === 1 ? "person has" : "people have"} access to this workspace`}
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
-            {!isLoading && !loadError ? (
-              <label className="relative block w-full sm:max-w-[15rem] sm:flex-1 lg:w-56 lg:flex-none">
-                <span className="sr-only">Search people</span>
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+        <div className="relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]">
+          <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
                   aria-hidden
-                />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search people"
-                  className="h-10 w-full rounded-xl border border-[#e2e8f0] bg-white py-2 pl-9 pr-3 text-sm text-[#0f172a] outline-none transition placeholder:text-slate-400 focus:border-[#cbd5e1] focus:ring-2 focus:ring-slate-200"
-                />
-              </label>
-            ) : null}
+                >
+                  <Users className="size-5" strokeWidth={2.25} />
+                </span>
+                <div className="min-w-0">
+                  <h1 className="text-base font-extrabold tracking-tight text-[#07111f]">
+                    Team
+                  </h1>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    {isLoading
+                      ? "Loading workspace access…"
+                      : `${total} ${total === 1 ? "person has" : "people have"} access to this workspace`}
+                  </p>
+                </div>
+              </div>
 
-            {canManageMembers ? (
-              <button
-                type="button"
-                onClick={openInviteModal}
-                className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.22)] transition hover:bg-[#166fe0]"
-              >
-                <UserPlus className="size-4 shrink-0" strokeWidth={2.25} aria-hidden />
-                Invite Person
-              </button>
-            ) : null}
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
+                {!isLoading && !loadError ? (
+                  <label className="relative block w-full sm:max-w-[15rem] sm:flex-1 lg:w-56 lg:flex-none">
+                    <span className="sr-only">Search people</span>
+                    <Search
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                      aria-hidden
+                    />
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search people"
+                      className="h-10 w-full rounded-xl border border-[#e2e8f0] bg-white py-2 pl-9 pr-3 text-sm text-[#0f172a] outline-none transition placeholder:text-slate-400 focus:border-[#cbd5e1] focus:ring-2 focus:ring-slate-200"
+                    />
+                  </label>
+                ) : null}
+
+                {canManageMembers ? (
+                  <button
+                    type="button"
+                    onClick={openInviteModal}
+                    className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.22)] transition hover:bg-[#166fe0]"
+                  >
+                    <UserPlus className="size-4 shrink-0" strokeWidth={2.25} aria-hidden />
+                    Invite Person
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white">
           {isLoading ? (
             <MembersTableSkeleton />
           ) : loadError ? (
@@ -886,21 +936,41 @@ export function BusinessMembersPanel({
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-collapse">
+                <div className="table-h-scroll">
+                  <table className="w-full min-w-[40rem] border-collapse">
                     <thead>
-                      <tr className="border-b border-[#eef2f7]">
-                        <th className="whitespace-nowrap px-5 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
-                          Name
+                      <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
+                        <th className={thClass}>
+                          <TableColumnHeader
+                            icon={UserRound}
+                            label="Name"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
                         </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
-                          Status
+                        <th className={thClass}>
+                          <TableColumnHeader
+                            icon={Users}
+                            label="Status"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
                         </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
-                          Joined
+                        <th className={thClass}>
+                          <TableColumnHeader
+                            icon={CalendarDays}
+                            label="Joined"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
                         </th>
-                        <th className="whitespace-nowrap px-5 py-3 text-left text-[0.7rem] font-semibold tracking-[0.08em] text-slate-400 uppercase">
-                          Role
+                        <th className={thClass}>
+                          <TableColumnHeader
+                            icon={Shield}
+                            label="Role"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
                         </th>
                       </tr>
                     </thead>
@@ -921,28 +991,28 @@ export function BusinessMembersPanel({
                         return (
                           <tr
                             key={`${member.status}-${member.email}-${member.id ?? "owner"}`}
-                            className={`border-b border-[#f1f5f9] transition-colors last:border-b-0 ${
+                            className={`group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 ${
                               canOpenRow
-                                ? "cursor-pointer hover:bg-[#f8fafc]"
-                                : "hover:bg-[#fafafa]"
+                                ? "cursor-pointer hover:bg-[#e8f2ff]/70"
+                                : "hover:bg-[#e8f2ff]/40"
                             }`}
                             onClick={() => {
                               if (!canViewDetails) return;
                               setDetailsMember(member);
                             }}
                           >
-                            <td className="px-5 py-4 align-middle">
-                              <div className="flex min-w-0 items-center gap-3">
+                            <td className={tdClass}>
+                              <div className="flex min-w-0 items-center gap-2.5">
                                 <span
-                                  className={`relative flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold leading-none ${avatarTone(member)}`}
+                                  className={`relative flex size-8 shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold leading-none ${avatarTone(member)}`}
                                 >
                                   {initials}
                                 </span>
                                 <div className="min-w-0 leading-tight">
                                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <p className="truncate text-sm font-bold text-[#0f172a]">
+                                    <span className="block truncate font-normal text-[#07111f]">
                                       {member.name}
-                                    </p>
+                                    </span>
                                     {isLoggedInMember ? (
                                       <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500">
                                         You
@@ -955,19 +1025,27 @@ export function BusinessMembersPanel({
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 align-middle">
+                            <td className={tdClass}>
                               <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(member.status)}`}
                               >
                                 {memberStatusLabel(member.status)}
                               </span>
                             </td>
-                            <td className="px-4 py-4 align-middle text-sm font-medium text-slate-500">
-                              {formatJoinedDate(
-                                member.joinedAt ?? member.invitedAt,
-                              )}
+                            <td
+                              className={`${tdClass} whitespace-nowrap text-slate-600`}
+                            >
+                              <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm">
+                                <CalendarDays
+                                  className="size-3.5 shrink-0 text-slate-400"
+                                  aria-hidden
+                                />
+                                {formatJoinedDate(
+                                  member.joinedAt ?? member.invitedAt,
+                                )}
+                              </span>
                             </td>
-                            <td className="px-5 py-4 align-middle">
+                            <td className={tdClass}>
                               <span className="inline-flex rounded-full border border-[#e2e8f0] bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
                                 {teamRoleLabel(member)}
                               </span>
@@ -981,7 +1059,7 @@ export function BusinessMembersPanel({
               )}
 
               {total > 0 ? (
-                <div className="flex flex-col gap-3 border-t border-[#eef2f7] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-t border-[#e8edf5] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <p className="m-0 text-xs font-medium text-slate-500">
                     Showing {pageFrom}–{pageTo} of {total}{" "}
                     {total === 1 ? "person" : "people"}
