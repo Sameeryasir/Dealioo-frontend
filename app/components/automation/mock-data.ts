@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BlockDefinition, WorkflowNode } from "@/app/components/automation/types";
 
+
 export const AUTOMATION_BLOCKS: BlockDefinition[] = [
   {
     id: "signup_trigger",
@@ -78,13 +79,6 @@ export const AUTOMATION_BLOCKS: BlockDefinition[] = [
     tone: "violet",
   },
   {
-    id: "create_coupon",
-    label: "Create Coupon",
-    section: "actions",
-    icon: Percent,
-    tone: "violet",
-  },
-  {
     id: "reviews",
     label: "Ask for Review",
     section: "actions",
@@ -107,6 +101,13 @@ const LEGACY_ACTION_BLOCKS: BlockDefinition[] = [
     section: "flow",
     icon: Timer,
     tone: "blue",
+  },
+  {
+    id: "create_coupon",
+    label: "Create Coupon",
+    section: "actions",
+    icon: Percent,
+    tone: "violet",
   },
 ];
 

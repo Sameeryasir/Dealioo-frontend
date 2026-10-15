@@ -475,7 +475,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
   name: "Signup automation",
   category: "Guest Journey",
   description:
-    "When a guest signs up: send pass link + welcome SMS, create a reward, then split into Wallet Reminder and Follow-up Message paths.",
+    "When a guest signs up: send pass link + welcome SMS, then split into Wallet Reminder and Follow-up Message paths.",
   trigger: "Signup",
   purpose: "funnel_signup",
   nodes: [
@@ -510,17 +510,6 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
       config: {
         message:
           "Hi [First Name]! Welcome — your offer is ready. We can't wait to see you. Text STOP anytime to opt out.",
-      },
-    },
-    {
-      key: "give_reward",
-      kind: "create_coupon",
-      label: "Give Rewards",
-      summary: "Create campaign reward.",
-      config: {
-        rewardName: "Campaign offer",
-        expiration: "14 days",
-        expirationNote: "Expires 14 days after signup",
       },
     },
     {
@@ -947,8 +936,7 @@ export const SIGNUP_AUTOMATION_TEMPLATE: AutomationTemplate = {
   connections: [
     { sourceKey: "trigger", targetKey: "sms_pass_link" },
     { sourceKey: "sms_pass_link", targetKey: "sms_welcome" },
-    { sourceKey: "sms_welcome", targetKey: "give_reward" },
-    { sourceKey: "give_reward", targetKey: "parallel_split" },
+    { sourceKey: "sms_welcome", targetKey: "parallel_split" },
     { sourceKey: "parallel_split", targetKey: "wait_wallet" },
     { sourceKey: "parallel_split", targetKey: "wait_follow_up" },
     { sourceKey: "wait_wallet", targetKey: "filter_wallet" },
