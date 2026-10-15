@@ -42,6 +42,7 @@ import {
   parseCampaignFromApi,
   type Funnel,
 } from "@/app/services/funnel/get-campaigns-by-business";
+import { prefetchCampaignFunnelIds } from "@/app/services/funnel/get-funnel-by-campaign";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { subscribeBusinessCampaignActivity } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-campaign-activity";
@@ -267,6 +268,14 @@ export function BusinessCampaignsPanel({
     const start = (page - 1) * CAMPAIGNS_GRID_PAGE_SIZE;
     return filteredCampaigns.slice(start, start + CAMPAIGNS_GRID_PAGE_SIZE);
   }, [filteredCampaigns, page]);
+
+  // Warm funnelId cache for visible cards so campaign Overview skips the summary hop.
+  useEffect(() => {
+    if (pagedCampaigns.length === 0) return;
+    const ids = pagedCampaigns.map((c) => c.id);
+    const timer = window.setTimeout(() => prefetchCampaignFunnelIds(ids), 250);
+    return () => window.clearTimeout(timer);
+  }, [pagedCampaigns]);
 
   useEffect(() => {
     if (page > totalFilteredPages) {

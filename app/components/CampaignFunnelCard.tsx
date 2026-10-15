@@ -23,6 +23,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { Funnel } from "@/app/services/funnel/get-campaigns-by-business";
+import { prefetchCampaignFunnelId } from "@/app/services/funnel/get-funnel-by-campaign";
 
 type Props = {
   funnel: Funnel;
@@ -271,6 +272,9 @@ export default function CampaignFunnelCard({
       <Link
         href={campaignHref}
         aria-label={`Open ${title}`}
+        // Prefetch funnel id on intent so campaign Overview skips the summary waterfall.
+        onPointerEnter={() => prefetchCampaignFunnelId(funnel.id)}
+        onFocus={() => prefetchCampaignFunnelId(funnel.id)}
         className="org-campaign-card-link relative z-[1] flex flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 focus-visible:ring-offset-2"
       >
         <article className="org-campaign-card-inner flex min-h-[11.5rem] flex-col p-3.5 pt-3 sm:p-4 sm:pt-3.5">

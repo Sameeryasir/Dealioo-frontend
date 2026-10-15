@@ -56,7 +56,9 @@ import { funnelPanelItem, funnelPanelStagger, standardEase } from "@/app/lib/mot
 import { isPositiveInt } from "@/app/lib/numbers";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { getDealioCampaignMetaSpend } from "@/app/services/facebook/get-dealio-campaign-meta-spend";
-import { getFunnelDashboardOverview } from "@/app/services/funnel/get-funnel-dashboard-overview";
+import { getFunnelDashboardCharts } from "@/app/services/funnel/get-funnel-dashboard-charts";
+import { getFunnelDashboardKpis } from "@/app/services/funnel/get-funnel-dashboard-kpis";
+import { getFunnelDropoff } from "@/app/services/funnel/get-funnel-dropoff";
 import { funnelQueryKeys } from "@/app/services/funnel/funnel-query-keys";
 import {
   getFunnelStatsMonthly,
@@ -64,6 +66,11 @@ import {
 } from "@/app/services/funnel/get-funnel-stats-monthly";
 import { getDealioCampaignGoogleSpend } from "@/app/services/google-ads/get-dealio-campaign-google-spend";
 import { useQuery } from "@tanstack/react-query";
+
+// --- Campaign dashboard perf ---
+// What: Progressive Overview (KPIs → charts/dropoff; defer ads + peak month).
+// Why: Mega dashboard-overview blocked first paint; ads/peak contended with KPIs.
+// Related: get-funnel-dashboard-kpis/charts, get-funnel-dropoff (MCP context 7).
 
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -590,8 +597,11 @@ export function FunnelOverviewPanel({
     calendarMode === "month" && monthFilter === currentActivityMonthKey();
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  const overviewQuery = useQuery({
-    queryKey: funnelQueryKeys.dashboardOverviewByFunnel(
+  const funnelReady = funnelId != null && funnelId > 0;
+
+  // 1) KPIs first — clears the main skeleton as soon as totals are ready.
+  const kpisQuery = useQuery({
+    queryKey: funnelQueryKeys.dashboardKpisByFunnel(
       funnelId ?? 0,
       periodRange.from,
       periodRange.to,
@@ -599,10 +609,10 @@ export function FunnelOverviewPanel({
       previousRange?.to ?? null,
       viewerTimeZone,
     ),
-    enabled: funnelId != null && funnelId > 0,
-    staleTime: 30_000,
+    enabled: funnelReady,
+    staleTime: 60_000,
     queryFn: () =>
-      getFunnelDashboardOverview(funnelId!, {
+      getFunnelDashboardKpis(funnelId!, {
         from: periodRange.from,
         to: periodRange.to,
         previousFrom: previousRange?.from,
@@ -610,14 +620,55 @@ export function FunnelOverviewPanel({
         timezone: viewerTimeZone,
       }),
   });
-  const yearStatsQuery = useQuery({
-    queryKey: ["funnel-stats-year-peak", funnelId, currentYear],
-    enabled: funnelId != null && funnelId > 0,
+
+  const kpisReady = kpisQuery.data != null;
+
+  // 2) Charts + dropoff after KPIs so first paint is not blocked by series SQL.
+  const chartsQuery = useQuery({
+    queryKey: funnelQueryKeys.dashboardChartsByFunnel(
+      funnelId ?? 0,
+      periodRange.from,
+      periodRange.to,
+      viewerTimeZone,
+    ),
+    enabled: funnelReady && kpisReady,
     staleTime: 60_000,
+    queryFn: () =>
+      getFunnelDashboardCharts(funnelId!, {
+        from: periodRange.from,
+        to: periodRange.to,
+        timezone: viewerTimeZone,
+      }),
+  });
+
+  const dropoffQuery = useQuery({
+    queryKey: funnelQueryKeys.dropoffByFunnel(
+      funnelId ?? 0,
+      periodRange.from,
+      periodRange.to,
+      viewerTimeZone,
+    ),
+    enabled: funnelReady && kpisReady,
+    staleTime: 60_000,
+    queryFn: () =>
+      getFunnelDropoff(funnelId!, {
+        from: periodRange.from,
+        to: periodRange.to,
+        timezone: viewerTimeZone,
+      }),
+  });
+
+  // 6) Peak month deferred + longer cache (highlight only; not needed for KPI tiles).
+  const yearStatsQuery = useQuery({
+    queryKey: funnelQueryKeys.statsMonthlyByFunnel(funnelId ?? 0, 12),
+    enabled: funnelReady && kpisReady,
+    staleTime: 300_000,
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
 
+  // 5) Meta/Google spend only after KPIs paint (external ad APIs are slow on miss).
   const adsSpendEnabled =
+    kpisReady &&
     calendarMode === "month" &&
     isPositiveInt(businessId) &&
     isPositiveInt(campaignId) &&
@@ -692,11 +743,18 @@ export function FunnelOverviewPanel({
     googleSpendQuery.isPending &&
     googleSpendQuery.data == null;
 
-  const overview = overviewQuery.data ?? null;
-  const kpis = overview;
-  const charts = overview?.charts ?? null;
-  const dropoff = overview?.dropoff ?? null;
+  const kpis = kpisQuery.data ?? null;
+  const charts = chartsQuery.data ?? null;
+  const dropoff = dropoffQuery.data ?? null;
   const previousKpis = kpis?.previous ?? null;
+  const chartsLoading =
+    kpisReady &&
+    (chartsQuery.isPending || chartsQuery.isFetching) &&
+    charts == null;
+  const dropoffLoading =
+    kpisReady &&
+    (dropoffQuery.isPending || dropoffQuery.isFetching) &&
+    dropoff == null;
   const peakMonth = useMemo(
     () =>
       findPeakFunnelMonthInYear(yearStatsQuery.data?.data ?? [], currentYear),
@@ -797,19 +855,19 @@ export function FunnelOverviewPanel({
     number | null
   >(null);
 
-  const overviewReady = overview != null;
+  const overviewReady = kpis != null;
   const showFullSkeleton =
     isFunnelIdLoading ||
     (funnelId != null &&
       !overviewReady &&
-      (overviewQuery.isPending || overviewQuery.isFetching) &&
-      !overviewQuery.isError);
+      (kpisQuery.isPending || kpisQuery.isFetching) &&
+      !kpisQuery.isError);
   const showNoFunnelMessage = !showFullSkeleton && funnelId == null;
 
   const alertMessage =
     showFullSkeleton || dismissedErrorFunnelId === funnelId
       ? null
-      : overviewQuery.isError
+      : kpisQuery.isError
         ? "Could not load campaign overview stats for this period."
         : null;
 
@@ -1081,7 +1139,20 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {dropoff ? (
+            {dropoffLoading ? (
+              <motion.section
+                className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
+                aria-label="Loading funnel drop-off"
+                variants={funnelPanelItem}
+              >
+                <motion.div
+                  className="funnel-overview-chart-slot"
+                  variants={funnelPanelItem}
+                >
+                  <FunnelDropoffMiniChartSkeleton />
+                </motion.div>
+              </motion.section>
+            ) : dropoff ? (
               <motion.section
                 className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
                 aria-label="Funnel drop-off"
@@ -1101,77 +1172,107 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
-            {charts ? (
-              <>
-                <motion.section
-                  className="funnel-overview-chart-grid"
-                  aria-label="Campaign charts"
+            {chartsLoading ? (
+              <motion.section
+                className="funnel-overview-chart-grid"
+                aria-label="Loading campaign charts"
+                variants={funnelPanelItem}
+              >
+                {(
+                  [
+                    { title: "Unique visitors", accent: "blue" as const },
+                    { title: "Unpaid signups", accent: "green" as const },
+                    { title: "Payments", accent: "orange" as const },
+                    {
+                      title: "Revenue",
+                      accent:
+                        calendarMode === "day"
+                          ? ("orange" as const)
+                          : ("pink" as const),
+                    },
+                  ] as const
+                ).map((chart) => (
+                  <motion.div
+                    key={chart.title}
+                    className="funnel-overview-chart-slot"
+                    variants={funnelPanelItem}
+                  >
+                    <OverviewLineChartSkeleton
+                      title={chart.title}
+                      accent={chart.accent}
+                    />
+                  </motion.div>
+                ))}
+              </motion.section>
+            ) : charts ? (
+              <motion.section
+                className="funnel-overview-chart-grid"
+                aria-label="Campaign charts"
+                variants={funnelPanelItem}
+              >
+                <motion.div
+                  className="funnel-overview-chart-slot"
                   variants={funnelPanelItem}
                 >
-                  <motion.div
-                    className="funnel-overview-chart-slot"
-                    variants={funnelPanelItem}
-                  >
-                    <VisitorsAdSourcesMiniChart
-                      title="Unique visitors"
-                      data={visitorsAdSeries}
-                      metaTotal={charts.uniqueVisitors.meta}
-                      googleTotal={charts.uniqueVisitors.google}
-                      inStoreTotal={charts.uniqueVisitors.inStore}
-                      showInStore
-                      caption={periodLabel}
-                      accent="blue"
-                    />
-                  </motion.div>
-                  <motion.div
-                    className="funnel-overview-chart-slot"
-                    variants={funnelPanelItem}
-                  >
-                    <VisitorsAdSourcesMiniChart
-                      title="Unpaid signups"
-                      data={signupsAdSeries}
-                      metaTotal={charts.signups.meta}
-                      googleTotal={charts.signups.google}
-                      caption={periodLabel}
-                      accent="green"
-                    />
-                  </motion.div>
-                  <motion.div
-                    className="funnel-overview-chart-slot"
-                    variants={funnelPanelItem}
-                  >
-                    <VisitorsAdSourcesMiniChart
-                      title="Payments"
-                      data={paymentsAdSeries}
-                      metaTotal={charts.payments.meta}
-                      googleTotal={charts.payments.google}
-                      inStoreTotal={charts.payments.inStore}
-                      showInStore
-                      caption={periodLabel}
-                      accent="orange"
-                    />
-                  </motion.div>
-                  <motion.div
-                    className="funnel-overview-chart-slot"
-                    variants={funnelPanelItem}
-                  >
-                    <VisitorsAdSourcesMiniChart
-                      title="Revenue"
-                      data={revenueAdSeries}
-                      metaTotal={charts.revenue.meta}
-                      googleTotal={charts.revenue.google}
-                      inStoreTotal={charts.revenue.inStore}
-                      showInStore
-                      caption={periodLabel}
-                      accent={calendarMode === "day" ? "orange" : "pink"}
-                      yAxisWidth={52}
-                      formatTotal={(cents) =>
-                        formatCents(cents, revenueCurrency)
-                      }
-                    />
-                  </motion.div>
-                </motion.section>
-              </>
+                  <VisitorsAdSourcesMiniChart
+                    title="Unique visitors"
+                    data={visitorsAdSeries}
+                    metaTotal={charts.uniqueVisitors.meta}
+                    googleTotal={charts.uniqueVisitors.google}
+                    inStoreTotal={charts.uniqueVisitors.inStore}
+                    showInStore
+                    caption={periodLabel}
+                    accent="blue"
+                  />
+                </motion.div>
+                <motion.div
+                  className="funnel-overview-chart-slot"
+                  variants={funnelPanelItem}
+                >
+                  <VisitorsAdSourcesMiniChart
+                    title="Unpaid signups"
+                    data={signupsAdSeries}
+                    metaTotal={charts.signups.meta}
+                    googleTotal={charts.signups.google}
+                    caption={periodLabel}
+                    accent="green"
+                  />
+                </motion.div>
+                <motion.div
+                  className="funnel-overview-chart-slot"
+                  variants={funnelPanelItem}
+                >
+                  <VisitorsAdSourcesMiniChart
+                    title="Payments"
+                    data={paymentsAdSeries}
+                    metaTotal={charts.payments.meta}
+                    googleTotal={charts.payments.google}
+                    inStoreTotal={charts.payments.inStore}
+                    showInStore
+                    caption={periodLabel}
+                    accent="orange"
+                  />
+                </motion.div>
+                <motion.div
+                  className="funnel-overview-chart-slot"
+                  variants={funnelPanelItem}
+                >
+                  <VisitorsAdSourcesMiniChart
+                    title="Revenue"
+                    data={revenueAdSeries}
+                    metaTotal={charts.revenue.meta}
+                    googleTotal={charts.revenue.google}
+                    inStoreTotal={charts.revenue.inStore}
+                    showInStore
+                    caption={periodLabel}
+                    accent={calendarMode === "day" ? "orange" : "pink"}
+                    yAxisWidth={52}
+                    formatTotal={(cents) =>
+                      formatCents(cents, revenueCurrency)
+                    }
+                  />
+                </motion.div>
+              </motion.section>
             ) : null}
           </motion.div>
           ) : null}

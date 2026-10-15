@@ -18,6 +18,7 @@ import { cloneTemplatePages } from "@/app/lib/clone-template-pages";
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { isPositiveInt } from "@/app/lib/numbers";
+import { getSetupAccessToken } from "@/app/lib/setup-access-token";
 import type {
   CreateFunnelConfirmationPagePayload,
   CreateFunnelLandingPagePayload,
@@ -362,6 +363,37 @@ function readFunnelId(
 export function peekCachedFunnelId(campaignId: number): number | null {
   const cached = funnelIdByCampaignCache.get(campaignId);
   return isPositiveInt(cached) ? cached : null;
+}
+
+// --- Campaign dashboard perf ---
+// What: Warm funnelId cache from campaigns list/card before Overview mounts.
+// Why: Overview waited on GET /funnel/campaign/:id/summary before any KPI fetch.
+const funnelIdPrefetchInFlight = new Map<number, Promise<number | null>>();
+
+export function prefetchCampaignFunnelId(campaignId: number): void {
+  if (!isPositiveInt(campaignId)) return;
+  if (peekCachedFunnelId(campaignId) != null) return;
+  if (funnelIdPrefetchInFlight.has(campaignId)) return;
+
+  const token = getSetupAccessToken().trim();
+  if (!token) return;
+
+  const request = fetchFunnelSummaryByCampaignId(token, campaignId).finally(
+    () => {
+      funnelIdPrefetchInFlight.delete(campaignId);
+    },
+  );
+  funnelIdPrefetchInFlight.set(campaignId, request);
+  void request.catch(() => {
+    // Prefetch is best-effort; Overview will fetch again if needed.
+  });
+}
+
+/** Prefetch funnel ids for visible campaign cards (idle / after list load). */
+export function prefetchCampaignFunnelIds(campaignIds: number[]): void {
+  for (const id of campaignIds) {
+    prefetchCampaignFunnelId(id);
+  }
 }
 
 export function peekCachedFunnelPublished(campaignId: number): boolean {
