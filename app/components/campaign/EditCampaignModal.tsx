@@ -216,13 +216,28 @@ export function EditCampaignModal({
       ),
     );
     setPrice(parsePrice(campaign.price));
-    const inferred = inferDiscountFromPrices(
-      campaign.price,
-      campaign.originalPrice,
-    );
-    setDiscountEnabled(inferred.enabled);
-    setDiscountType(inferred.discountType);
-    setDiscountValue(inferred.discountValue);
+    const storedType =
+      campaign.discountType === "percent" || campaign.discountType === "fixed"
+        ? campaign.discountType
+        : null;
+    const storedValueRaw = campaign.discountValue;
+    const storedValue =
+      storedValueRaw != null && String(storedValueRaw).trim() !== ""
+        ? String(storedValueRaw).trim()
+        : "";
+    if (storedType && storedValue) {
+      setDiscountEnabled(true);
+      setDiscountType(storedType);
+      setDiscountValue(storedValue);
+    } else {
+      const inferred = inferDiscountFromPrices(
+        campaign.price,
+        campaign.originalPrice,
+      );
+      setDiscountEnabled(inferred.enabled);
+      setDiscountType(inferred.discountType);
+      setDiscountValue(inferred.discountValue);
+    }
     setStatus(resolveCampaignStatus(campaign));
     setImageFile(null);
     const image = campaign.imageUrl?.trim() || null;
@@ -367,6 +382,9 @@ export function EditCampaignModal({
       }
       const computedOriginal = built.originalPrice;
 
+      const discountValueNum = discountEnabled
+        ? Number.parseFloat(discountValue.trim())
+        : NaN;
       const updatedBody = await updateCampaign({
         campaignId: campaign.id,
         campaignName: trimmedName,
@@ -375,6 +393,14 @@ export function EditCampaignModal({
         description: description.trim(),
         price: dealPrice,
         originalPrice: computedOriginal,
+        discountType:
+          computedOriginal != null && discountEnabled ? discountType : null,
+        discountValue:
+          computedOriginal != null &&
+          discountEnabled &&
+          Number.isFinite(discountValueNum)
+            ? discountValueNum
+            : null,
         status,
         image: imageFile,
       });
@@ -387,6 +413,14 @@ export function EditCampaignModal({
           description: description.trim(),
           price: dealPrice,
           originalPrice: computedOriginal,
+          discountType:
+            computedOriginal != null && discountEnabled ? discountType : null,
+          discountValue:
+            computedOriginal != null &&
+            discountEnabled &&
+            Number.isFinite(discountValueNum)
+              ? discountValueNum
+              : null,
           status,
           published: status === "published",
           updatedAt: new Date().toISOString(),

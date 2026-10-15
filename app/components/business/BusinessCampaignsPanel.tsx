@@ -401,6 +401,8 @@ export function BusinessCampaignsPanel({
     description: string;
     offerPrice: string;
     originalPrice: string;
+    discountType?: "percent" | "fixed";
+    discountValue?: string;
     offerImage: File;
     campaignType: "prepaid" | "postpaid";
     includeOfferPrice: boolean;
@@ -408,6 +410,11 @@ export function BusinessCampaignsPanel({
     setSubmitError(null);
     setAlertDismissed(false);
     try {
+      const discountValueNum =
+        payload.discountValue?.trim() &&
+        Number.isFinite(Number.parseFloat(payload.discountValue))
+          ? Number.parseFloat(payload.discountValue)
+          : null;
       const createdBody = await createCampaign({
         businessId,
         campaignName: payload.campaignName,
@@ -420,7 +427,15 @@ export function BusinessCampaignsPanel({
           ? {
               price: parseOfferPrice(payload.offerPrice),
               ...(payload.originalPrice.trim()
-                ? { originalPrice: parseOfferPrice(payload.originalPrice) }
+                ? {
+                    originalPrice: parseOfferPrice(payload.originalPrice),
+                    ...(payload.discountType && discountValueNum != null
+                      ? {
+                          discountType: payload.discountType,
+                          discountValue: discountValueNum,
+                        }
+                      : {}),
+                  }
                 : {}),
             }
           : { price: null, originalPrice: null }),
@@ -455,6 +470,18 @@ export function BusinessCampaignsPanel({
               originalPrice:
                 payload.includeOfferPrice && payload.originalPrice.trim()
                   ? parseOfferPrice(payload.originalPrice)
+                  : undefined,
+              discountType:
+                payload.includeOfferPrice &&
+                payload.originalPrice.trim() &&
+                payload.discountType
+                  ? payload.discountType
+                  : undefined,
+              discountValue:
+                payload.includeOfferPrice &&
+                payload.originalPrice.trim() &&
+                discountValueNum != null
+                  ? discountValueNum
                   : undefined,
               campaignType: payload.campaignType,
               published: true,

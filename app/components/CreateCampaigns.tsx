@@ -54,6 +54,8 @@ export type CreateCampaignCompletePayload = {
   description: string;
   offerPrice: string;
   originalPrice: string;
+  discountType?: "percent" | "fixed";
+  discountValue?: string;
   offerImage: File;
   campaignType: CampaignType;
   includeOfferPrice: boolean;
@@ -385,6 +387,9 @@ useEffect(() => {
       description: description.trim(),
       offerPrice: requirePrice ? price.trim() : "",
       originalPrice,
+      ...(requirePrice && discountEnabled && originalPrice
+        ? { discountType, discountValue: discountValue.trim() }
+        : {}),
       offerImage: imageFile,
       campaignType,
       includeOfferPrice: requirePrice,

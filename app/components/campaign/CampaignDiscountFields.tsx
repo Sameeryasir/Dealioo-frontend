@@ -59,10 +59,11 @@ export function CampaignDiscountFields({
       <label className="flex cursor-pointer items-center justify-between gap-3">
         <span>
           <span className="block text-sm font-semibold text-[#07111f]">
-            Add discount
+            Show was / now pricing
           </span>
           <span className="mt-0.5 block text-xs text-slate-500">
-            Show a strikethrough price and savings badge to guests.
+            Display-only savings (strikethrough). Guests still pay the deal
+            price — this is not a checkout coupon code.
           </span>
         </span>
         <button

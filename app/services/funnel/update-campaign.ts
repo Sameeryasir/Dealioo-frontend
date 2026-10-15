@@ -16,6 +16,8 @@ export type UpdateCampaignPayload = {
   description: string;
   price: number;
   originalPrice?: number | null;
+  discountType?: "percent" | "fixed" | null;
+  discountValue?: number | null;
   status: CampaignPublicationStatus;
   image?: File | null;
 };
@@ -68,6 +70,18 @@ export async function updateCampaign(
     form.append("originalPrice", String(originalPrice));
   } else {
     form.append("originalPrice", "");
+  }
+  if (
+    originalPrice != null &&
+    (payload.discountType === "percent" || payload.discountType === "fixed") &&
+    payload.discountValue != null &&
+    Number.isFinite(payload.discountValue)
+  ) {
+    form.append("discountType", payload.discountType);
+    form.append("discountValue", String(roundMoney(payload.discountValue)));
+  } else {
+    form.append("discountType", "");
+    form.append("discountValue", "");
   }
   form.append("status", payload.status);
   if (payload.image instanceof File) {

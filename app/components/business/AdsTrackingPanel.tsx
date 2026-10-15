@@ -255,7 +255,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
           nextIsActive = saved.isActive;
         }
       } catch {
-        // Keep empty defaults when tracking has not been saved yet.
       }
 
       if (cancelled) return;

@@ -23,6 +23,8 @@ export type CreateCampaignPayload = {
   description: string;
   price?: number | null;
   originalPrice?: number | null;
+  discountType?: "percent" | "fixed" | null;
+  discountValue?: number | null;
   campaignType: "prepaid" | "postpaid";
 };
 
@@ -108,6 +110,15 @@ export async function createCampaign(
   }
   if (originalPrice != null) {
     form.append("originalPrice", String(originalPrice));
+  }
+  if (
+    originalPrice != null &&
+    (payload.discountType === "percent" || payload.discountType === "fixed") &&
+    payload.discountValue != null &&
+    Number.isFinite(payload.discountValue)
+  ) {
+    form.append("discountType", payload.discountType);
+    form.append("discountValue", String(roundMoney(payload.discountValue)));
   }
   form.append("status", "published");
 
