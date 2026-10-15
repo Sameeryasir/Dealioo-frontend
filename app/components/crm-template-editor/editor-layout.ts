@@ -132,5 +132,9 @@ export const previewPhoneFrameEmbeddedClass = [
   "ring-1 ring-slate-200/90",
 ].join(" ");
 
-export const funnelFullPagePreviewFrameClass =
-  "@container/preview flex w-full min-h-dvh flex-col overflow-hidden sm:max-w-[min(390px,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-lg sm:shadow-sm sm:ring-1 sm:ring-slate-200";
+export const funnelFullPagePreviewFrameClass = [
+  "@container/preview",
+  "flex w-full min-w-0 min-h-dvh flex-col overflow-x-hidden overflow-y-auto bg-white",
+  "sm:max-w-[min(26rem,100%)] sm:min-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:shadow-sm sm:ring-1 sm:ring-slate-200",
+  "md:max-w-[min(28rem,100%)]",
+].join(" ");

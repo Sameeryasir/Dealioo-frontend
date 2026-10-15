@@ -97,8 +97,8 @@ export function SignupPagePreview({
   const signupNextAsLink = signupNextHref?.trim() ? signupNextHref.trim() : null;
 
   const secondaryClass = isDark
-    ? "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-white/15 active:scale-[0.99]"
-    : "inline-flex min-w-[8.5rem] flex-1 items-center justify-center rounded-2xl border border-zinc-200/90 bg-white/80 px-5 py-3 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-white active:scale-[0.99]";
+    ? "inline-flex min-h-11 w-full min-w-0 flex-1 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-white/15 active:scale-[0.99] sm:min-w-[8.5rem] sm:px-5"
+    : "inline-flex min-h-11 w-full min-w-0 flex-1 items-center justify-center rounded-2xl border border-zinc-200/90 bg-white/80 px-4 py-3 text-sm font-semibold text-zinc-800 shadow-sm ring-1 ring-zinc-950/5 transition hover:bg-white active:scale-[0.99] sm:min-w-[8.5rem] sm:px-5";
 
   const primaryStyle = landingTemplateButtonStyle(
     theme.ctaBackground,
@@ -107,7 +107,7 @@ export function SignupPagePreview({
   );
 
   const primaryClass = [
-    "min-w-[8.5rem] flex-1",
+    "min-h-11 w-full min-w-0 flex-1 sm:min-w-[8.5rem]",
     landingTemplateCtaLayoutClass,
     signupSubmitting ? "cursor-not-allowed opacity-60" : "",
   ]
@@ -192,7 +192,7 @@ export function SignupPagePreview({
         />
       </div>
 
-      <div className="mt-8 flex w-full flex-wrap justify-center gap-2.5">
+      <div className="mt-8 flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:justify-center">
         {back}
         {next}
       </div>

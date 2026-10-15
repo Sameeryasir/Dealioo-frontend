@@ -54,8 +54,8 @@ export function LandingFunnelStepShell({
     <div
       className={
         fillViewport
-          ? "flex min-h-full w-full flex-1 flex-col"
-          : "flex w-full flex-col"
+          ? "flex min-h-full w-full min-w-0 flex-1 flex-col overflow-x-hidden"
+          : "flex w-full min-w-0 flex-col overflow-x-hidden"
       }
       style={{
         ...pageBackgroundStyle(theme.background, theme.background),
@@ -75,8 +75,8 @@ export function LandingFunnelStepShell({
         />
       ) : null}
       <div
-        className={`flex w-full flex-1 flex-col items-stretch px-5 pb-8 ${
-          showHero ? "pt-6" : "pt-8"
+        className={`flex w-full min-w-0 flex-1 flex-col items-stretch px-4 pb-8 sm:px-5 sm:pb-10 ${
+          showHero ? "pt-5 sm:pt-6" : "pt-6 sm:pt-8"
         } ${
           fillViewport || stretchToMinHeight ? "min-h-0 flex-1" : ""
         } ${centered ? "text-center" : "text-left"}`}
