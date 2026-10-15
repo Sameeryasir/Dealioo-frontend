@@ -17759,7 +17759,8 @@ iframe[name*="assistant" i] {
 }
 
 .funnel-guest-shell__frame {
-  max-width: 100%;
+  width: 100%;
+  height: auto;
 }
 
 .funnel-guest-shell__frame img,
@@ -17775,6 +17776,17 @@ iframe[name*="assistant" i] {
 .funnel-guest-shell__frame textarea,
 .funnel-guest-shell__frame button {
   max-width: 100%;
+}
+
+.funnel-guest-shell__frame p,
+.funnel-guest-shell__frame h1,
+.funnel-guest-shell__frame h2,
+.funnel-guest-shell__frame h3,
+.funnel-guest-shell__frame span,
+.funnel-guest-shell__frame a,
+.funnel-guest-shell__frame button {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 639px) {

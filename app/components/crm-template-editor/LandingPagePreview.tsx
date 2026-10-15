@@ -365,9 +365,7 @@ export function LandingPagePreview({
     </div>
   );
 
-  const rootClass = fillViewport
-    ? "flex h-full min-h-full flex-1 flex-col overflow-hidden"
-    : "flex w-full flex-col";
+  const rootClass = "flex w-full min-w-0 flex-col overflow-x-hidden";
 
   if (layoutType === "split") {
     return (

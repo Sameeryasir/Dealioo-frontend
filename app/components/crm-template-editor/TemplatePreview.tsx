@@ -43,16 +43,16 @@ function isLandingTemplatePage(page: TemplatePage): page is LandingTemplatePage 
   return page.id === "landing";
 }
 
-function layoutShellClass(_layoutType: string) {
+function layoutShellClass() {
   return "max-w-full";
 }
 
-function previewOuterChrome(
-  _pageId: string,
-  options: { editorChrome?: boolean; fullPageShell?: boolean },
-): string {
+function previewOuterChrome(options: {
+  editorChrome?: boolean;
+  fullPageShell?: boolean;
+}): string {
   if (options.fullPageShell) {
-    return "flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto";
+    return "flex w-full min-w-0 flex-col overflow-x-hidden";
   }
   if (options.editorChrome) {
     return "flex w-full min-w-0 flex-col bg-white";
@@ -175,8 +175,8 @@ export function TemplatePreview({
     ? landingPage.imageScale
     : page.imageScale;
 
-  const shell = `${layoutShellClass(layoutType)} mx-auto w-full`;
-  const previewFrameClass = previewOuterChrome(page.id, {
+  const shell = `${layoutShellClass()} mx-auto w-full`;
+  const previewFrameClass = previewOuterChrome({
     editorChrome: editorStepPreviewChrome,
     fullPageShell: fullPageShellChrome,
   });
@@ -412,11 +412,11 @@ export function TemplatePreview({
   );
 
   const fullPageLayoutClass = fillFrame
-    ? "flex min-h-full min-w-0 flex-1 flex-col"
+    ? "flex w-full min-w-0 flex-col"
     : "";
 
   const frameInnerClass = fillFrame
-    ? "flex min-h-full flex-1 flex-col"
+    ? "flex w-full min-w-0 flex-col"
     : "overflow-hidden";
 
   if (page.id === "payment") {
@@ -448,7 +448,7 @@ export function TemplatePreview({
         <div
           className={`w-full min-w-0 ${
             fillFrame
-              ? "flex min-h-full flex-1 flex-col"
+              ? "flex w-full min-w-0 flex-col"
               : "overflow-visible"
           } ${previewFrameClass}`}
         >

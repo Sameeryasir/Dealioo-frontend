@@ -52,11 +52,7 @@ export function LandingFunnelStepShell({
 
   return (
     <div
-      className={
-        fillViewport
-          ? "flex min-h-full w-full min-w-0 flex-1 flex-col overflow-x-hidden"
-          : "flex w-full min-w-0 flex-col overflow-x-hidden"
-      }
+      className="flex w-full min-w-0 flex-col overflow-x-hidden"
       style={{
         ...pageBackgroundStyle(theme.background, theme.background),
         ...(stretchToMinHeight ? { minHeight } : {}),
