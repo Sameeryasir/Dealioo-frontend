@@ -18,13 +18,45 @@ export type FunnelDashboardChartSeries = {
   }>;
 };
 
+export type FunnelVisitorAudienceSeries = {
+  newVisitors: number;
+  repeatVisitors: number;
+  data: Array<{
+    month: string;
+    newVisitors: number;
+    repeatVisitors: number;
+  }>;
+};
+
 export type FunnelDashboardCharts = {
   funnelId: number;
   uniqueVisitors: FunnelDashboardChartSeries;
   signups: FunnelDashboardChartSeries;
   payments: FunnelDashboardChartSeries;
   revenue: FunnelDashboardChartSeries;
+  visitorAudience: FunnelVisitorAudienceSeries;
 };
+
+function emptyAudience(): FunnelVisitorAudienceSeries {
+  return { newVisitors: 0, repeatVisitors: 0, data: [] };
+}
+
+function parseAudience(raw: unknown): FunnelVisitorAudienceSeries {
+  if (!raw || typeof raw !== "object") return emptyAudience();
+  const json = raw as Partial<FunnelVisitorAudienceSeries>;
+  const data = Array.isArray(json.data)
+    ? json.data.map((row) => ({
+        month: String(row?.month ?? ""),
+        newVisitors: Number(row?.newVisitors) || 0,
+        repeatVisitors: Number(row?.repeatVisitors) || 0,
+      }))
+    : [];
+  return {
+    newVisitors: Number(json.newVisitors) || 0,
+    repeatVisitors: Number(json.repeatVisitors) || 0,
+    data,
+  };
+}
 
 function emptySeries(): FunnelDashboardChartSeries {
   return { meta: 0, google: 0, inStore: 0, data: [] };
@@ -96,5 +128,6 @@ export async function getFunnelDashboardCharts(
     signups: parseSeries(json.signups),
     payments: parseSeries(json.payments),
     revenue: parseSeries(json.revenue),
+    visitorAudience: parseAudience(json.visitorAudience),
   };
 }

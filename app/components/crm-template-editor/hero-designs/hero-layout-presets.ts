@@ -40,7 +40,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     frameClass:
       "relative aspect-[4/3] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
-    fade: "full",
+    fade: "none",
     placeholderClass: "border-b border-dashed",
   },
   inset_rounded: {
@@ -67,7 +67,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     frameClass:
       "relative aspect-[21/9] w-full shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover object-center",
-    fade: "full",
+    fade: "soft",
     placeholderClass: "border-b border-dashed",
   },
   portrait_tall: {
@@ -76,7 +76,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     frameClass:
       "relative aspect-[4/5] w-full max-h-[22rem] shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
-    fade: "full",
+    fade: "soft",
     placeholderClass: "border-b border-dashed",
   },
   sharp_cut: {
@@ -110,10 +110,10 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     previewKind: "arch",
     wrapperClass: "",
     frameClass:
-      "relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-b-[2.5rem]",
+      "relative z-0 aspect-[4/3] w-full shrink-0 overflow-hidden rounded-b-[2.75rem]",
     imageClass: "h-full w-full object-cover",
-    fade: "full",
-    placeholderClass: "border-b border-dashed rounded-b-[2.5rem]",
+    fade: "soft",
+    placeholderClass: "border-b border-dashed rounded-b-[2.75rem]",
   },
   immersive_tall: {
     previewKind: "immersive",
@@ -121,7 +121,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     frameClass:
       "relative aspect-[3/4] w-full min-h-[12rem] max-h-[28rem] shrink-0 overflow-hidden",
     imageClass: "h-full w-full object-cover",
-    fade: "full",
+    fade: "soft",
     placeholderClass: "border-b border-dashed",
   },
   product_square: {
@@ -157,7 +157,7 @@ export const HERO_LAYOUT_PRESETS: Record<HeroLayoutPresetKey, HeroLayoutPreset> 
     frameClass:
       "relative aspect-[16/11] w-full shrink-0 overflow-hidden rounded-lg border border-zinc-200/70 shadow-sm",
     imageClass: "h-full w-full object-cover",
-    fade: "full",
+    fade: "soft",
     placeholderClass: "rounded-lg border border-dashed",
   },
   /** Adaptive layouts: full image visible (object-contain), neutral frame for letterboxing. */

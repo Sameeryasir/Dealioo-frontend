@@ -72,7 +72,11 @@ export function LandingFunnelStepShell({
       ) : null}
       <div
         className={`flex w-full min-w-0 flex-1 flex-col items-stretch px-4 pb-8 sm:px-5 sm:pb-10 ${
-          showHero ? "pt-5 sm:pt-6" : "pt-6 sm:pt-8"
+          !showHero
+            ? "pt-6 sm:pt-8"
+            : heroStyle.previewKind === "arch"
+              ? "relative z-[1] -mt-6 pt-8 sm:pt-9"
+              : "pt-5 sm:pt-6"
         } ${
           fillViewport || stretchToMinHeight ? "min-h-0 flex-1" : ""
         } ${centered ? "text-center" : "text-left"}`}

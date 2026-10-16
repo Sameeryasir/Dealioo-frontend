@@ -14,13 +14,14 @@ export const HERO_DESIGN_CATALOG = [
     id: "edge_to_edge",
     preset: "edge_bleed",
     label: "Edge to edge",
-    description: "Full-width hero with a soft fade into content.",
+    description: "Full-width hero that keeps the photo clear, no bottom fade.",
   },
   {
     id: "rounded_card",
     preset: "inset_rounded",
     label: "Rounded card",
-    description: "Inset hero with rounded corners, polished app feel.",
+    description:
+      "Inset photo with a soft blend into the page background and template colors.",
   },
   {
     id: "premium_inset",
@@ -56,13 +57,15 @@ export const HERO_DESIGN_CATALOG = [
     id: "floating_hero",
     preset: "floating_card",
     label: "Floating hero",
-    description: "Deep shadow floating card, modern DTC and app launches.",
+    description:
+      "Elevated card hero that gently blends the image into the funnel page.",
   },
   {
     id: "arch_curve",
     preset: "arch_hero",
     label: "Arch curve",
-    description: "Rounded bottom arc, boutique brands and events.",
+    description:
+      "Curved bottom edge with a soft fade so the photo melts into the template.",
   },
   {
     id: "immersive_story",
@@ -80,13 +83,15 @@ export const HERO_DESIGN_CATALOG = [
     id: "magazine_band",
     preset: "magazine_band",
     label: "Magazine band",
-    description: "Wide editorial band, headlines over atmospheric photos.",
+    description:
+      "Wide editorial strip; image blends into the page wash under your offer copy.",
   },
   {
     id: "glass_fade",
     preset: "glass_fade",
     label: "Glass fade",
-    description: "Soft light fade, text-friendly overlay on busy images.",
+    description:
+      "Soft glass-style fade so busy photos blend cleanly with the funnel template.",
   },
   {
     id: "split_margin",
@@ -144,9 +149,28 @@ export const heroDesignStyles = Object.fromEntries(
   HERO_DESIGN_CATALOG.map((entry) => [entry.id, buildHeroDesignStyle(entry)]),
 ) as Record<HeroDesign, HeroDesignStyle>;
 
+export const GLOBAL_HERO_DESIGN_IDS = [
+  "edge_to_edge",
+  "glass_fade",
+  "rounded_card",
+  "floating_hero",
+  "arch_curve",
+  "magazine_band",
+] as const satisfies readonly HeroDesign[];
+
+export type GlobalHeroDesign = (typeof GLOBAL_HERO_DESIGN_IDS)[number];
+
+const GLOBAL_HERO_ID_SET = new Set<string>(GLOBAL_HERO_DESIGN_IDS);
+
+export function isGlobalHeroDesign(value: string | null | undefined): boolean {
+  return Boolean(value && GLOBAL_HERO_ID_SET.has(value));
+}
+
 export const HERO_DESIGN_OPTIONS: HeroDesignOptionRow[] =
-  HERO_DESIGN_CATALOG.map((entry) => ({
-    value: entry.id,
-    label: entry.label,
-    description: entry.description,
-  }));
+  HERO_DESIGN_CATALOG.filter((entry) => isGlobalHeroDesign(entry.id)).map(
+    (entry) => ({
+      value: entry.id,
+      label: entry.label,
+      description: entry.description,
+    }),
+  );

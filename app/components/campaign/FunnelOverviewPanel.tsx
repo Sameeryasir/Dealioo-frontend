@@ -6,10 +6,10 @@ import {
   ArrowUpRight,
   DollarSign,
   Layers,
+  Percent,
   Plus,
   Store,
   Trophy,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -76,6 +76,11 @@ const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
 type AdSourceWinner = "meta" | "google" | "inStore" | "tie";
+
+function conversionRate(payments: number, visitors: number): number {
+  if (visitors <= 0) return 0;
+  return Math.round((payments / visitors) * 1000) / 10;
+}
 
 function percentChange(
   current: number,
@@ -456,8 +461,8 @@ function OverviewHighlightSkeleton() {
 
 function OverviewSkeleton() {
   const lineChartSkeletons = [
-    { title: "Unique visitors", accent: "blue" as const },
-    { title: "Unpaid signups", accent: "green" as const },
+    { title: "Visitors", accent: "blue" as const },
+    { title: "Conversion rate", accent: "green" as const },
     { title: "Payments", accent: "orange" as const },
     { title: "Revenue", accent: "pink" as const },
   ];
@@ -806,9 +811,6 @@ export function FunnelOverviewPanel({
       color: OVERVIEW_AD_SOURCE_COLORS.inStore,
     },
   ];
-  const signupsAdBreakdown = kpis
-    ? metaGoogleBreakdown(kpis.adSources.meta, kpis.adSources.google)
-    : undefined;
   const uniqueVisitorsAdBreakdown = kpis
     ? metaGoogleInStoreBreakdown(
         kpis.adSources.uniqueVisitors.meta,
@@ -838,9 +840,22 @@ export function FunnelOverviewPanel({
     () => buildVisitorsAdSourceSeries(charts?.uniqueVisitors.data ?? []),
     [charts?.uniqueVisitors.data],
   );
-  const signupsAdSeries = useMemo(
-    () => buildVisitorsAdSourceSeries(charts?.signups.data ?? []),
-    [charts?.signups.data],
+  const paymentsByMonth = new Map(
+    (charts?.payments.data ?? []).map((row) => [
+      row.month,
+      row.meta + row.google + (row.inStore ?? 0),
+    ]),
+  );
+  const conversionSeries = buildVisitorsAdSourceSeries(
+    (charts?.uniqueVisitors.data ?? []).map((row) => ({
+      month: row.month,
+      meta: conversionRate(
+        paymentsByMonth.get(row.month) ?? 0,
+        row.meta + row.google + (row.inStore ?? 0),
+      ),
+      google: 0,
+      inStore: 0,
+    })),
   );
   const paymentsAdSeries = useMemo(
     () => buildVisitorsAdSourceSeries(charts?.payments.data ?? []),
@@ -1000,21 +1015,33 @@ export function FunnelOverviewPanel({
             >
               <motion.div className="h-full" variants={funnelPanelItem}>
                 <OverviewKpiTile
-                  label="Unpaid signups"
-                  value={kpis.signups}
+                  label="Conversion rate"
+                  value={conversionRate(kpis.payments, kpis.uniqueVisitors)}
                   hint={periodLabel}
-                  icon={UserPlus}
+                  icon={Percent}
                   iconBg={DASHBOARD_KPI_ICON.green}
                   hoverTone="green"
-                  breakdown={signupsAdBreakdown}
+                  format="percent"
                   showComparison={showComparison}
                   changePercent={percentChange(
-                    kpis.signups,
-                    previousKpis?.signups,
+                    conversionRate(kpis.payments, kpis.uniqueVisitors),
+                    previousKpis
+                      ? conversionRate(
+                          previousKpis.payments,
+                          previousKpis.uniqueVisitors,
+                        )
+                      : null,
                   )}
                   comparisonLabel={comparisonLabel}
                   periodInProgress={periodInProgress}
-                  previousValue={previousKpis?.signups}
+                  previousValue={
+                    previousKpis
+                      ? conversionRate(
+                          previousKpis.payments,
+                          previousKpis.uniqueVisitors,
+                        )
+                      : null
+                  }
                 />
               </motion.div>
               <motion.div className="h-full" variants={funnelPanelItem}>
@@ -1063,7 +1090,7 @@ export function FunnelOverviewPanel({
               </motion.div>
               <motion.div className="h-full" variants={funnelPanelItem}>
                 <OverviewKpiTile
-                  label="Unique visitors"
+                  label="Visitors"
                   value={kpis.uniqueVisitors}
                   hint={periodLabel}
                   icon={Users}
@@ -1180,8 +1207,8 @@ export function FunnelOverviewPanel({
               >
                 {(
                   [
-                    { title: "Unique visitors", accent: "blue" as const },
-                    { title: "Unpaid signups", accent: "green" as const },
+                    { title: "Visitors", accent: "blue" as const },
+                    { title: "Conversion rate", accent: "green" as const },
                     { title: "Payments", accent: "orange" as const },
                     {
                       title: "Revenue",
@@ -1215,7 +1242,7 @@ export function FunnelOverviewPanel({
                   variants={funnelPanelItem}
                 >
                   <VisitorsAdSourcesMiniChart
-                    title="Unique visitors"
+                    title="Visitors"
                     data={visitorsAdSeries}
                     metaTotal={charts.uniqueVisitors.meta}
                     googleTotal={charts.uniqueVisitors.google}
@@ -1223,6 +1250,7 @@ export function FunnelOverviewPanel({
                     showInStore
                     caption={periodLabel}
                     accent="blue"
+                    audience={charts.visitorAudience}
                   />
                 </motion.div>
                 <motion.div
@@ -1230,12 +1258,21 @@ export function FunnelOverviewPanel({
                   variants={funnelPanelItem}
                 >
                   <VisitorsAdSourcesMiniChart
-                    title="Unpaid signups"
-                    data={signupsAdSeries}
-                    metaTotal={charts.signups.meta}
-                    googleTotal={charts.signups.google}
+                    title="Conversion rate"
+                    data={conversionSeries}
+                    metaTotal={conversionRate(
+                      charts.payments.meta +
+                        charts.payments.google +
+                        charts.payments.inStore,
+                      charts.uniqueVisitors.meta +
+                        charts.uniqueVisitors.google +
+                        charts.uniqueVisitors.inStore,
+                    )}
+                    googleTotal={0}
                     caption={periodLabel}
                     accent="green"
+                    singleSeriesLabel="Conversion rate"
+                    formatTotal={(value) => `${Number(value).toFixed(1)}%`}
                   />
                 </motion.div>
                 <motion.div

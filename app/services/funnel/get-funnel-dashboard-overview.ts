@@ -105,6 +105,8 @@ export async function getFunnelDashboardOverview(
     payments: Number(json.payments) || 0,
     revenue: Number(json.revenue) || 0,
     uniqueVisitors: Number(json.uniqueVisitors) || 0,
+    newVisitors: Number(json.newVisitors) || 0,
+    repeatVisitors: Number(json.repeatVisitors) || 0,
     adSources: {
       meta: Number(json.adSources?.meta) || 0,
       google: Number(json.adSources?.google) || 0,
@@ -143,6 +145,18 @@ export async function getFunnelDashboardOverview(
       signups: parseChartSeries(json.charts?.signups),
       payments: parseChartSeries(json.charts?.payments),
       revenue: parseChartSeries(json.charts?.revenue),
+      visitorAudience: {
+        newVisitors: Number(json.charts?.visitorAudience?.newVisitors) || 0,
+        repeatVisitors:
+          Number(json.charts?.visitorAudience?.repeatVisitors) || 0,
+        data: Array.isArray(json.charts?.visitorAudience?.data)
+          ? json.charts.visitorAudience.data.map((row) => ({
+              month: String(row?.month ?? ""),
+              newVisitors: Number(row?.newVisitors) || 0,
+              repeatVisitors: Number(row?.repeatVisitors) || 0,
+            }))
+          : [],
+      },
     },
     dropoff: {
       pageViews: Number(json.dropoff?.pageViews) || 0,

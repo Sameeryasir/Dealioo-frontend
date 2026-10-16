@@ -42,8 +42,8 @@ function heroFadeStyle(
   if (mode === "none") return undefined;
   const stops =
     mode === "soft"
-      ? `${fadeColor} 0%, ${fadeColor}cc 28%, transparent 85%`
-      : `${fadeColor} 0%, ${fadeColor}99 40%, transparent 100%`;
+      ? `${fadeColor}8a 0%, ${fadeColor}33 16%, transparent 36%`
+      : `${fadeColor}99 0%, ${fadeColor}40 18%, transparent 40%`;
   return {
     backgroundImage: `linear-gradient(to top, ${stops})`,
   };
@@ -70,9 +70,14 @@ export function LandingHero({
     !hasImage ? `${placeholderClass} ${heroStyle.placeholderClass}` : "",
   ].join(" ");
 
+  const frameToneStyle: CSSProperties = {
+    backgroundColor: fadeColor,
+  };
+
   const placeholder = (
     <div
       className={`flex flex-col items-center justify-center gap-2 px-4 py-8 text-center ${frameClass}`}
+      style={frameToneStyle}
     >
       <span className="text-xs font-semibold">Image placeholder</span>
       <span className="text-[0.65rem] opacity-80">
@@ -82,7 +87,9 @@ export function LandingHero({
   );
 
   const imageBlock = (
-    <div className={frameClass}>
+    <div className={frameClass} style={frameToneStyle}>
+      {/* Hero files can be an upload or any remote image, so the browser loads them directly. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={resolvedUrl}
         alt=""
@@ -356,9 +363,14 @@ export function LandingPagePreview({
     />
   ) : null;
 
+  const isArchHero = heroStyle.previewKind === "arch";
+  const contentPadClass = isArchHero
+    ? "relative z-[1] -mt-6 px-6 pb-10 pt-8"
+    : "px-6 pb-10 pt-7";
+
   const content = (
     <div
-      className={`flex flex-col gap-5 ${align} px-6 pb-10 pt-7 ${fillViewport ? "min-h-0 flex-1" : ""}`}
+      className={`flex flex-col gap-5 ${align} ${contentPadClass} ${fillViewport ? "min-h-0 flex-1" : ""}`}
       style={pageBackgroundStyle(theme.background, theme.background)}
     >
       {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
@@ -366,10 +378,11 @@ export function LandingPagePreview({
   );
 
   const rootClass = "flex w-full min-w-0 flex-col overflow-x-hidden";
+  const rootStyle = pageBackgroundStyle(theme.background, theme.background);
 
   if (layoutType === "split") {
     return (
-      <div className={rootClass}>
+      <div className={rootClass} style={rootStyle}>
         {hero}
         {content}
       </div>
@@ -377,7 +390,7 @@ export function LandingPagePreview({
   }
 
   return (
-    <div className={rootClass}>
+    <div className={rootClass} style={rootStyle}>
       {hero}
       {content}
     </div>

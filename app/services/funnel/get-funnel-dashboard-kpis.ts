@@ -13,6 +13,8 @@ export type FunnelDashboardKpis = {
   payments: number;
   revenue: number;
   uniqueVisitors: number;
+  newVisitors: number;
+  repeatVisitors: number;
   adSources: {
     meta: number;
     google: number;
@@ -84,6 +86,8 @@ export async function getFunnelDashboardKpis(
     payments: Number(json.payments) || 0,
     revenue: Number(json.revenue) || 0,
     uniqueVisitors: Number(json.uniqueVisitors) || 0,
+    newVisitors: Number(json.newVisitors) || 0,
+    repeatVisitors: Number(json.repeatVisitors) || 0,
     adSources: {
       meta: Number(json.adSources?.meta) || 0,
       google: Number(json.adSources?.google) || 0,

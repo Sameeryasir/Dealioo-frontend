@@ -28,7 +28,14 @@ export type VisitorsAdSourceChartPoint = {
   meta: number;
   google: number;
   inStore: number;
+  newVisitors?: number;
+  repeatVisitors?: number;
 };
+
+const VISITOR_AUDIENCE_COLORS = {
+  newVisitors: "#0f766e",
+  repeatVisitors: "#7c3aed",
+} as const;
 
 type SourceWinner = "meta" | "google" | "inStore" | "tie";
 
@@ -69,10 +76,12 @@ export function VisitorsAdSourcesMiniChart({
   inStoreTotal = 0,
   showInStore = false,
   caption,
-  title = "Unique visitors",
+  title = "Visitors",
   formatTotal,
   yAxisWidth = 36,
   accent = "blue",
+  singleSeriesLabel,
+  audience,
 }: {
   data: VisitorsAdSourceChartPoint[];
   metaTotal: number;
@@ -84,8 +93,28 @@ export function VisitorsAdSourcesMiniChart({
   formatTotal?: (value: number) => string;
   yAxisWidth?: number;
   accent?: "green" | "blue" | "pink" | "orange" | "multi";
+  singleSeriesLabel?: string;
+  audience?: {
+    newVisitors: number;
+    repeatVisitors: number;
+    data: Array<{
+      month: string;
+      newVisitors: number;
+      repeatVisitors: number;
+    }>;
+  };
 }) {
   const formatLegend = formatTotal ?? ((value: number) => value.toLocaleString());
+  const audienceByMonth = new Map(
+    (audience?.data ?? []).map((row) => [row.month, row]),
+  );
+  const chartData = audience
+    ? data.map((row) => ({
+        ...row,
+        newVisitors: audienceByMonth.get(row.month)?.newVisitors ?? 0,
+        repeatVisitors: audienceByMonth.get(row.month)?.repeatVisitors ?? 0,
+      }))
+    : data;
 
   const hasMetaData =
     metaTotal > 0 || data.some((row) => Number(row.meta) > 0);
@@ -114,7 +143,16 @@ export function VisitorsAdSourcesMiniChart({
     ? resolveWinner(metaTotal, googleTotal, inStoreForWinner)
     : null;
 
-  const legendItems = [
+  const singleSeriesColor = "#34a853";
+  const legendItems = singleSeriesLabel
+    ? [
+        {
+          label: singleSeriesLabel,
+          value: formatLegend(metaTotal),
+          color: singleSeriesColor,
+        },
+      ]
+    : [
     {
       label: "Meta",
       value: formatLegend(metaTotal),
@@ -134,6 +172,20 @@ export function VisitorsAdSourcesMiniChart({
           },
         ]
       : []),
+    ...(audience
+      ? [
+          {
+            label: "New",
+            value: formatLegend(audience.newVisitors),
+            color: VISITOR_AUDIENCE_COLORS.newVisitors,
+          },
+          {
+            label: "Repeat",
+            value: formatLegend(audience.repeatVisitors),
+            color: VISITOR_AUDIENCE_COLORS.repeatVisitors,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -150,7 +202,7 @@ export function VisitorsAdSourcesMiniChart({
       <OverviewChartCanvas>
         {({ width, height }) => (
           <ResponsiveContainer width={width} height={height}>
-            <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
+            <LineChart data={chartData} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
               <CartesianGrid
                 strokeDasharray="4 6"
                 stroke="#e8edf5"
@@ -183,25 +235,33 @@ export function VisitorsAdSourcesMiniChart({
                 <Line
                   type="monotone"
                   dataKey="meta"
-                  name="Meta"
-                  stroke={OVERVIEW_AD_SOURCE_COLORS.meta}
+                  name={singleSeriesLabel ?? "Meta"}
+                  stroke={
+                    singleSeriesLabel
+                      ? singleSeriesColor
+                      : OVERVIEW_AD_SOURCE_COLORS.meta
+                  }
                   strokeWidth={3}
                   {...OVERVIEW_LINE_ANIMATION}
                   dot={{
                     r: 3.5,
                     fill: "#ffffff",
-                    stroke: OVERVIEW_AD_SOURCE_COLORS.meta,
+                    stroke: singleSeriesLabel
+                      ? singleSeriesColor
+                      : OVERVIEW_AD_SOURCE_COLORS.meta,
                     strokeWidth: 2.5,
                   }}
                   activeDot={{
                     r: 6,
-                    fill: OVERVIEW_AD_SOURCE_COLORS.meta,
+                    fill: singleSeriesLabel
+                      ? singleSeriesColor
+                      : OVERVIEW_AD_SOURCE_COLORS.meta,
                     stroke: "#ffffff",
                     strokeWidth: 3,
                   }}
                 />
               ) : null}
-              {hasGoogleData ? (
+              {!singleSeriesLabel && hasGoogleData ? (
                 <Line
                   type="monotone"
                   dataKey="google"
@@ -226,7 +286,51 @@ export function VisitorsAdSourcesMiniChart({
                   }}
                 />
               ) : null}
-              {hasInStoreData ? (
+              {audience ? (
+                <Line
+                  type="monotone"
+                  dataKey="newVisitors"
+                  name="New"
+                  stroke={VISITOR_AUDIENCE_COLORS.newVisitors}
+                  strokeWidth={2.5}
+                  {...OVERVIEW_LINE_ANIMATION}
+                  dot={{
+                    r: 3,
+                    fill: "#ffffff",
+                    stroke: VISITOR_AUDIENCE_COLORS.newVisitors,
+                    strokeWidth: 2,
+                  }}
+                  activeDot={{
+                    r: 5.5,
+                    fill: VISITOR_AUDIENCE_COLORS.newVisitors,
+                    stroke: "#ffffff",
+                    strokeWidth: 2.5,
+                  }}
+                />
+              ) : null}
+              {audience ? (
+                <Line
+                  type="monotone"
+                  dataKey="repeatVisitors"
+                  name="Repeat"
+                  stroke={VISITOR_AUDIENCE_COLORS.repeatVisitors}
+                  strokeWidth={2.5}
+                  {...OVERVIEW_LINE_ANIMATION}
+                  dot={{
+                    r: 3,
+                    fill: "#ffffff",
+                    stroke: VISITOR_AUDIENCE_COLORS.repeatVisitors,
+                    strokeWidth: 2,
+                  }}
+                  activeDot={{
+                    r: 5.5,
+                    fill: VISITOR_AUDIENCE_COLORS.repeatVisitors,
+                    stroke: "#ffffff",
+                    strokeWidth: 2.5,
+                  }}
+                />
+              ) : null}
+              {!singleSeriesLabel && hasInStoreData ? (
                 <Line
                   type="monotone"
                   dataKey="inStore"
@@ -267,12 +371,12 @@ export function VisitorsAdSourcesMiniChart({
               </span>
             </span>
           ) : null}
-          {peak && periodWinner ? (
+          {!singleSeriesLabel && peak && periodWinner ? (
             <span className="text-slate-300" aria-hidden>
               ·
             </span>
           ) : null}
-          {periodWinner ? (
+          {!singleSeriesLabel && periodWinner ? (
             <span>
               Winner{" "}
               <span
