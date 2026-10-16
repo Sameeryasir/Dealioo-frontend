@@ -161,10 +161,10 @@ function DropoffStepSkeleton({
   );
 }
 
-function DropoffLegendSkeleton() {
+function DropoffLegendSkeleton({ count = 3 }: { count?: number }) {
   return (
     <ul className="m-0 mt-3 flex list-none flex-wrap items-center justify-center gap-2 p-0">
-      {Array.from({ length: 3 }).map((_, index) => (
+      {Array.from({ length: count }).map((_, index) => (
         <li key={index}>
           <Skeleton funnel className="h-7 w-28 rounded-full" />
         </li>
@@ -173,11 +173,25 @@ function DropoffLegendSkeleton() {
   );
 }
 
-export function FunnelDropoffMiniChartSkeleton() {
+export function FunnelDropoffMiniChartSkeleton({
+  hidePayments = false,
+}: {
+  hidePayments?: boolean;
+}) {
+  const steps = hidePayments
+    ? DROPOFF_SKELETON_STEPS.filter(
+        (step) => step.key !== "payment-views" && step.key !== "payments",
+      )
+    : DROPOFF_SKELETON_STEPS;
+
   return (
     <OverviewChartShell
       title="Funnel drop-off"
-      subtitle="Landing, signup, and payment views"
+      subtitle={
+        hidePayments
+          ? "Landing and signup views"
+          : "Landing, signup, and payment views"
+      }
       minHeightClass="min-h-[300px]"
       className="h-full"
       accent="blue"
@@ -189,7 +203,7 @@ export function FunnelDropoffMiniChartSkeleton() {
         aria-label="Loading funnel drop-off"
       >
         <div className="flex flex-col gap-5">
-          {DROPOFF_SKELETON_STEPS.map((step) => (
+          {steps.map((step) => (
             <DropoffStepSkeleton
               key={step.key}
               labelClass={step.labelClass}
@@ -197,7 +211,7 @@ export function FunnelDropoffMiniChartSkeleton() {
             />
           ))}
         </div>
-        <DropoffLegendSkeleton />
+        <DropoffLegendSkeleton count={hidePayments ? 1 : 3} />
       </div>
     </OverviewChartShell>
   );
@@ -211,6 +225,7 @@ export function FunnelDropoffMiniChart({
   payments,
   earlierPayments = 0,
   caption,
+  hidePayments = false,
 }: {
   landingViews: number;
   signupViews: number;
@@ -219,6 +234,7 @@ export function FunnelDropoffMiniChart({
   payments: number;
   earlierPayments?: number;
   caption?: string;
+  hidePayments?: boolean;
 }) {
   const landing = Math.max(0, landingViews);
   const signupPage = Math.max(0, signupViews);
@@ -230,16 +246,21 @@ export function FunnelDropoffMiniChart({
   const maxStep = Math.max(
     landing,
     signupPage,
-    paymentPage,
+    hidePayments ? 0 : paymentPage,
     signupCount,
-    totalPayments,
+    hidePayments ? 0 : totalPayments,
     1,
   );
 
   const viewToSignup = stepRate(landing, signupCount);
-  const signupToPaid = stepRate(signupCount, paidCount);
-  const overall = stepRate(landing, totalPayments);
+  const signupToPaid = hidePayments ? null : stepRate(signupCount, paidCount);
+  const overall = hidePayments
+    ? stepRate(landing, signupCount)
+    : stepRate(landing, totalPayments);
   const animatedOverall = useCountUp(overall ?? 0, overall != null, 900);
+  const viewSubtitle = hidePayments
+    ? "Landing and signup views"
+    : "Landing, signup, and payment views";
 
   const steps = [
     {
@@ -260,15 +281,19 @@ export function FunnelDropoffMiniChart({
       delayMs: 80,
       icon: UserRound,
     },
-    {
-      key: "payment-views",
-      label: "Payment views",
-      count: paymentPage,
-      barClass: "bg-[#1d4ed8]",
-      iconClass: "text-[#1d4ed8]",
-      delayMs: 160,
-      icon: CreditCard,
-    },
+    ...(hidePayments
+      ? []
+      : [
+          {
+            key: "payment-views",
+            label: "Payment views",
+            count: paymentPage,
+            barClass: "bg-[#1d4ed8]",
+            iconClass: "text-[#1d4ed8]",
+            delayMs: 160,
+            icon: CreditCard,
+          },
+        ]),
     {
       key: "signups",
       label: "Signups",
@@ -278,16 +303,12 @@ export function FunnelDropoffMiniChart({
       delayMs: 220,
       icon: UserPlus,
     },
-  ] as const;
+  ];
 
   return (
     <OverviewChartShell
       title="Funnel drop-off"
-      subtitle={
-        caption
-          ? `${caption} · Landing, signup, and payment views`
-          : "Landing, signup, and payment views"
-      }
+      subtitle={caption ? `${caption} · ${viewSubtitle}` : viewSubtitle}
       minHeightClass="min-h-[300px]"
       className="h-full"
       accent="blue"
@@ -303,47 +324,59 @@ export function FunnelDropoffMiniChart({
               maxStep={maxStep}
               barClass={step.barClass}
               delayMs={step.delayMs}
-              icon={"icon" in step ? step.icon : undefined}
-              iconClass={"iconClass" in step ? step.iconClass : undefined}
+              icon={step.icon}
+              iconClass={step.iconClass}
             />
           ))}
-          <DropoffPaymentRow
-            key={`payments-${paidCount}-${earlierPaidCount}`}
-            samePeriod={paidCount}
-            earlier={earlierPaidCount}
-            maxStep={maxStep}
-            icon={Wallet}
-            iconClass="text-[#f77737]"
-          />
+          {hidePayments ? null : (
+            <DropoffPaymentRow
+              key={`payments-${paidCount}-${earlierPaidCount}`}
+              samePeriod={paidCount}
+              earlier={earlierPaidCount}
+              maxStep={maxStep}
+              icon={Wallet}
+              iconClass="text-[#f77737]"
+            />
+          )}
         </div>
 
         <OverviewChartLegend
-          items={[
-            {
-              label: "Landing views that signed up",
-              value: viewToSignup != null ? `${viewToSignup}%` : "—",
-              color: OVERVIEW_CHART_COLORS.blue,
-            },
-            {
-              label: "Signups that paid",
-              value: signupToPaid != null ? `${signupToPaid}%` : "—",
-              color: OVERVIEW_CHART_COLORS.green,
-            },
-            {
-              label: "Paid from this period",
-              value: paidCount.toLocaleString(),
-              color: OVERVIEW_CHART_COLORS.orange,
-            },
-            ...(earlierPaidCount > 0
+          items={
+            hidePayments
               ? [
                   {
-                    label: "Paid from earlier signups",
-                    value: earlierPaidCount.toLocaleString(),
-                    color: EARLIER_PAYMENT_COLOR,
+                    label: "Landing views that signed up",
+                    value: viewToSignup != null ? `${viewToSignup}%` : "—",
+                    color: OVERVIEW_CHART_COLORS.blue,
                   },
                 ]
-              : []),
-          ]}
+              : [
+                  {
+                    label: "Landing views that signed up",
+                    value: viewToSignup != null ? `${viewToSignup}%` : "—",
+                    color: OVERVIEW_CHART_COLORS.blue,
+                  },
+                  {
+                    label: "Signups that paid",
+                    value: signupToPaid != null ? `${signupToPaid}%` : "—",
+                    color: OVERVIEW_CHART_COLORS.green,
+                  },
+                  {
+                    label: "Paid from this period",
+                    value: paidCount.toLocaleString(),
+                    color: OVERVIEW_CHART_COLORS.orange,
+                  },
+                  ...(earlierPaidCount > 0
+                    ? [
+                        {
+                          label: "Paid from earlier signups",
+                          value: earlierPaidCount.toLocaleString(),
+                          color: EARLIER_PAYMENT_COLOR,
+                        },
+                      ]
+                    : []),
+                ]
+          }
         />
       </div>
     </OverviewChartShell>

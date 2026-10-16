@@ -36,6 +36,7 @@ export default function CampaignOverviewPage() {
         businessId={businessId}
         campaignId={campaignId}
         campaignName={campaign?.campaignName}
+        campaignType={campaign?.campaignType ?? null}
         price={campaign?.price}
         funnelId={funnelId}
         isFunnelIdLoading={isFunnelIdLoading}

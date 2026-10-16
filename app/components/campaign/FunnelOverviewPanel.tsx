@@ -459,7 +459,11 @@ function OverviewHighlightSkeleton() {
   );
 }
 
-function OverviewSkeleton() {
+function OverviewSkeleton({
+  hideDropoffPayments = false,
+}: {
+  hideDropoffPayments?: boolean;
+}) {
   const lineChartSkeletons = [
     { title: "Visitors", accent: "blue" as const },
     { title: "Conversion rate", accent: "green" as const },
@@ -486,7 +490,7 @@ function OverviewSkeleton() {
         aria-label="Loading charts"
       >
         <div className="funnel-overview-chart-slot">
-          <FunnelDropoffMiniChartSkeleton />
+          <FunnelDropoffMiniChartSkeleton hidePayments={hideDropoffPayments} />
         </div>
         {lineChartSkeletons.map((chart) => (
           <div key={chart.title} className="funnel-overview-chart-slot">
@@ -554,6 +558,7 @@ function NoFunnelEmptyState({
 export function FunnelOverviewPanel({
   businessId = null,
   campaignId = null,
+  campaignType = null,
   funnelId,
   isFunnelIdLoading = false,
   onCreateFunnel,
@@ -562,6 +567,7 @@ export function FunnelOverviewPanel({
   businessId?: number | null;
   campaignId?: number | null;
   campaignName?: string;
+  campaignType?: "prepaid" | "postpaid" | null;
   price?: number | string;
   funnelId?: number | null;
   isFunnelIdLoading?: boolean;
@@ -603,6 +609,7 @@ export function FunnelOverviewPanel({
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   const funnelReady = funnelId != null && funnelId > 0;
+  const hideDropoffPayments = campaignType === "postpaid";
 
   // 1) KPIs first — clears the main skeleton as soon as totals are ready.
   const kpisQuery = useQuery({
@@ -922,7 +929,9 @@ export function FunnelOverviewPanel({
             showFullSkeleton ? panelSkeletonPadClass : panelBodyPadClass
           }`}
         >
-          {showFullSkeleton ? <OverviewSkeleton /> : null}
+          {showFullSkeleton ? (
+            <OverviewSkeleton hideDropoffPayments={hideDropoffPayments} />
+          ) : null}
 
           {!showFullSkeleton && overviewReady && kpis ? (
           <motion.div
@@ -1176,7 +1185,9 @@ export function FunnelOverviewPanel({
                   className="funnel-overview-chart-slot"
                   variants={funnelPanelItem}
                 >
-                  <FunnelDropoffMiniChartSkeleton />
+                  <FunnelDropoffMiniChartSkeleton
+                    hidePayments={hideDropoffPayments}
+                  />
                 </motion.div>
               </motion.section>
             ) : dropoff ? (
@@ -1192,11 +1203,14 @@ export function FunnelOverviewPanel({
                   <FunnelDropoffMiniChart
                     landingViews={dropoff.landingViews}
                     signupViews={dropoff.signupViews}
-                    paymentViews={dropoff.paymentViews}
+                    paymentViews={dropoff.paymentViews ?? 0}
                     signups={dropoff.signups}
-                    payments={dropoff.payments}
-                    earlierPayments={dropoff.earlierPayments}
+                    payments={dropoff.payments ?? 0}
+                    earlierPayments={dropoff.earlierPayments ?? 0}
                     caption={periodLabel}
+                    hidePayments={
+                      hideDropoffPayments || dropoff.payments == null
+                    }
                   />
                 </motion.div>
               </motion.section>

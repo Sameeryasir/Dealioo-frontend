@@ -11,10 +11,10 @@ export type FunnelDropoffCounts = {
   pageViews: number;
   landingViews: number;
   signupViews: number;
-  paymentViews: number;
+  paymentViews: number | null;
   signups: number;
-  payments: number;
-  earlierPayments: number;
+  payments: number | null;
+  earlierPayments: number | null;
 };
 
 export type FunnelDropoffStep = {
@@ -60,14 +60,26 @@ export async function getFunnelDropoff(
   }
 
   const json = (await res.json()) as Partial<FunnelDropoffCounts>;
+  const paymentCount = optionalDropoffCount(json.payments);
   return {
     funnelId: Number(json.funnelId) || funnelId,
     pageViews: Number(json.pageViews) || 0,
     landingViews: Number(json.landingViews) || 0,
     signupViews: Number(json.signupViews) || 0,
-    paymentViews: Number(json.paymentViews) || 0,
+    paymentViews:
+      paymentCount == null ? null : optionalDropoffCount(json.paymentViews),
     signups: Number(json.signups) || 0,
-    payments: Number(json.payments) || 0,
-    earlierPayments: Number(json.earlierPayments) || 0,
+    payments: paymentCount,
+    earlierPayments:
+      paymentCount == null
+        ? null
+        : optionalDropoffCount(json.earlierPayments) ?? 0,
   };
+}
+
+function optionalDropoffCount(value: unknown): number | null {
+  if (value == null) return null;
+  const count = Number(value);
+  if (!Number.isFinite(count)) return null;
+  return Math.max(0, Math.round(count));
 }
