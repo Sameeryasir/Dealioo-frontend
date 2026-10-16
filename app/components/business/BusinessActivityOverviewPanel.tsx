@@ -2,6 +2,7 @@
 
 import { AdSpendSection } from "@/app/components/ads/AdSpendCards";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { BusinessDashboardTopCampaigns } from "@/app/components/business/BusinessDashboardTopCampaigns";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import {
   buildCheckInsMonthlyData,
@@ -316,12 +317,13 @@ function OverviewSkeleton() {
 
 export function BusinessActivityOverviewPanel({
   businessId,
+  showTopCampaigns = false,
 }: {
   businessId?: number | null;
   businessName?: string;
+  showTopCampaigns?: boolean;
 }) {
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
-  // Local calendar month so “today” matches the viewer’s timezone.
   const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
   const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
@@ -482,7 +484,6 @@ export function BusinessActivityOverviewPanel({
     () => buildRevenueMonthlyData(visibleData),
     [visibleData],
   );
-  // Month view is day-bucketed; day view is hourly — only label a peak day in month mode.
   const peakCheckInsDay = useMemo(
     () =>
       calendarMode === "month"
@@ -530,13 +531,11 @@ export function BusinessActivityOverviewPanel({
   const newGuests = periodQuery.data?.newGuests ?? 0;
   const returningGuests = periodQuery.data?.returningGuests ?? 0;
   const activeGuests = newGuests + returningGuests;
-  // Repeat rate = returning / active only — never divide by check-ins or members.
   const repeatRatePercent =
     activeGuests > 0
       ? Math.round((returningGuests / activeGuests) * 100)
       : null;
   const payingGuests = periodQuery.data?.payingGuests ?? 0;
-  // Avg spend uses paying guests only so free check-ins do not understate spend.
   const avgSpendCents =
     payingGuests > 0 ? Math.round(periodRevenueCents / payingGuests) : null;
   const previousNewGuests = periodQuery.data?.previous?.newGuests ?? 0;
@@ -811,6 +810,13 @@ export function BusinessActivityOverviewPanel({
                 ]}
               />
             </section>
+
+            {showTopCampaigns && businessId != null ? (
+              <BusinessDashboardTopCampaigns
+                businessId={businessId}
+                monthKey={monthFilter}
+              />
+            ) : null}
 
             {adsSpendEnabled ? (
               <AdSpendSection
