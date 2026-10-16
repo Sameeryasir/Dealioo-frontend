@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { CreditCard, LayoutTemplate, UserPlus, UserRound, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -18,12 +20,16 @@ function DropoffStepRow({
   maxStep,
   barClass,
   delayMs,
+  icon: Icon,
+  iconClass,
 }: {
   label: string;
   count: number;
   maxStep: number;
   barClass: string;
   delayMs: number;
+  icon?: LucideIcon;
+  iconClass?: string;
 }) {
   const animatedCount = useCountUp(count, true, 900);
   const targetWidthPct = Math.max(
@@ -34,7 +40,10 @@ function DropoffStepRow({
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+        <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+          {Icon ? (
+            <Icon className={`size-3.5 shrink-0 ${iconClass ?? "text-slate-400"}`} aria-hidden />
+          ) : null}
           {label}
         </p>
         <p className="m-0 text-[1.05rem] font-extrabold tabular-nums leading-none text-[#07111f]">
@@ -58,8 +67,76 @@ function DropoffStepRow({
   );
 }
 
+const SAME_PERIOD_PAYMENT_COLOR = "bg-[#f77737]";
+const EARLIER_PAYMENT_COLOR = "#d4a017";
+
+function DropoffPaymentRow({
+  samePeriod,
+  earlier,
+  maxStep,
+  icon: Icon,
+  iconClass,
+}: {
+  samePeriod: number;
+  earlier: number;
+  maxStep: number;
+  icon?: LucideIcon;
+  iconClass?: string;
+}) {
+  const total = samePeriod + earlier;
+  const animatedTotal = useCountUp(total, true, 900);
+  const totalWidthPct = Math.max(
+    total > 0 ? 8 : 0,
+    Math.min(100, (total / maxStep) * 100),
+  );
+  const sameShare = total > 0 ? samePeriod / total : 0;
+  const earlierShare = total > 0 ? earlier / total : 0;
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="m-0 inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-500">
+          {Icon ? (
+            <Icon className={`size-3.5 shrink-0 ${iconClass ?? "text-slate-400"}`} aria-hidden />
+          ) : null}
+          Payments
+        </p>
+        <p className="m-0 text-[1.05rem] font-extrabold tabular-nums leading-none text-[#07111f]">
+          {Math.round(animatedTotal).toLocaleString()}
+        </p>
+      </div>
+      <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
+        <motion.div
+          className={`h-full ${SAME_PERIOD_PAYMENT_COLOR}`}
+          initial={{ width: "0%" }}
+          animate={{ width: `${totalWidthPct * sameShare}%` }}
+          transition={{ duration: 0.9, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+        <motion.div
+          className="h-full"
+          style={{ backgroundColor: EARLIER_PAYMENT_COLOR }}
+          initial={{ width: "0%" }}
+          animate={{ width: `${totalWidthPct * earlierShare}%` }}
+          transition={{ duration: 0.9, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+      </div>
+      {earlier > 0 ? (
+        <p className="m-0 mt-2 text-[0.72rem] font-semibold leading-5 text-slate-500">
+          {samePeriod.toLocaleString()} signed up this period
+          <span className="px-1.5 text-slate-300">·</span>
+          {earlier.toLocaleString()} signed up earlier
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 const DROPOFF_SKELETON_STEPS = [
-  { key: "views", labelClass: "w-20", barClass: "w-[92%]" },
+  { key: "landing", labelClass: "w-16", barClass: "w-[92%]" },
+  { key: "signup-views", labelClass: "w-20", barClass: "w-[70%]" },
+  { key: "payment-views", labelClass: "w-24", barClass: "w-[48%]" },
   { key: "signups", labelClass: "w-16", barClass: "w-[58%]" },
   { key: "payments", labelClass: "w-[4.5rem]", barClass: "w-[34%]" },
 ] as const;
@@ -100,7 +177,7 @@ export function FunnelDropoffMiniChartSkeleton() {
   return (
     <OverviewChartShell
       title="Funnel drop-off"
-      subtitle="Page view → Signup → Payment"
+      subtitle="Landing, signup, and payment views"
       minHeightClass="min-h-[300px]"
       className="h-full"
       accent="blue"
@@ -127,47 +204,79 @@ export function FunnelDropoffMiniChartSkeleton() {
 }
 
 export function FunnelDropoffMiniChart({
-  pageViews,
+  landingViews,
+  signupViews,
+  paymentViews,
   signups,
   payments,
+  earlierPayments = 0,
   caption,
 }: {
-  pageViews: number;
+  landingViews: number;
+  signupViews: number;
+  paymentViews: number;
   signups: number;
   payments: number;
+  earlierPayments?: number;
   caption?: string;
 }) {
-  const views = Math.max(0, pageViews);
+  const landing = Math.max(0, landingViews);
+  const signupPage = Math.max(0, signupViews);
+  const paymentPage = Math.max(0, paymentViews);
   const signupCount = Math.max(0, signups);
   const paidCount = Math.max(0, payments);
-  const maxStep = Math.max(views, signupCount, paidCount, 1);
+  const earlierPaidCount = Math.max(0, earlierPayments);
+  const totalPayments = paidCount + earlierPaidCount;
+  const maxStep = Math.max(
+    landing,
+    signupPage,
+    paymentPage,
+    signupCount,
+    totalPayments,
+    1,
+  );
 
-  const viewToSignup = stepRate(views, signupCount);
+  const viewToSignup = stepRate(landing, signupCount);
   const signupToPaid = stepRate(signupCount, paidCount);
-  const overall = stepRate(views, paidCount);
+  const overall = stepRate(landing, totalPayments);
   const animatedOverall = useCountUp(overall ?? 0, overall != null, 900);
 
   const steps = [
     {
-      key: "views",
-      label: "Page views",
-      count: views,
+      key: "landing",
+      label: "Landing views",
+      count: landing,
       barClass: "bg-[#1877f2]",
+      iconClass: "text-[#1877f2]",
       delayMs: 0,
+      icon: LayoutTemplate,
+    },
+    {
+      key: "signup-views",
+      label: "Signup views",
+      count: signupPage,
+      barClass: "bg-[#60a5fa]",
+      iconClass: "text-[#60a5fa]",
+      delayMs: 80,
+      icon: UserRound,
+    },
+    {
+      key: "payment-views",
+      label: "Payment views",
+      count: paymentPage,
+      barClass: "bg-[#1d4ed8]",
+      iconClass: "text-[#1d4ed8]",
+      delayMs: 160,
+      icon: CreditCard,
     },
     {
       key: "signups",
       label: "Signups",
       count: signupCount,
       barClass: "bg-[#34a853]",
-      delayMs: 120,
-    },
-    {
-      key: "payments",
-      label: "Payments",
-      count: paidCount,
-      barClass: "bg-[#f77737]",
-      delayMs: 240,
+      iconClass: "text-[#34a853]",
+      delayMs: 220,
+      icon: UserPlus,
     },
   ] as const;
 
@@ -176,8 +285,8 @@ export function FunnelDropoffMiniChart({
       title="Funnel drop-off"
       subtitle={
         caption
-          ? `${caption} · Page view → Signup → Payment`
-          : "Page view → Signup → Payment"
+          ? `${caption} · Landing, signup, and payment views`
+          : "Landing, signup, and payment views"
       }
       minHeightClass="min-h-[300px]"
       className="h-full"
@@ -194,14 +303,24 @@ export function FunnelDropoffMiniChart({
               maxStep={maxStep}
               barClass={step.barClass}
               delayMs={step.delayMs}
+              icon={"icon" in step ? step.icon : undefined}
+              iconClass={"iconClass" in step ? step.iconClass : undefined}
             />
           ))}
+          <DropoffPaymentRow
+            key={`payments-${paidCount}-${earlierPaidCount}`}
+            samePeriod={paidCount}
+            earlier={earlierPaidCount}
+            maxStep={maxStep}
+            icon={Wallet}
+            iconClass="text-[#f77737]"
+          />
         </div>
 
         <OverviewChartLegend
           items={[
             {
-              label: "Views that signed up",
+              label: "Landing views that signed up",
               value: viewToSignup != null ? `${viewToSignup}%` : "—",
               color: OVERVIEW_CHART_COLORS.blue,
             },
@@ -211,10 +330,19 @@ export function FunnelDropoffMiniChart({
               color: OVERVIEW_CHART_COLORS.green,
             },
             {
-              label: "Views that paid",
-              value: overall != null ? `${overall}%` : "—",
+              label: "Paid from this period",
+              value: paidCount.toLocaleString(),
               color: OVERVIEW_CHART_COLORS.orange,
             },
+            ...(earlierPaidCount > 0
+              ? [
+                  {
+                    label: "Paid from earlier signups",
+                    value: earlierPaidCount.toLocaleString(),
+                    color: EARLIER_PAYMENT_COLOR,
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

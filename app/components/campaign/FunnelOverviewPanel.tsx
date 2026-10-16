@@ -1190,9 +1190,12 @@ export function FunnelOverviewPanel({
                   variants={funnelPanelItem}
                 >
                   <FunnelDropoffMiniChart
-                    pageViews={dropoff.pageViews}
+                    landingViews={dropoff.landingViews}
+                    signupViews={dropoff.signupViews}
+                    paymentViews={dropoff.paymentViews}
                     signups={dropoff.signups}
                     payments={dropoff.payments}
+                    earlierPayments={dropoff.earlierPayments}
                     caption={periodLabel}
                   />
                 </motion.div>

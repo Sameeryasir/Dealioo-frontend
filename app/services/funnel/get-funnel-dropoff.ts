@@ -9,8 +9,12 @@ import { isPositiveInt } from "@/app/lib/numbers";
 export type FunnelDropoffCounts = {
   funnelId: number;
   pageViews: number;
+  landingViews: number;
+  signupViews: number;
+  paymentViews: number;
   signups: number;
   payments: number;
+  earlierPayments: number;
 };
 
 export type FunnelDropoffStep = {
@@ -59,7 +63,11 @@ export async function getFunnelDropoff(
   return {
     funnelId: Number(json.funnelId) || funnelId,
     pageViews: Number(json.pageViews) || 0,
+    landingViews: Number(json.landingViews) || 0,
+    signupViews: Number(json.signupViews) || 0,
+    paymentViews: Number(json.paymentViews) || 0,
     signups: Number(json.signups) || 0,
     payments: Number(json.payments) || 0,
+    earlierPayments: Number(json.earlierPayments) || 0,
   };
 }

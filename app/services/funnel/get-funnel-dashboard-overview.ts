@@ -160,8 +160,12 @@ export async function getFunnelDashboardOverview(
     },
     dropoff: {
       pageViews: Number(json.dropoff?.pageViews) || 0,
+      landingViews: Number(json.dropoff?.landingViews) || 0,
+      signupViews: Number(json.dropoff?.signupViews) || 0,
+      paymentViews: Number(json.dropoff?.paymentViews) || 0,
       signups: Number(json.dropoff?.signups) || 0,
       payments: Number(json.dropoff?.payments) || 0,
+      earlierPayments: Number(json.dropoff?.earlierPayments) || 0,
     },
   };
 }

@@ -298,11 +298,6 @@ function avgOrderValueCents(
   return Math.max(0, Math.round(earningsCents / orderCount));
 }
 
-function funnelStepRate(fromCount: number, toCount: number): number | null {
-  if (fromCount <= 0) return null;
-  return Math.min(100, Math.round((toCount / fromCount) * 10000) / 100);
-}
-
 function campaignDisplayName(name: string): string {
   return formatTitleCase(name) || name;
 }
@@ -1277,157 +1272,6 @@ function PerformanceOwnerGuidance({
   );
 }
 
-function FunnelDropoffSection({
-  campaigns,
-  isPending,
-  monthLabel,
-  businessId,
-}: {
-  campaigns: BusinessTopCampaign[];
-  isPending: boolean;
-  monthLabel: string;
-  businessId: number;
-}) {
-  const orderedCampaigns = useMemo(() => {
-    return [...campaigns].sort((a, b) => {
-      const rateA = conversionRatePercent(a.viewCount, a.orderCount);
-      const rateB = conversionRatePercent(b.viewCount, b.orderCount);
-      if (rateA == null && rateB == null) {
-        return a.campaignName.localeCompare(b.campaignName);
-      }
-      if (rateA == null) return 1;
-      if (rateB == null) return -1;
-      if (rateB !== rateA) return rateB - rateA;
-      if (b.orderCount !== a.orderCount) return b.orderCount - a.orderCount;
-      return a.campaignName.localeCompare(b.campaignName);
-    });
-  }, [campaigns]);
-
-  if (isPending) {
-    return (
-      <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
-        <Skeleton className="h-5 w-52 rounded-md" />
-        <Skeleton className="mt-2 h-4 w-80 rounded-md" />
-        <div className="mt-4 space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 w-full rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (orderedCampaigns.length === 0) return null;
-
-  return (
-    <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
-      <div className="min-w-0">
-        <h2 className="m-0 flex items-center gap-1.5 text-[0.95rem] font-semibold text-[#07111f]">
-          Funnel drop-off
-          <span
-            title="Views, signups, and paid orders from the same Performance API for this business and period. Listed best conversion first."
-            className="inline-flex cursor-help text-slate-300"
-          >
-            <Info className="size-3.5" aria-hidden />
-          </span>
-        </h2>
-        <p className="m-0 mt-0.5 text-sm text-slate-500">
-          Where guests leave between viewing, signing up, and paying — ordered by
-          best conversion in {monthLabel}. Rates under{" "}
-          {MIN_VIEWS_FOR_TRUSTED_CONVERSION} views are marked early.
-        </p>
-      </div>
-
-      <div className="mt-3 space-y-2.5">
-        {orderedCampaigns.map((campaign, index) => {
-          const tone = CAMPAIGN_TONES[index % CAMPAIGN_TONES.length]!;
-          const name = campaignDisplayName(campaign.campaignName);
-          const views = Math.max(0, campaign.viewCount);
-          const signups = Math.max(0, campaign.signupCount);
-          const paid = Math.max(0, campaign.orderCount);
-          const maxStep = Math.max(views, signups, paid, 1);
-          const viewToSignup = funnelStepRate(views, signups);
-          const signupToPaid = funnelStepRate(signups, paid);
-          const trusted = views >= MIN_VIEWS_FOR_TRUSTED_CONVERSION;
-          const href = campaignDashboardHref(businessId, campaign.campaignId);
-          const conversionLabel = formatConversionRate(views, paid);
-
-          const steps = [
-            { key: "views", label: "Views", count: views },
-            { key: "signups", label: "Signups", count: signups },
-            { key: "paid", label: "Paid", count: paid },
-          ] as const;
-
-          return (
-            <Link
-              key={campaign.campaignId}
-              href={href}
-              className="block rounded-xl border border-[#e8edf5] bg-white px-3.5 py-3 text-inherit no-underline transition hover:border-[#1877f2]/25 hover:bg-[#f8fbff]"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="m-0 truncate text-sm font-semibold text-[#07111f]">
-                      {name}
-                    </p>
-                    {index === 0 && trusted ? (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${tone.soft} ${tone.ink}`}
-                      >
-                        Best conversion
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="m-0 mt-0.5 text-[0.65rem] text-slate-400">
-                    {views > 0 ? `${conversionLabel} conversion` : "No views yet"}
-                    {trusted
-                      ? viewToSignup != null
-                        ? ` · ${viewToSignup}% view→signup`
-                        : ""
-                      : ` · Early data · ${views} views`}
-                    {signupToPaid != null ? ` · ${signupToPaid}% signup→paid` : ""}
-                  </p>
-                </div>
-                <ArrowUpRight
-                  className="size-3.5 shrink-0 text-slate-300"
-                  aria-hidden
-                />
-              </div>
-
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {steps.map((step) => (
-                  <div key={step.key} className="min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
-                        {step.label}
-                      </p>
-                      <p className="m-0 text-sm font-semibold tabular-nums text-[#07111f]">
-                        {step.count}
-                      </p>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={`h-full rounded-full ${tone.line}`}
-                        style={{
-                          width: `${Math.max(
-                            step.count > 0 ? 4 : 0,
-                            Math.min(100, (step.count / maxStep) * 100),
-                          )}%`,
-                        }}
-                        aria-hidden
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function UniqueCustomersCell({ campaign }: { campaign: BusinessTopCampaign }) {
   return (
     <div className="group relative inline-flex justify-center">
@@ -2259,13 +2103,6 @@ export function BusinessPerformancePanel({
           monthLabel={monthName}
           monthInProgress={monthRange.inProgress}
           trustedBestConverterId={trustedBestConverterId}
-        />
-
-        <FunnelDropoffSection
-          campaigns={chartCampaigns}
-          isPending={query.isPending}
-          monthLabel={periodLabel}
-          businessId={businessId}
         />
 
         <BundleOpportunitiesSection
