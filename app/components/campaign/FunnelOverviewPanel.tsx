@@ -67,11 +67,6 @@ import {
 import { getDealioCampaignGoogleSpend } from "@/app/services/google-ads/get-dealio-campaign-google-spend";
 import { useQuery } from "@tanstack/react-query";
 
-// --- Campaign dashboard perf ---
-// What: Progressive Overview (KPIs → charts/dropoff; defer ads + peak month).
-// Why: Mega dashboard-overview blocked first paint; ads/peak contended with KPIs.
-// Related: get-funnel-dashboard-kpis/charts, get-funnel-dropoff (MCP context 7).
-
 const overviewCardClass =
   "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
@@ -611,7 +606,6 @@ export function FunnelOverviewPanel({
   const funnelReady = funnelId != null && funnelId > 0;
   const hideDropoffPayments = campaignType === "postpaid";
 
-  // 1) KPIs first — clears the main skeleton as soon as totals are ready.
   const kpisQuery = useQuery({
     queryKey: funnelQueryKeys.dashboardKpisByFunnel(
       funnelId ?? 0,
@@ -635,7 +629,6 @@ export function FunnelOverviewPanel({
 
   const kpisReady = kpisQuery.data != null;
 
-  // 2) Charts + dropoff after KPIs so first paint is not blocked by series SQL.
   const chartsQuery = useQuery({
     queryKey: funnelQueryKeys.dashboardChartsByFunnel(
       funnelId ?? 0,
@@ -643,7 +636,7 @@ export function FunnelOverviewPanel({
       periodRange.to,
       viewerTimeZone,
     ),
-    enabled: funnelReady && kpisReady,
+    enabled: funnelReady,
     staleTime: 60_000,
     queryFn: () =>
       getFunnelDashboardCharts(funnelId!, {
@@ -660,7 +653,7 @@ export function FunnelOverviewPanel({
       periodRange.to,
       viewerTimeZone,
     ),
-    enabled: funnelReady && kpisReady,
+    enabled: funnelReady,
     staleTime: 60_000,
     queryFn: () =>
       getFunnelDropoff(funnelId!, {
@@ -670,15 +663,13 @@ export function FunnelOverviewPanel({
       }),
   });
 
-  // 6) Peak month deferred + longer cache (highlight only; not needed for KPI tiles).
   const yearStatsQuery = useQuery({
     queryKey: funnelQueryKeys.statsMonthlyByFunnel(funnelId ?? 0, 12),
-    enabled: funnelReady && kpisReady,
+    enabled: funnelReady,
     staleTime: 300_000,
     queryFn: () => getFunnelStatsMonthly(funnelId!, { months: 12 }),
   });
 
-  // 5) Meta/Google spend only after KPIs paint (external ad APIs are slow on miss).
   const adsSpendEnabled =
     kpisReady &&
     calendarMode === "month" &&

@@ -81,24 +81,24 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     name: "Growth Expert",
     badge: "Best ROI",
     tagline: "AI plus a dedicated marketing expert.",
-    description: "Everything in Growth AI—with a dedicated marketing expert.",
+    // No summary line — Expert Services list is enough on the card.
+    description: "",
     monthly: {
       price: "$299",
       period: "/ month",
-      originalPrice: "$500",
-      promo: null,
+      originalPrice: "$997",
+      promo: "70% OFF",
       subline: "Billed monthly",
     },
     annual: {
-      price: "$249",
+      price: "$299",
       period: "/ mo",
-      originalPrice: null,
-      promo: null,
+      originalPrice: "$997",
+      promo: "70% OFF",
       subline: "Billed annually ($2,990/year)",
     },
     salesEmail: "support@dealioo.com",
     featureGroups: [
-      { label: "Included", items: ["Everything in Growth AI"] },
       {
         label: "Expert Services",
         items: [

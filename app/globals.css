@@ -2493,21 +2493,19 @@ body {
     color: var(--landing-text);
   }
 
-  /* Wider shell + equal card widths (height unchanged). */
   @media (min-width: 1280px) {
     .landing-pricing-section > .brand-landing-section {
-      max-width: min(96rem, calc(100vw - 1.5rem));
+      max-width: min(62rem, calc(100vw - 1.5rem));
       padding-left: 0.75rem;
       padding-right: 0.75rem;
     }
 
     .landing-page .landing-pricing-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       width: 100%;
     }
 
-    /* Same width rules for every pricing card in the row. */
     .landing-page .landing-pricing-grid > *,
     .landing-page .landing-pricing-grid .landing-pricing-card {
       width: 100%;
@@ -6128,7 +6126,7 @@ body {
   }
 
   .landing-pricing-card-featured {
-    border-color: color-mix(in srgb, var(--brand-convert) 28%, #e8edf5);
+    border-color: #e8edf5;
     background: #ffffff;
   }
 

@@ -19,8 +19,10 @@ import {
   BarChart3,
   Check,
   CreditCard,
+  Crown,
   Loader2,
   MousePointerClick,
+  Star,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -86,23 +88,33 @@ const CTA_CHIPS = [
 
 const SPOTLIGHT_POINTING_SRC = "/pointing.png";
 
-function PricingPlanFeatures({
-  plan,
-}: {
-  plan: PricingPlan;
-}) {
+function PricingFeatureCheck() {
+  return (
+    <span
+      className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-brand-retain"
+      aria-hidden
+    >
+      <Check className="size-2 text-white" strokeWidth={3.5} />
+    </span>
+  );
+}
+
+function PricingPlanFeatures({ plan }: { plan: PricingPlan }) {
   if ("featureGroups" in plan && plan.featureGroups) {
     return (
-      <div className="landing-pricing-feature-groups mt-2 space-y-1.5">
+      <div className="landing-pricing-feature-groups mt-2 space-y-2">
         {plan.featureGroups.map((group) => (
           <div key={group.label}>
-            <p className="landing-pricing-feature-group-label mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-brand-muted">
+            <p className="landing-pricing-feature-group-label mb-1 inline-flex rounded-full bg-[#eef2ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#5b6b8c]">
               {group.label}
             </p>
-            <ul className="space-y-0.5">
+            <ul className="mt-1 space-y-1">
               {group.items.map((feature) => (
-                <li key={feature} className="flex items-start gap-1.5 text-[10px] leading-snug text-brand-body sm:text-[11px]">
-                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-retain" strokeWidth={3} />
+                <li
+                  key={feature}
+                  className="flex items-start gap-1.5 text-[12px] leading-snug text-brand-navy"
+                >
+                  <PricingFeatureCheck />
                   {feature}
                 </li>
               ))}
@@ -116,12 +128,30 @@ function PricingPlanFeatures({
   return (
     <ul className="mt-2 space-y-1">
       {(plan.features ?? []).map((feature) => (
-        <li key={feature} className="flex items-start gap-1.5 text-[11px] text-brand-body sm:text-xs">
-          <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-retain" strokeWidth={3} />
+        <li
+          key={feature}
+          className="flex items-start gap-1.5 text-[12px] leading-snug text-brand-navy"
+        >
+          <PricingFeatureCheck />
           {feature}
         </li>
       ))}
     </ul>
+  );
+}
+
+function PricingCardGlow() {
+  return (
+    <>
+      <span
+        className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-[#dbe7ff] opacity-70 blur-3xl"
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute -left-10 top-20 size-28 rounded-full bg-[#eef0ff] opacity-60 blur-3xl"
+        aria-hidden
+      />
+    </>
   );
 }
 
@@ -522,6 +552,8 @@ export function LandingQuoteStat() {
   return null;
 }
 
+const LANDING_VISIBLE_PLAN_IDS = new Set(["growth-expert", "enterprise"]);
+
 export function LandingPricing() {
   const reduced = useReducedMotion();
   const { plans, loading } = useSubscriptionPlans();
@@ -529,6 +561,16 @@ export function LandingPricing() {
   const signupHref = useMemo(
     () => appendBillingQuery(landingSignupHref(), billing),
     [billing],
+  );
+  const visiblePlans = useMemo(
+    () =>
+      plans
+        .filter((plan) => LANDING_VISIBLE_PLAN_IDS.has(plan.id))
+        .sort((a, b) => {
+          const order = ["growth-expert", "enterprise"];
+          return order.indexOf(a.id) - order.indexOf(b.id);
+        }),
+    [plans],
   );
 
   const footerNote = useMemo(
@@ -557,7 +599,7 @@ export function LandingPricing() {
             <span className="landing-hero-accent-pink">growth.</span>
           </h2>
           <p className="landing-section-intro">
-            Start with DIY tools, unlock AI automation or work with a dedicated marketing expert.
+            Work with a dedicated marketing expert, or get a custom plan for your brand.
           </p>
         </Reveal>
 
@@ -573,87 +615,116 @@ export function LandingPricing() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.45 }}
-          className="landing-section-card-shell landing-pricing-card-shell !mt-5 sm:!mt-6"
+          className="landing-pricing-card-shell mx-auto mt-5 w-full max-w-[62rem] sm:mt-6"
         >
           {loading ? (
             <div className="flex min-h-[20rem] items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-hidden />
             </div>
           ) : (
-          <div className="landing-pricing-grid grid md:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#e8edf5]">
-            {plans
-              .filter((plan) => plan.id !== "professional")
-              .map((plan, i) => {
+          <div className="landing-pricing-grid grid gap-5 md:grid-cols-2 md:gap-6">
+            {visiblePlans.map((plan, i) => {
               const tier = getPlanTier(plan, billing);
               const isExpertPlan = plan.id === "growth-expert";
               const originalPrice =
                 tier.originalPrice ??
-                (isExpertPlan && billing === "monthly" ? "$500" : null);
+                (isExpertPlan ? "$997" : null);
+              const promoLabel =
+                tier.promo ?? (isExpertPlan ? "70% OFF" : null);
               const ctaLower = (plan.cta || "").toLowerCase();
               const isTalkToUsCta =
                 ctaLower.includes("talk to") || ctaLower.includes("contact");
               const planCtaHref = signupHref;
+              const BadgeIcon = isExpertPlan ? Star : Crown;
+              // Expert card: hide redundant "Everything in Growth AI" summary / Included group.
+              const displayPlan = isExpertPlan
+                ? {
+                    ...plan,
+                    description: "",
+                    featureGroups: (plan.featureGroups ?? []).filter(
+                      (group) => group.label.toLowerCase() !== "included",
+                    ),
+                  }
+                : plan;
 
               return (
-                <Reveal key={plan.id} delay={i * 0.06} className="h-full">
+                <Reveal key={plan.id} delay={i * 0.06} className="h-full min-w-0">
                   <motion.div
                     key={`${plan.id}-${billing}`}
                     initial={reduced ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22 }}
-                    className={`landing-pricing-card flex h-full flex-col p-3 shadow-none sm:p-4 ${
-                      plan.highlighted ? "landing-pricing-card-featured relative bg-[#f8faff] lg:z-[1]" : "bg-white"
-                    } ${isExpertPlan ? "landing-pricing-card-expert" : ""}`}
+                    className={`landing-pricing-card relative flex h-full flex-col overflow-hidden rounded-[1.25rem] bg-white p-4 sm:p-5 ${
+                      isExpertPlan
+                        ? "landing-pricing-card-expert border border-[#c9d7ff] shadow-[0_14px_36px_rgba(24,119,242,0.12)]"
+                        : "border border-[#e8edf5] shadow-[0_12px_32px_rgba(15,23,42,0.07)]"
+                    }`}
                   >
-                    <div className="mb-1 flex min-h-0 flex-wrap items-center gap-1.5">
+                    <PricingCardGlow />
+
+                    <div className="relative z-[1] flex flex-wrap items-center gap-2">
                       {plan.badge ? (
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide ${
-                            plan.highlighted ? "uppercase tracking-wider text-white" : "text-brand-navy"
-                          } ${plan.highlighted ? "" : "border border-[#e8edf5] bg-[#f8faff]"}`}
-                          style={plan.highlighted ? { backgroundColor: plan.color } : undefined}
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold tracking-wide text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                          <BadgeIcon className="size-3 fill-current" aria-hidden />
                           {plan.badge}
                         </span>
                       ) : null}
-                      {billing === "annual" && tier.promo ? (
-                        <span className="text-[9px] font-bold uppercase tracking-wide text-brand-convert">{tier.promo}</span>
-                      ) : null}
                     </div>
-                    <h3 className="text-base font-bold text-brand-navy sm:text-lg">{plan.name}</h3>
-                    <p className="mt-0.5 text-[11px] text-brand-muted sm:text-xs">{plan.tagline}</p>
-                    <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      {originalPrice ? (
-                        <span
-                          className="landing-pricing-original-price text-lg font-bold tracking-tight text-[#94a3b8] sm:text-xl"
-                          style={{ textDecoration: "line-through" }}
-                        >
-                          {originalPrice}
+
+                    {/* Promo shown as text under the name (no circle badge). */}
+                    <div className="relative z-[1] mt-2">
+                      <h3 className="text-[1.2rem] font-extrabold tracking-tight text-brand-navy sm:text-[1.3rem]">
+                        {plan.name}
+                      </h3>
+                      {promoLabel ? (
+                        <p className="mt-0.5 text-[12px] font-bold uppercase tracking-wide text-brand-convert">
+                          {promoLabel}
+                        </p>
+                      ) : null}
+                      <p className="mt-0.5 text-[12px] leading-snug text-brand-muted">
+                        {plan.tagline}
+                      </p>
+                    </div>
+
+                    <div className="relative z-[1] mt-3 min-h-[2.75rem]">
+                      <div className="flex flex-wrap items-end gap-x-2 gap-y-0.5">
+                        {originalPrice ? (
+                          <span
+                            className="landing-pricing-original-price text-sm font-semibold tracking-tight text-[#94a3b8]"
+                            style={{ textDecoration: "line-through" }}
+                          >
+                            {originalPrice}
+                          </span>
+                        ) : null}
+                        <span className="text-[1.85rem] font-black leading-none tracking-tight text-brand-navy sm:text-[2rem]">
+                          {tier.price}
                         </span>
-                      ) : null}
-                      <span className="text-2xl font-black tracking-tight text-brand-navy sm:text-3xl">
-                        {tier.price}
-                      </span>
-                      {tier.period ? (
-                        <span className="text-xs text-brand-muted">{tier.period}</span>
+                        {tier.period ? (
+                          <span className="pb-0.5 text-[13px] font-medium text-brand-muted">
+                            {tier.period}
+                          </span>
+                        ) : null}
+                      </div>
+                      {tier.subline ? (
+                        <p className="landing-pricing-tier-subline mt-0.5 text-[11px] text-brand-muted">
+                          {tier.subline}
+                        </p>
                       ) : null}
                     </div>
-                    <p className="landing-pricing-tier-subline mt-0.5 min-h-0 text-[10px] text-brand-muted">
-                      {tier.subline ?? "\u00A0"}
-                    </p>
-                    <p className="mt-1.5 text-[11px] leading-snug text-brand-body sm:text-xs">{plan.description}</p>
-                    <div className="flex-1">
-                      <PricingPlanFeatures plan={plan} />
+
+                    {displayPlan.description ? (
+                      <p className="relative z-[1] mt-2 text-[12px] leading-snug text-brand-body">
+                        {displayPlan.description}
+                      </p>
+                    ) : null}
+                    <div className="relative z-[1] flex-1">
+                      <PricingPlanFeatures plan={displayPlan} />
                     </div>
                     <motion.a
                       href={planCtaHref}
-                      whileHover={reduced ? undefined : { scale: 1.02, y: -1 }}
-                      whileTap={reduced ? undefined : { scale: 0.98 }}
-                      className={`mt-auto flex h-9 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:text-sm ${
-                        plan.highlighted
-                          ? "bg-brand-primary text-white shadow-[0_6px_20px_rgba(24,119,242,0.28)]"
-                          : "border border-brand-border bg-white text-brand-navy hover:bg-brand-soft"
-                      }`}
+                      whileHover={reduced ? undefined : { scale: 1.01, y: -1 }}
+                      whileTap={reduced ? undefined : { scale: 0.99 }}
+                      className="relative z-[1] mt-4 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] text-[13px] font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.32)]"
                       onClick={() => {
                         trackProductButtonClick(plan.cta || "Plan CTA", `pricing_${plan.id}`);
                         trackProductLead(
@@ -664,6 +735,7 @@ export function LandingPricing() {
                       }}
                     >
                       {plan.cta}
+                      <ArrowRight className="size-4" strokeWidth={2.5} aria-hidden />
                     </motion.a>
                   </motion.div>
                 </Reveal>
@@ -671,9 +743,9 @@ export function LandingPricing() {
             })}
           </div>
           )}
-          <div className="landing-section-card-footer px-4 py-3 text-center sm:px-5">
-            <p className="text-[11px] text-brand-muted sm:text-xs">{footerNote}</p>
-          </div>
+          <p className="mt-4 text-center text-[11px] text-brand-muted sm:text-xs">
+            {footerNote}
+          </p>
         </motion.div>
       </div>
     </section>

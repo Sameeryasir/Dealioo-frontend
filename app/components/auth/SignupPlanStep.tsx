@@ -131,7 +131,7 @@ function SignupPlanCard({
   const tier = getPlanTier(plan, billing);
   const originalPrice =
     tier.originalPrice ??
-    (plan.id === "growth-expert" && billing === "monthly" ? "$500" : null);
+    (plan.id === "growth-expert" ? "$997" : null);
 
   const accentColor = selected || recommended ? BRAND_COLORS.blue : null;
 

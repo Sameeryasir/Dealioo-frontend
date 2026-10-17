@@ -391,7 +391,9 @@ export function BusinessActivityOverviewPanel({
 
   const adsInsightsPeriod = monthFilter;
   const adsMonthLabel = formatActivityMonthLabel(monthFilter);
+  const periodReady = periodQuery.data != null;
   const adsSpendEnabled =
+    periodReady &&
     calendarMode === "month" &&
     isPositiveInt(businessId) &&
     hasAuthSession();
