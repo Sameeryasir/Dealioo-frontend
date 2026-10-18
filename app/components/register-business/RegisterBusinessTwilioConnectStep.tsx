@@ -6,15 +6,12 @@ import styles from "@/app/components/register-business/RegisterBusinessFacebookC
 import "@/app/components/register-business/register-business-responsive.css";
 import { ChooseNumberDialog } from "@/app/components/business/ChooseNumberDialog";
 import { easeOut } from "@/app/components/landing/landing-motion";
-import { useConnectBusinessTwilioCredentialsMutation } from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
-import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
-  Loader2,
   MessageSquare,
   Phone,
   Shield,
@@ -33,21 +30,21 @@ export type RegisterBusinessTwilioConnectStepProps = {
 const BENEFITS = [
   {
     icon: MessageSquare,
-    title: "Send SMS from your number",
+    title: "SMS through Dealioo",
     description:
-      "Connect your Twilio account so Dealioo can text guests using a number you own.",
+      "Messages go out on Dealioo's Twilio account. You do not connect your own Twilio login.",
   },
   {
     icon: Phone,
-    title: "Use or buy a number",
+    title: "Choose a number",
     description:
-      "Pick a number already on Twilio, or buy one on your account after you connect.",
+      "Pick or buy a phone number on Dealioo's Twilio account for this business.",
   },
   {
     icon: Shield,
-    title: "Your account stays yours",
+    title: "Change it later",
     description:
-      "Dealioo stores your SID and token to send SMS. You can disconnect anytime in Settings → Integrations.",
+      "You can change or remove the number anytime in Settings → Integrations.",
   },
 ] as const;
 
@@ -72,46 +69,14 @@ export default function RegisterBusinessTwilioConnectStep({
 }: RegisterBusinessTwilioConnectStepProps) {
   const reduced = useReducedMotion();
   const queryClient = useQueryClient();
-  const connectMutation =
-    useConnectBusinessTwilioCredentialsMutation(businessId);
-  const [accountSid, setAccountSid] = useState("");
-  const [authToken, setAuthToken] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [linked, setLinked] = useState(false);
   const [numberDialogOpen, setNumberDialogOpen] = useState(false);
 
-  const busy = connectMutation.isPending;
-
-  const handleConnect = useCallback(async () => {
+  const handleConnect = useCallback(() => {
     setErrorMessage(null);
-    const sid = accountSid.trim();
-    const token = authToken.trim();
-    if (!sid || !token) {
-      setErrorMessage("Enter both Account SID and Auth Token.");
-      return;
-    }
-    if (!/^AC[0-9a-fA-F]{32}$/.test(sid)) {
-      setErrorMessage("Account SID should start with AC and be 34 characters.");
-      return;
-    }
-
-    try {
-      const result = await connectMutation.mutateAsync({
-        accountSid: sid,
-        authToken: token,
-      });
-      setLinked(true);
-      if (!result.selectedPhoneNumber) {
-        setNumberDialogOpen(true);
-        return;
-      }
-      onContinue();
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Could not connect Twilio. Try again."),
-      );
-    }
-  }, [accountSid, authToken, connectMutation, onContinue]);
+    setNumberDialogOpen(true);
+  }, []);
 
   const content = (
     <div className={styles.layout}>
@@ -158,46 +123,11 @@ export default function RegisterBusinessTwilioConnectStep({
             })}
           </ul>
 
-          {!linked ? (
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
-                  Account SID
-                </span>
-                <input
-                  type="text"
-                  value={accountSid}
-                  onChange={(e) => setAccountSid(e.target.value)}
-                  disabled={busy}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="mt-1.5 w-full rounded-xl border border-[#e4e4e4] bg-[#fafafa] px-3 py-2.5 text-[0.88rem] text-[#222] outline-none focus:border-[#F22F46]/40 focus:bg-white"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-[#777]">
-                  Auth Token
-                </span>
-                <input
-                  type="password"
-                  value={authToken}
-                  onChange={(e) => setAuthToken(e.target.value)}
-                  disabled={busy}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Your Twilio Auth Token"
-                  className="mt-1.5 w-full rounded-xl border border-[#e4e4e4] bg-[#fafafa] px-3 py-2.5 text-[0.88rem] text-[#222] outline-none focus:border-[#F22F46]/40 focus:bg-white"
-                />
-              </label>
-            </div>
-          ) : null}
-
           <div className={styles.privacyBox}>
             <p>
-              <strong>Your Privacy Matters:</strong> We only use your Twilio
-              credentials to send and receive SMS for this business. You can
-              disconnect anytime in Settings → Integrations.
+              <strong>Dealioo Twilio:</strong> This business does not connect
+              its own Twilio account. SMS uses Dealioo&apos;s Twilio service.
+              You only choose a phone number.
             </p>
           </div>
 
@@ -212,20 +142,12 @@ export default function RegisterBusinessTwilioConnectStep({
             <button
               type="button"
               className={styles.connectBtn}
-              onClick={() => void handleConnect()}
-              disabled={busy}
+              onClick={handleConnect}
             >
-              {busy ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  Connecting Twilio…
-                </>
-              ) : (
-                <>
-                  <TwilioMark className="h-4 w-4" />
-                  Connect Twilio
-                </>
-              )}
+              <>
+                <TwilioMark className="h-4 w-4" />
+                Choose a number
+              </>
             </button>
           ) : (
             <button type="button" className={styles.connectBtn} onClick={onContinue}>
@@ -239,7 +161,7 @@ export default function RegisterBusinessTwilioConnectStep({
                 type="button"
                 className={styles.backBtn}
                 onClick={onBack}
-                disabled={busy}
+                disabled={false}
               >
                 <ArrowLeft className="h-4 w-4" aria-hidden />
                 Back
@@ -251,7 +173,7 @@ export default function RegisterBusinessTwilioConnectStep({
               type="button"
               className={styles.skipBtn}
               onClick={onSkip ?? onContinue}
-              disabled={busy}
+              disabled={false}
             >
               Skip for now
             </button>
@@ -263,10 +185,10 @@ export default function RegisterBusinessTwilioConnectStep({
         <div className={styles.sidebarInner}>
           <p className={styles.sidebarEyebrow}>Why connect Twilio?</p>
           <div className={styles.sidebarBlock}>
-            <h3 className={styles.sidebarTitle}>SMS from your number</h3>
+            <h3 className={styles.sidebarTitle}>SMS on Dealioo Twilio</h3>
             <p className={styles.sidebarText}>
-              Dealioo sends campaign and guest messages through your Twilio
-              account — not a shared Dealioo number.
+              Campaign and guest messages are sent with Dealioo&apos;s Twilio
+              account. Each business still gets its own phone number.
             </p>
           </div>
           <div className={styles.sidebarBlock}>

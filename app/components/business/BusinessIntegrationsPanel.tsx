@@ -862,13 +862,9 @@ export function BusinessIntegrationsPanel({
   useEffect(() => {
     if (!panelReady) return;
     if (normalizedFocus === "twilio" && !twilioConnected) {
-      if (twilioCredentialsConnected) {
-        setTwilioDialogOpen(true);
-      } else {
-        setTwilioCredentialsDialogOpen(true);
-      }
+      setTwilioDialogOpen(true);
     }
-  }, [normalizedFocus, panelReady, twilioConnected, twilioCredentialsConnected]);
+  }, [normalizedFocus, panelReady, twilioConnected]);
 
   if (!panelReady) {
     return (
@@ -966,10 +962,10 @@ export function BusinessIntegrationsPanel({
         accentColor="bg-[#F22F46]"
         logo={<TwilioMark className="size-6" />}
         title="Twilio"
-        description="Connect your Twilio account to send SMS from your own number."
+        description="SMS is sent through Dealioo's Twilio account. Choose a phone number for this business."
         featureToneClass="text-[#F22F46]"
         features={[
-          "Own Twilio account",
+          "Dealioo Twilio",
           "SMS outreach",
           "Campaign messages",
         ]}
@@ -977,15 +973,15 @@ export function BusinessIntegrationsPanel({
         connected={twilioConnected}
         connectedTag={twilioNumber || null}
         actions={
-          twilioCredentialsConnected ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setTwilioDialogOpen(true)}
-                className={`${actionBtn} bg-[#F22F46] text-white`}
-              >
-                {twilioNumber ? "Change number" : "Select number"}
-              </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTwilioDialogOpen(true)}
+              className={`${actionBtn} bg-[#F22F46] text-white`}
+            >
+              {twilioNumber ? "Change number" : "Select number"}
+            </button>
+            {twilioNumber ? (
               <button
                 type="button"
                 onClick={() => void handleDisconnectTwilio()}
@@ -993,16 +989,8 @@ export function BusinessIntegrationsPanel({
               >
                 Remove
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setTwilioCredentialsDialogOpen(true)}
-              className={`${actionBtn} bg-[#F22F46] text-white`}
-            >
-              Connect Twilio
-            </button>
-          )
+            ) : null}
+          </div>
         }
       />
 
@@ -1217,7 +1205,7 @@ export function BusinessIntegrationsPanel({
         open={twilioDialogOpen}
         businessId={businessId}
         title="Choose a Twilio number"
-        description="Pick a number you own, or search for one to buy on your Twilio account."
+        description="Pick a number on Dealioo's Twilio account, or search for one to buy."
         confirmLabel="Save number"
         confirmingLabel="Saving number…"
         onClose={() => setTwilioDialogOpen(false)}

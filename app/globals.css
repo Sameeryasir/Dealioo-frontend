@@ -5125,9 +5125,9 @@ body {
   .org-biz-setup-modal {
     position: relative;
     z-index: 1;
-    width: min(34rem, calc(100vw - 2rem));
-    max-height: min(44rem, calc(100vh - 2rem));
-    animation: org-biz-setup-modal-in 0.18s ease;
+    width: min(28.5rem, calc(100vw - 2rem));
+    max-height: min(46rem, calc(100vh - 2rem));
+    animation: org-biz-setup-modal-in 0.22s ease;
   }
 
   @keyframes org-biz-setup-modal-in {
@@ -5160,8 +5160,11 @@ body {
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    color: #1877f2;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.7rem;
+    background: #1877f2;
+    color: #ffffff;
   }
 
   .org-biz-setup-modal-close {
@@ -5187,13 +5190,13 @@ body {
 
   .org-biz-setup-popover-inner {
     display: flex;
-    max-height: min(44rem, calc(100vh - 2rem));
+    max-height: min(46rem, calc(100vh - 2rem));
     flex-direction: column;
     overflow: hidden;
-    border-radius: 1.15rem;
-    border: 1px solid #e8edf5;
+    border-radius: 1.35rem;
+    border: 1px solid #e7eef6;
     background: #ffffff;
-    box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
+    box-shadow: 0 28px 70px rgba(15, 23, 42, 0.18);
   }
 
   .org-biz-setup-modal--complete .org-biz-setup-popover-complete {
@@ -5238,25 +5241,108 @@ body {
   }
 
   .org-biz-setup-popover-head {
-    padding: 1rem 1.1rem 0.9rem;
+    position: relative;
+    padding: 1rem 1.05rem 0.85rem;
     background: #ffffff;
+  }
+
+  .org-biz-setup-progress-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.95rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.95rem;
+    background: linear-gradient(180deg, #f4f8ff 0%, #eaf2ff 100%);
+  }
+
+  .org-biz-setup-ring {
+    position: relative;
+    display: inline-flex;
+    width: 2.7rem;
+    height: 2.7rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .org-biz-setup-ring svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .org-biz-setup-ring span {
+    position: absolute;
+    color: #1877f2;
+    font-size: 0.62rem;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-ring-track,
+  .org-biz-setup-ring-fill {
+    fill: none;
+    stroke-width: 4;
+  }
+
+  .org-biz-setup-ring-track {
+    stroke: #dbeafe;
+  }
+
+  .org-biz-setup-ring-fill {
+    stroke: #1877f2;
+    stroke-linecap: round;
+  }
+
+  .org-biz-setup-progress-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .org-biz-setup-progress-title {
+    margin: 0;
+    color: #0f172a;
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-progress-sub {
+    margin: 0.12rem 0 0;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+
+  .org-biz-setup-progress-next,
+  .org-biz-setup-progress-chevron {
+    flex-shrink: 0;
+    color: #94a3b8;
+  }
+
+  .org-biz-setup-progress-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
   }
 
   .org-biz-setup-popover-title {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.03em;
-    color: #0f172a;
+    color: #0b1b33;
   }
 
   .org-biz-setup-popover-subtitle {
-    margin: 0.4rem 0 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.72rem;
-    line-height: 1.35;
+    margin: 0.2rem 0 0;
+    max-width: 22rem;
+    font-size: 0.74rem;
+    line-height: 1.4;
     color: #64748b;
   }
 
@@ -5293,23 +5379,70 @@ body {
 
   .org-biz-setup-popover-groups {
     margin: 0;
-    padding: 0.7rem 0.95rem 0.85rem;
+    padding: 0.15rem 0.95rem 0.35rem;
     overflow-y: auto;
     display: flex;
     flex: 1 1 auto;
     min-height: 0;
     flex-direction: column;
-    gap: 0.95rem;
+  }
+
+  .org-biz-setup-popover-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .org-biz-setup-step-card {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid #eef3f8;
+    border-radius: 0.95rem;
+    background: #ffffff;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+    font: inherit;
+    text-align: left;
   }
 
   .org-biz-setup-status-label {
     display: flex;
+    width: 100%;
     align-items: center;
     gap: 0.4rem;
     margin: 0 0 0.55rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #0f172a;
-    font-size: 0.78rem;
+    font: inherit;
+    font-size: 0.8rem;
     font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .org-biz-setup-count-pill {
+    border-radius: 999px;
+    background: #e8f1ff;
+    color: #1877f2;
+    padding: 0.12rem 0.45rem;
+    font-size: 0.64rem;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-count-pill--done {
+    background: #ecfdf3;
+    color: #15803d;
+  }
+
+  .org-biz-setup-completed-summary > .org-biz-setup-done-icon {
+    color: #16a34a;
   }
 
   .org-biz-setup-status-label > svg:first-of-type {
@@ -5362,18 +5495,19 @@ body {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.55rem;
   }
 
   .org-biz-setup-step-card {
     display: flex;
     width: 100%;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.7rem 0.75rem;
-    border: 1px solid #eef2f7;
-    border-radius: 0.9rem;
+    gap: 0.75rem;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid #eef3f8;
+    border-radius: 0.95rem;
     background: #ffffff;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
     font: inherit;
     text-align: left;
   }
@@ -5398,10 +5532,13 @@ body {
 
   .org-biz-setup-step-icon {
     display: inline-flex;
+    width: 2.25rem;
+    height: 2.25rem;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    background: transparent;
+    border-radius: 0.7rem;
+    background: #eaf3ff;
     color: #1877f2;
   }
 
@@ -5419,8 +5556,8 @@ body {
   .org-biz-setup-step-icon--meta-ads svg,
   .org-biz-setup-step-icon--google-ads svg {
     display: block;
-    width: 1.05rem;
-    height: 1.05rem;
+    width: 1.1rem;
+    height: 1.1rem;
   }
 
   .org-biz-setup-step-copy {
@@ -5454,9 +5591,26 @@ body {
     color: #1d4ed8;
   }
 
+  .org-biz-setup-step-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .org-biz-setup-required-pill {
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #be123c;
+    padding: 0.08rem 0.4rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
   .org-biz-setup-step-title {
-    color: #0f172a;
-    font-size: 0.86rem;
+    color: #0b1b33;
+    font-size: 0.9rem;
     font-weight: 700;
   }
 
@@ -5480,42 +5634,86 @@ body {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
-    gap: 0.1rem;
+    gap: 0.05rem;
+    border: 0;
     border-radius: 999px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    padding: 0.28rem 0.45rem 0.28rem 0.6rem;
-    font-size: 0.68rem;
+    background: #1877f2;
+    color: #ffffff;
+    padding: 0.38rem 0.7rem 0.38rem 0.85rem;
+    font-size: 0.74rem;
     font-weight: 800;
+    cursor: pointer;
+  }
+
+  .org-biz-setup-done-pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.22rem;
+    border-radius: 999px;
+    background: #e9f9ef;
+    color: #17803d;
+    padding: 0.32rem 0.62rem;
+    font-size: 0.7rem;
+    font-weight: 700;
   }
 
   .org-biz-setup-popover-footer {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem 1rem;
-    padding: 0.85rem 1rem;
-    border-top: 1px solid #eef2f7;
-    background: #ffffff;
+    gap: 0.75rem;
+    margin: 0.35rem 0.95rem 0.95rem;
+    padding: 0.8rem 0.85rem;
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 28% 18%, #86efac 0 2.5px, transparent 3px),
+      radial-gradient(circle at 62% 78%, #4ade80 0 2px, transparent 3px),
+      linear-gradient(180deg, #f4fdf7 0%, #e8f8ee 100%);
+  }
+
+  .org-biz-setup-footer-check {
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #15803d;
+    color: #ffffff;
   }
 
   .org-biz-setup-footer-note {
     display: flex;
     min-width: 0;
-    flex: 1 1 12rem;
-    align-items: flex-start;
-    gap: 0.4rem;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.1rem;
     margin: 0;
-    color: #475569;
-    font-size: 0.74rem;
-    font-weight: 600;
-    line-height: 1.4;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.35;
   }
 
-  .org-biz-setup-footer-note svg {
-    margin-top: 0.1rem;
-    color: #1877f2;
+  .org-biz-setup-footer-title {
+    color: #166534;
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+
+  .org-biz-setup-footer-go {
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    background: #16a34a;
+    color: #ffffff;
+    cursor: pointer;
   }
 
   .org-biz-setup-popover-cta {
