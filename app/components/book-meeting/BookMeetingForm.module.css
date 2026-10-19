@@ -1695,6 +1695,18 @@
   color: #5f6368;
 }
 
+.meetLink {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  margin: -0.65rem 0 1rem;
+  color: #202124;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
 .successBody .nextBtn {
   display: inline-flex;
   width: 100%;

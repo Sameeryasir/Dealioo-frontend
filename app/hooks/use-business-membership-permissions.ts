@@ -40,10 +40,8 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
   });
 
   const access = query.data?.access ?? "member";
-  const role = query.data?.role ?? null;
   const isOwnerLike = access === "owner" || access === "super_admin";
-  const hasFullAccess = isOwnerLike || role === "Manager";
-  const permissionList = hasFullAccess
+  const permissionList = isOwnerLike
     ? FULL_PERMISSIONS
     : (query.data?.permissions ?? []);
   const permissionSet = new Set(permissionList);
@@ -51,11 +49,11 @@ export function useBusinessMembershipPermissions(businessId: number | null) {
   return {
     ...query,
     access,
-    role,
+    role: query.data?.role ?? null,
     isOwnerLike,
     permissionList,
     can: (permission: BusinessMemberPermission | "google_ads") => {
-      if (hasFullAccess) {
+      if (isOwnerLike) {
         return true;
       }
 

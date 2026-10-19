@@ -35,6 +35,7 @@ import styles from "./BookMeetingForm.module.css";
 export type BookMeetingFormProps = {
   submitting: boolean;
   errorMessage: string | null;
+  meetLink?: string | null;
   onSubmit: (values: MeetingFormValues) => Promise<void>;
 };
 
@@ -74,6 +75,7 @@ function readMeetingDraft(): { stepIndex: number; values: MeetingFormValues } | 
 export default function BookMeetingForm({
   submitting,
   errorMessage,
+  meetLink = null,
   onSubmit,
 }: BookMeetingFormProps) {
   const reduced = useReducedMotion();
@@ -242,8 +244,18 @@ export default function BookMeetingForm({
                       : ""}
                     )
                   </strong>
-                  . We will follow up at <strong>{values.email}</strong>.
+                  . This meeting is with <strong>sameeryasir02@gmail.com</strong>. We will follow up at <strong>{values.email}</strong>.
                 </p>
+                {meetLink ? (
+                  <a
+                    href={meetLink}
+                    className={styles.meetLink}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Join with Google Meet
+                  </a>
+                ) : null}
                 <Link href="/" className={styles.nextBtn}>
                   Back to home
                 </Link>

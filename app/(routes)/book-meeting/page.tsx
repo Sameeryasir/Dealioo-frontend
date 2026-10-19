@@ -9,12 +9,14 @@ import { useCallback, useState } from "react";
 export default function BookMeetingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [meetLink, setMeetLink] = useState<string | null>(null);
 
   const onSubmit = useCallback(async (values: MeetingFormValues) => {
     setErrorMessage(null);
     setSubmitting(true);
     try {
-      await submitMeetingRequest(values);
+      const saved = await submitMeetingRequest(values);
+      setMeetLink(saved.googleMeetLink?.trim() || null);
       trackProductFormSubmission("book_meeting", {
         email: values.email,
         phone: values.phone,
@@ -33,6 +35,7 @@ export default function BookMeetingPage() {
     <BookMeetingForm
       submitting={submitting}
       errorMessage={errorMessage}
+      meetLink={meetLink}
       onSubmit={onSubmit}
     />
   );

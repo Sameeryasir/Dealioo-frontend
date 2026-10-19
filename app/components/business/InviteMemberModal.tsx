@@ -58,6 +58,13 @@ const ROLE_OPTIONS: {
   accent: string;
 }[] = [
   {
+    value: "Admin",
+    label: "Admin",
+    description: "Full access to the business, the same as the owner.",
+    icon: Briefcase,
+    accent: "bg-[#07111f]",
+  },
+  {
     value: "Manager",
     label: "Manager",
     description:
@@ -409,6 +416,7 @@ export function InviteMemberForm({
           </ul>
         </div>
 
+        {role !== "Admin" && (
         <div>
           <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2 text-base font-semibold text-[#111827]">
@@ -456,6 +464,7 @@ export function InviteMemberForm({
             </p>
           ) : null}
         </div>
+        )}
 
         {error ? (
           <div

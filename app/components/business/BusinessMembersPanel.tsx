@@ -182,7 +182,7 @@ function formatJoinedDate(value?: string) {
 }
 
 function teamRoleLabel(member: BusinessMemberListItem): string {
-  if (member.status === "owner") return "Admin (Owner)";
+  if (member.status === "owner") return "Owner";
   return member.role?.trim() || "Member";
 }
 
@@ -199,7 +199,11 @@ function formatMemberDate(value?: string) {
 function memberInviteRole(
   member: BusinessMemberListItem,
 ): BusinessMemberRole {
-  if (member.role === "Staff" || member.role === "Scanner") {
+  if (
+    member.role === "Admin" ||
+    member.role === "Staff" ||
+    member.role === "Scanner"
+  ) {
     return member.role;
   }
   return "Manager";

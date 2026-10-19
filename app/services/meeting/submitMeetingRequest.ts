@@ -5,6 +5,7 @@ import { getApiBaseUrl, parseApiMessage } from "@/app/lib/api";
 export type SubmitMeetingRequestResponse = {
   id: number;
   message?: string;
+  googleMeetLink?: string | null;
 };
 
 export async function submitMeetingRequest(

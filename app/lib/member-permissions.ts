@@ -50,7 +50,29 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<
   BusinessMemberRole,
   BusinessMemberPermission[]
 > = {
-  Manager: [...BUSINESS_MEMBER_PERMISSIONS],
+  Admin: [...BUSINESS_MEMBER_PERMISSIONS],
+  Manager: [
+    "campaigns_create",
+    "campaigns_edit",
+    "campaigns_delete",
+    "campaigns_guests",
+    "campaigns_orders",
+    "campaigns_reviews",
+    "meta_campaigns_create",
+    "meta_campaigns_delete",
+    "google_campaigns_create",
+    "google_campaigns_delete",
+    "automations",
+    "automations_create",
+    "automations_edit",
+    "automations_delete",
+    "funnels_edit",
+    "orders",
+    "activity",
+    "history",
+    "chats",
+    "scanning",
+  ],
   Staff: ["orders", "activity", "history", "chats", "scanning"],
   Scanner: ["scanning", "orders"],
 };
@@ -360,29 +382,29 @@ export function getModulePermissionOptionsForRole(role: BusinessMemberRole) {
 }
 
 export function roleSupportsCampaignModule(role: BusinessMemberRole): boolean {
-  return role === "Manager";
+  return role === "Manager" || role === "Admin";
 }
 
 export function roleSupportsMetaCampaignModule(
   role: BusinessMemberRole,
 ): boolean {
-  return role === "Manager";
+  return role === "Manager" || role === "Admin";
 }
 
 export function roleSupportsGoogleCampaignModule(
   role: BusinessMemberRole,
 ): boolean {
-  return role === "Manager";
+  return role === "Manager" || role === "Admin";
 }
 
 export function roleSupportsAutomationModule(
   role: BusinessMemberRole,
 ): boolean {
-  return role === "Manager";
+  return role === "Manager" || role === "Admin";
 }
 
 export function roleSupportsFunnelModule(role: BusinessMemberRole): boolean {
-  return role === "Manager";
+  return role === "Manager" || role === "Admin";
 }
 
 export function getPermissionOptionsForRole(role: BusinessMemberRole) {
