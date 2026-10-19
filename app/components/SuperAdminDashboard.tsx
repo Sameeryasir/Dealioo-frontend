@@ -111,6 +111,41 @@ function titleCaseWords(value: string): string {
     .join(" ");
 }
 
+function isFutureMeeting(meeting: AdminMeetingRequest, now = Date.now()): boolean {
+  if (!meeting.scheduledDate || !meeting.scheduledTime) return false;
+  const zone = meeting.scheduledTimeZone?.trim() || "UTC";
+  const [year, month, day] = meeting.scheduledDate.split("-").map(Number);
+  const [hour, minute] = meeting.scheduledTime.split(":").map(Number);
+  const duration = meeting.scheduledDuration ?? 0;
+  const wallUtc = Date.UTC(year, month - 1, day, hour, minute + duration);
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).formatToParts(new Date(wallUtc));
+    const read = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((part) => part.type === type)?.value ?? "0");
+    const zonedAsUtc = Date.UTC(
+      read("year"),
+      read("month") - 1,
+      read("day"),
+      read("hour"),
+      read("minute"),
+      read("second"),
+    );
+    const offset = Math.round((zonedAsUtc - wallUtc) / 60_000);
+    return wallUtc - offset * 60_000 > now;
+  } catch {
+    return false;
+  }
+}
+
 function humanizeLabel(value: string | null | undefined): string {
   if (!value?.trim()) return "";
   return value
@@ -170,6 +205,74 @@ function formatAbsoluteDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function MeetingRequestDetail({ meeting }: { meeting: AdminMeetingRequest }) {
+  const when = [
+    meeting.scheduledDate,
+    meeting.scheduledTime,
+    meeting.scheduledDuration ? `${meeting.scheduledDuration} min` : "",
+    meeting.scheduledTimeZone?.replaceAll("_", " "),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const place = [meeting.cityLocation, meeting.state, meeting.postalCode, meeting.country]
+    .filter(Boolean)
+    .join(", ");
+  const activities = (meeting.marketingActivities ?? [])
+    .map((item) => humanizeLabel(item))
+    .filter(Boolean)
+    .join(", ");
+  const rows = [
+    ["Scheduled", when || "No time was saved"],
+    ["Visitor", `${meeting.firstName} ${meeting.lastName}`.trim()],
+    ["Visitor email", meeting.email],
+    ["Visitor phone", meeting.phone],
+    ["Business", meeting.businessName],
+    ["Business type", humanizeLabel(meeting.businessCategory)],
+    ["Business phone", meeting.businessPhone || ""],
+    ["Business email", meeting.businessEmail || ""],
+    ["Website", meeting.website || ""],
+    ["Location", place],
+    ["Role", humanizeLabel(meeting.businessRole)],
+    [
+      "Monthly revenue",
+      [humanizeLabel(meeting.monthlyRevenue), meeting.currency].filter(Boolean).join(" "),
+    ],
+    ["Marketing", activities],
+    ["Situation", meeting.currentSituation],
+    ["Start timeline", humanizeLabel(meeting.startTimeline)],
+    ["Commitment", humanizeLabel(meeting.meetingCommitment)],
+    ["Notes", meeting.description || ""],
+  ].filter(([, value]) => Boolean(value?.trim()));
+
+  return (
+    <section className={styles.meetingDetail} aria-label={`Meeting request ${meeting.id}`}>
+      <h3 className={styles.meetingDetailTitle}>Meeting request #{meeting.id}</h3>
+      <dl className={styles.meetingDetailGrid}>
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className={styles.meetingDetailLinks}>
+        {meeting.googleMeetLink ? (
+          <a href={meeting.googleMeetLink} target="_blank" rel="noreferrer">
+            Join with Google Meet
+          </a>
+        ) : (
+          <p>No Google Meet link yet. The calendar was not connected for this booking.</p>
+        )}
+        {meeting.googleEventLink ? (
+          <a href={meeting.googleEventLink} target="_blank" rel="noreferrer">
+            Open in Google Calendar
+          </a>
+        ) : null}
+      </div>
+    </section>
+  );
 }
 
 function initialsFromName(name: string): string {
@@ -424,6 +527,7 @@ export function SuperAdminDashboard() {
     [],
   );
   const [meetingsLoading, setMeetingsLoading] = useState(false);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
   const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
@@ -540,8 +644,9 @@ export function SuperAdminDashboard() {
   }, [overview?.users, q]);
 
   const filteredMeetings = useMemo(() => {
-    if (!q) return meetingRequests;
-    return meetingRequests.filter((m) =>
+    const upcoming = meetingRequests.filter((meeting) => isFutureMeeting(meeting));
+    if (!q) return upcoming;
+    return upcoming.filter((m) =>
       [
         m.firstName,
         m.lastName,
@@ -562,6 +667,14 @@ export function SuperAdminDashboard() {
         .includes(q),
     );
   }, [meetingRequests, q]);
+
+  const selectedMeeting = useMemo(
+    () =>
+      meetingRequests.find(
+        (meeting) => meeting.id === selectedMeetingId && isFutureMeeting(meeting),
+      ) ?? null,
+    [meetingRequests, selectedMeetingId],
+  );
 
   const businessTotalPages = Math.max(
     1,
@@ -1160,6 +1273,9 @@ export function SuperAdminDashboard() {
               <ChevronDown className="size-3.5" strokeWidth={2.25} aria-hidden />
             </button>
           </div>
+          {selectedMeeting ? (
+            <MeetingRequestDetail meeting={selectedMeeting} />
+          ) : null}
           <div className={styles.meetingsListWrap}>
             {meetingsLoading && meetingRequests.length === 0 ? (
               <div className={styles.loadingBox}>
@@ -1176,6 +1292,7 @@ export function SuperAdminDashboard() {
                   <span className={styles.meetingMetaLabel}>Business</span>
                   <span className={styles.meetingMetaLabel}>Role</span>
                   <span className={styles.meetingMetaLabel}>Location</span>
+                  <span className={styles.meetingMetaLabel}>Meet link</span>
                   <span className={styles.meetingMetaLabel}>Timeline</span>
                   <span className={styles.meetingMetaLabel}>Requested</span>
                   <span className={styles.meetingMetaLabel} />
@@ -1199,9 +1316,26 @@ export function SuperAdminDashboard() {
                       .join(" · ");
                     const roleLabel = humanizeLabel(m.businessRole) || "—";
                     const locationLabel = humanizeLabel(m.cityLocation) || "—";
-                    const timelineLabel = humanizeLabel(m.startTimeline) || "—";
+                    const scheduleLabel =
+                      [m.scheduledDate, m.scheduledTime].filter(Boolean).join(" · ") ||
+                      "—";
+                    const scheduleSub = [
+                      m.scheduledDuration ? `${m.scheduledDuration} min` : "",
+                      m.scheduledTimeZone?.replaceAll("_", " ") || "",
+                      humanizeLabel(m.startTimeline),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
-                      <li key={m.id} className={styles.meetingItem}>
+                      <li
+                        key={m.id}
+                        className={styles.meetingItem}
+                        onClick={() =>
+                          setSelectedMeetingId((current) =>
+                            current === m.id ? null : m.id,
+                          )
+                        }
+                      >
                         <div className={styles.meetingRow}>
                           <span className={styles.meetingsIdChip}>
                             <Hash className="size-3" aria-hidden />
@@ -1283,13 +1417,31 @@ export function SuperAdminDashboard() {
                               {locationLabel}
                             </span>
                           </span>
+                          {m.googleMeetLink ? (
+                            <a
+                              className={styles.meetingTableLink}
+                              href={m.googleMeetLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              Join Meet
+                            </a>
+                          ) : (
+                            <span className={styles.meetingsContactText}>—</span>
+                          )}
                           <span
                             className={styles.meetingsTimeline}
-                            title={timelineLabel}
+                            title={[scheduleLabel, scheduleSub].filter(Boolean).join(" · ")}
                           >
                             <CalendarDays className="size-3.5" aria-hidden />
-                            <span className={styles.meetingsContactText}>
-                              {timelineLabel}
+                            <span className={styles.meetingsSchedule}>
+                              <span className={styles.meetingsContactText}>
+                                {scheduleLabel}
+                              </span>
+                              {scheduleSub ? (
+                                <span className={styles.createdSub}>{scheduleSub}</span>
+                              ) : null}
                             </span>
                           </span>
                           <div className={styles.meetingsRequested}>
@@ -1305,7 +1457,14 @@ export function SuperAdminDashboard() {
                             <button
                               type="button"
                               className={styles.moreBtn}
-                              aria-label={`More actions for ${fullName || m.email}`}
+                              aria-label={`View details for ${fullName || m.email}`}
+                              aria-expanded={selectedMeetingId === m.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedMeetingId((current) =>
+                                  current === m.id ? null : m.id,
+                                );
+                              }}
                             >
                               <MoreVertical className="size-4" aria-hidden />
                             </button>

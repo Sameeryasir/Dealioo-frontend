@@ -1372,6 +1372,68 @@
   border-radius: 1.1rem;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  cursor: pointer;
+}
+
+.meetingDetail {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #dbe7f5;
+  border-radius: 1rem;
+  background: #f8fbff;
+}
+
+.meetingDetailTitle {
+  margin: 0 0 0.75rem;
+  color: var(--sa-navy);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.meetingDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.meetingDetailGrid div {
+  min-width: 0;
+}
+
+.meetingDetailGrid dt {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.meetingDetailGrid dd {
+  margin: 0.15rem 0 0;
+  color: var(--sa-navy);
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.meetingDetailLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-top: 0.9rem;
+}
+
+.meetingDetailLinks a {
+  color: var(--sa-blue);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.meetingDetailLinks p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
 }
 
 .meetingItem:hover {
@@ -1388,7 +1450,8 @@
     minmax(9rem, 1.1fr)
     minmax(7.25rem, 0.9fr)
     minmax(6.75rem, 0.85fr)
-    minmax(7.25rem, 0.9fr)
+    minmax(6.5rem, 0.7fr)
+    minmax(8.5rem, 1fr)
     minmax(7.25rem, 0.9fr)
     2.5rem;
   align-items: center;
@@ -1582,6 +1645,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   width: fit-content;
+}
+
+.meetingTableLink {
+  color: var(--sa-blue);
+  font-size: 0.8rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.meetingsSchedule {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.12rem;
 }
 
 .meetingsTimeline {

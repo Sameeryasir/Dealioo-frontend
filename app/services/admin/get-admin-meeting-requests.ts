@@ -16,6 +16,20 @@ export type AdminMeetingRequest = {
   currentSituation: string;
   startTimeline: string;
   meetingCommitment: string;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  scheduledDuration?: number | null;
+  scheduledTimeZone?: string | null;
+  businessPhone?: string | null;
+  businessEmail?: string | null;
+  website?: string | null;
+  description?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  currency?: string | null;
+  googleEventLink?: string | null;
+  googleMeetLink?: string | null;
   createdAt: string;
 };
 
