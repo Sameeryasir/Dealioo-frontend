@@ -7,7 +7,10 @@ import {
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 import { authAxios } from "@/app/lib/auth-axios";
 import { compressImageForUpload } from "@/app/lib/compress-image-file";
-import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
+import {
+  isValidOptionalHttpsWebsiteUrl,
+  withAutomaticHttps,
+} from "@/app/lib/website-url";
 import {
   parseBusinessFromApi,
   type AdminBusiness,
@@ -37,7 +40,7 @@ function optionalString(value: string | undefined): string | undefined {
 
 function optionalUrl(value: string | undefined): string | undefined {
   if (value == null) return undefined;
-  const trimmed = value.trim();
+  const trimmed = withAutomaticHttps(value).trim();
   if (trimmed.length === 0) return undefined;
   if (!isValidOptionalHttpsWebsiteUrl(trimmed)) {
     throw new Error(

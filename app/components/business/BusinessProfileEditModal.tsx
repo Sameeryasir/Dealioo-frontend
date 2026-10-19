@@ -24,6 +24,7 @@ import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
   isValidOptionalHttpsWebsiteUrl,
   optionalHttpsWebsiteUrlMessage,
+  withAutomaticHttps,
 } from "@/app/lib/website-url";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { updateBusiness } from "@/app/services/business/update-business";
@@ -574,7 +575,9 @@ export function BusinessProfileEditModal({
         section: "contact",
       };
     }
-    const websiteError = optionalHttpsWebsiteUrlMessage(form.websiteUrl);
+    const websiteError = optionalHttpsWebsiteUrlMessage(
+      withAutomaticHttps(form.websiteUrl),
+    );
     if (websiteError) {
       return { message: websiteError, section: "contact" };
     }
@@ -652,7 +655,7 @@ export function BusinessProfileEditModal({
         description: form.description.trim(),
         phoneNumber: form.phoneNumber.trim(),
         email: form.email.trim() || undefined,
-        websiteUrl: form.websiteUrl.trim() || undefined,
+        websiteUrl: withAutomaticHttps(form.websiteUrl).trim() || undefined,
         businessType: form.businessType.trim() || undefined,
         currency: form.currency.trim().toUpperCase() || undefined,
         city: form.city.trim() || undefined,
@@ -991,7 +994,9 @@ export function BusinessProfileEditModal({
                     <Field
                       label="Website (optional)"
                       htmlFor="edit-business-website"
-                      error={optionalHttpsWebsiteUrlMessage(form.websiteUrl)}
+                      error={optionalHttpsWebsiteUrlMessage(
+                        withAutomaticHttps(form.websiteUrl),
+                      )}
                     >
                       <div className="relative">
                         <input
@@ -1005,7 +1010,9 @@ export function BusinessProfileEditModal({
                           }`}
                           value={form.websiteUrl}
                           onChange={(e) =>
-                            patchForm({ websiteUrl: e.target.value })
+                            patchForm({
+                              websiteUrl: withAutomaticHttps(e.target.value),
+                            })
                           }
                           placeholder="https://yourbusiness.com"
                         />
