@@ -1,15 +1,16 @@
 "use client";
+
 import {
   BOOK_MEETING_STEPS,
   DEFAULT_MEETING_FORM_VALUES,
-  MARKETING_ACTIVITY_OPTIONS,
+  formatMeetingDate,
+  formatMeetingTime,
+  meetingSlotStillOpen,
   type MeetingFormValues,
 } from "@/app/components/book-meeting/book-meeting-config";
 import { BookMeetingBusinessStep } from "@/app/components/book-meeting/BookMeetingBusinessStep";
-import { BookMeetingChoiceGrid } from "@/app/components/book-meeting/BookMeetingChoiceGrid";
 import { BookMeetingFinalStep } from "@/app/components/book-meeting/BookMeetingFinalStep";
 import { BookMeetingNav } from "@/app/components/book-meeting/BookMeetingNav";
-import { BookMeetingRevenueStep } from "@/app/components/book-meeting/BookMeetingRevenueStep";
 import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
@@ -18,11 +19,17 @@ import {
   BOOK_MEETING_STEP_UI,
   type BookMeetingStepId,
 } from "@/app/components/book-meeting/book-meeting-ui";
+import { validateBusinessLocation } from "@/app/lib/business-location";
+import {
+  optionalHttpsWebsiteUrlMessage,
+  withAutomaticHttps,
+} from "@/app/lib/website-url";
 import { easeOut } from "@/app/components/landing/landing-motion";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, Mail, User } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import fieldStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import styles from "./BookMeetingForm.module.css";
 
 export type BookMeetingFormProps = {
@@ -31,8 +38,37 @@ export type BookMeetingFormProps = {
   onSubmit: (values: MeetingFormValues) => Promise<void>;
 };
 
+const MEETING_DRAFT_KEY = "dealio-book-meeting-draft";
+
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function readMeetingDraft(): { stepIndex: number; values: MeetingFormValues } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(MEETING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      stepIndex?: number;
+      values?: Partial<MeetingFormValues>;
+    };
+    if (!parsed.values) return null;
+    const stepIndex = Math.min(
+      BOOK_MEETING_STEPS.length - 1,
+      Math.max(0, Number(parsed.stepIndex) || 0),
+    );
+    return {
+      stepIndex,
+      values: {
+        ...DEFAULT_MEETING_FORM_VALUES,
+        ...parsed.values,
+        meetingDuration: parsed.values.meetingDuration === 15 ? 15 : 30,
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function BookMeetingForm({
@@ -43,6 +79,7 @@ export default function BookMeetingForm({
   const reduced = useReducedMotion();
   const [stepIndex, setStepIndex] = useState(0);
   const [values, setValues] = useState<MeetingFormValues>(DEFAULT_MEETING_FORM_VALUES);
+  const [draftReady, setDraftReady] = useState(false);
   const [stepError, setStepError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -56,15 +93,32 @@ export default function BookMeetingForm({
     setValues((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const toggleMulti = useCallback((field: "marketingActivities", value: string) => {
-    setValues((prev) => {
-      const current = prev[field];
-      const next = current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value];
-      return { ...prev, [field]: next };
-    });
+  const setMeetingTimeZone = useCallback((meetingTimeZone: string) => {
+    setValues((prev) =>
+      prev.meetingTimeZone === meetingTimeZone ? prev : { ...prev, meetingTimeZone },
+    );
   }, []);
+
+  useEffect(() => {
+    const draft = readMeetingDraft();
+    if (draft) {
+      setStepIndex(draft.stepIndex);
+      setValues(draft.values);
+    }
+    setDraftReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    if (completed) {
+      sessionStorage.removeItem(MEETING_DRAFT_KEY);
+      return;
+    }
+    sessionStorage.setItem(
+      MEETING_DRAFT_KEY,
+      JSON.stringify({ stepIndex, values }),
+    );
+  }, [completed, draftReady, stepIndex, values]);
 
   const validateStep = useCallback(
     (snapshot: MeetingFormValues = values): string | null => {
@@ -78,28 +132,37 @@ export default function BookMeetingForm({
           if (!isValidEmail(snapshot.email)) return "Please enter a valid email address.";
           return null;
         case "business":
-          if (!snapshot.businessRole) return "Please select the option that best describes you.";
-          if (!snapshot.businessCategory.trim()) return "Please enter your business type.";
           if (!snapshot.businessName.trim()) return "Please enter your business name.";
-          if (!snapshot.cityLocation.trim()) return "Please enter your city or area.";
-          return null;
-        case "revenue":
-          if (!snapshot.monthlyRevenue) return "Please select a monthly revenue range.";
-          return null;
-        case "marketing":
-          if (snapshot.marketingActivities.length === 0) {
-            return "Please select at least one marketing activity.";
+          if (!snapshot.businessPhone.trim() || !isValidPhoneNumber(snapshot.businessPhone)) {
+            return "Please enter a valid phone number.";
+          }
+          if (!snapshot.businessCategory.trim()) return "Please select a business type.";
+          if (!isValidEmail(snapshot.businessEmail)) return "Please enter a valid email address.";
+          if (!snapshot.description.trim()) {
+            return "Please enter a short description of your business.";
+          }
+          if (snapshot.description.trim().length > 500) {
+            return "Keep the description under 500 characters.";
+          }
+          if (optionalHttpsWebsiteUrlMessage(withAutomaticHttps(snapshot.website))) {
+            return "Enter a full website URL starting with https:// (e.g. https://example.com).";
           }
           return null;
-        case "situation":
-          if (snapshot.currentSituation.trim().length < 10) {
-            return "Please share a bit more detail (at least 10 characters).";
-          }
-          return null;
+        case "location":
+          return validateBusinessLocation({
+            city: snapshot.cityLocation,
+            state: snapshot.state,
+            postalCode: snapshot.postalCode,
+            country: snapshot.country,
+          });
         case "readiness":
-          if (!snapshot.startTimeline) return "Please tell us when you want to start.";
-          if (!snapshot.meetingCommitment) {
-            return "Please tell us if you will come prepared.";
+          if (!snapshot.meetingDate) return "Please pick a day for the meeting.";
+          if (!snapshot.meetingTime) return "Please pick a time for the meeting.";
+          if (!meetingSlotStillOpen(snapshot.meetingDate, snapshot.meetingTime)) {
+            return "That time is no longer open. Pick a weekday within the next 60 days.";
+          }
+          if (snapshot.meetingDuration !== 15 && snapshot.meetingDuration !== 30) {
+            return "Please choose a 15 or 30 minute meeting.";
           }
           return null;
         default:
@@ -110,7 +173,11 @@ export default function BookMeetingForm({
   );
 
   const goNext = useCallback(async () => {
-    const validationError = validateStep();
+    if (submitting) return;
+    const website = withAutomaticHttps(values.website);
+    const snapshot = website === values.website ? values : { ...values, website };
+    if (website !== values.website) patchValues({ website });
+    const validationError = validateStep(snapshot);
     if (validationError) {
       setStepError(validationError);
       return;
@@ -119,54 +186,30 @@ export default function BookMeetingForm({
 
     if (isLastStep) {
       try {
-        await onSubmit(values);
+        await onSubmit(snapshot);
         setCompleted(true);
       } catch {
+        return;
       }
       return;
     }
     setStepIndex((index) => index + 1);
-  }, [isLastStep, onSubmit, validateStep, values]);
+  }, [isLastStep, onSubmit, patchValues, submitting, validateStep, values]);
 
   const goBack = useCallback(() => {
     setStepError(null);
     setStepIndex((index) => Math.max(0, index - 1));
   }, []);
 
-  const handleSingleChoice = useCallback((field: keyof MeetingFormValues, value: string) => {
-    setValues((prev) => {
-      const current = prev[field];
-      const next = current === value ? "" : value;
-      return { ...prev, [field]: next };
-    });
-    setStepError(null);
-  }, []);
-
-  const handleBusinessRoleChange = useCallback((value: string) => {
-    setValues((prev) => {
-      const nextRole = prev.businessRole === value ? "" : value;
-      if (!nextRole) {
-        return {
-          ...prev,
-          businessRole: "",
-          businessCategory: "",
-          businessName: "",
-          cityLocation: "",
-        };
-      }
-      return { ...prev, businessRole: nextRole };
-    });
-    setStepError(null);
-  }, []);
-
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === "TEXTAREA") return;
       if (event.key !== "Enter" || event.shiftKey) return;
-      if (currentStep.id === "situation") return;
       event.preventDefault();
       void goNext();
     },
-    [currentStep.id, goNext],
+    [goNext],
   );
 
   if (completed) {
@@ -184,15 +227,22 @@ export default function BookMeetingForm({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: easeOut }}
             >
-              <div className={styles.successAccent} aria-hidden />
               <div className={styles.successBody}>
                 <div className={styles.successIcon}>
                   <Check className="h-6 w-6" strokeWidth={2.5} aria-hidden />
                 </div>
-                <h1 className={styles.successTitle}>Response recorded</h1>
+                <h1 className={styles.successTitle}>Meeting scheduled</h1>
                 <p className={styles.successCopy}>
-                  We will review your answers and email{" "}
-                  <strong>{values.email}</strong> if we are a good fit.
+                  Your request is saved for{" "}
+                  <strong>
+                    {formatMeetingDate(values.meetingDate)} at {formatMeetingTime(values.meetingTime)}
+                    {" "}({values.meetingDuration} min
+                    {values.meetingTimeZone
+                      ? `, ${values.meetingTimeZone.replace(/_/g, " ")}`
+                      : ""}
+                    )
+                  </strong>
+                  . We will follow up at <strong>{values.email}</strong>.
                 </p>
                 <Link href="/" className={styles.nextBtn}>
                   Back to home
@@ -239,9 +289,24 @@ export default function BookMeetingForm({
                   <motion.div
                     key={currentStep.id}
                     className={styles.sheetStep}
-                    initial={reduced ? false : { opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduced ? undefined : { opacity: 0, y: -8 }}
+                    initial={
+                      reduced
+                        ? false
+                        : currentStep.id === "location"
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: 10 }
+                    }
+                    animate={
+                      currentStep.id === "location" ? { opacity: 1 } : { opacity: 1, y: 0 }
+                    }
+                    exit={
+                      reduced
+                        ? undefined
+                        : currentStep.id === "location"
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: -8 }
+                    }
+                    style={currentStep.id === "location" ? { transform: "none" } : undefined}
                     transition={{ duration: 0.28, ease: easeOut }}
                   >
                     <div
@@ -264,122 +329,112 @@ export default function BookMeetingForm({
                       ) : null}
 
                       {currentStep.id === "contact" ? (
-                        <div className={`${styles.fields} ${styles.fieldsContact}`}>
+                        <div className={styles.reachGrid}>
                           <label>
-                            <span className={styles.fieldLabel}>
-                              First name<span className={styles.required}>*</span>
+                            <span className={fieldStyles.basicsLabel}>
+                              First name<span className={fieldStyles.basicsRequired}>*</span>
                             </span>
-                            <input
-                              type="text"
-                              autoComplete="given-name"
-                              autoFocus
-                              className={styles.input}
-                              value={values.firstName}
-                              onChange={(e) => patchValues({ firstName: e.target.value })}
-                            />
+                            <span className={fieldStyles.basicsInputWrap}>
+                              <User className={`${fieldStyles.basicsInputIcon} size-4`} strokeWidth={2.25} aria-hidden />
+                              <input
+                                type="text"
+                                name="given-name"
+                                autoComplete="given-name"
+                                autoFocus
+                                className={fieldStyles.basicsInput}
+                                placeholder="First name"
+                                value={values.firstName}
+                                onChange={(e) => patchValues({ firstName: e.target.value })}
+                              />
+                            </span>
                           </label>
                           <label>
-                            <span className={styles.fieldLabel}>
-                              Last name<span className={styles.required}>*</span>
+                            <span className={fieldStyles.basicsLabel}>
+                              Last name<span className={fieldStyles.basicsRequired}>*</span>
                             </span>
-                            <input
-                              type="text"
-                              autoComplete="family-name"
-                              className={styles.input}
-                              value={values.lastName}
-                              onChange={(e) => patchValues({ lastName: e.target.value })}
-                            />
-                          </label>
-                          <label className={styles.phoneField}>
-                            <span className={styles.fieldLabel}>
-                              Phone number<span className={styles.required}>*</span>
+                            <span className={fieldStyles.basicsInputWrap}>
+                              <User className={`${fieldStyles.basicsInputIcon} size-4`} strokeWidth={2.25} aria-hidden />
+                              <input
+                                type="text"
+                                name="family-name"
+                                autoComplete="family-name"
+                                className={fieldStyles.basicsInput}
+                                placeholder="Last name"
+                                value={values.lastName}
+                                onChange={(e) => patchValues({ lastName: e.target.value })}
+                              />
                             </span>
-                            <BookMeetingPhoneInput
-                              value={values.phone}
-                              onChange={(phone) => patchValues({ phone })}
-                            />
                           </label>
                           <label>
-                            <span className={styles.fieldLabel}>
-                              Email<span className={styles.required}>*</span>
+                            <span className={fieldStyles.basicsLabel}>
+                              Phone number<span className={fieldStyles.basicsRequired}>*</span>
                             </span>
-                            <input
-                              type="email"
-                              autoComplete="email"
-                              className={styles.input}
-                              placeholder="you@business.com"
-                              value={values.email}
-                              onChange={(e) => patchValues({ email: e.target.value })}
-                            />
+                            <div className={fieldStyles.basicsPhoneWrap}>
+                              <BookMeetingPhoneInput
+                                variant="boxed"
+                                value={values.phone}
+                                onChange={(phone) => patchValues({ phone })}
+                              />
+                            </div>
+                          </label>
+                          <label>
+                            <span className={fieldStyles.basicsLabel}>
+                              Email<span className={fieldStyles.basicsRequired}>*</span>
+                            </span>
+                            <span className={fieldStyles.basicsInputWrap}>
+                              <Mail className={`${fieldStyles.basicsInputIcon} size-4`} strokeWidth={2.25} aria-hidden />
+                              <input
+                                type="email"
+                                name="email"
+                                autoComplete="email"
+                                className={fieldStyles.basicsInput}
+                                placeholder="you@gmail.com"
+                                value={values.email}
+                                onChange={(e) => patchValues({ email: e.target.value })}
+                              />
+                            </span>
                           </label>
                         </div>
                       ) : null}
 
-                      {currentStep.id === "business" ? (
+                      {currentStep.id === "business" || currentStep.id === "location" ? (
                         <BookMeetingBusinessStep
-                          businessRole={values.businessRole}
-                          businessCategory={values.businessCategory}
+                          section={currentStep.id === "location" ? "location" : "about"}
                           businessName={values.businessName}
+                          businessPhone={values.businessPhone}
+                          businessCategory={values.businessCategory}
+                          businessEmail={values.businessEmail}
+                          description={values.description}
+                          website={values.website}
                           cityLocation={values.cityLocation}
-                          onRoleChange={handleBusinessRoleChange}
-                          onCategoryChange={(value) => {
-                            patchValues({ businessCategory: value });
-                            setStepError(null);
-                          }}
-                          onNameChange={(value) => {
-                            patchValues({ businessName: value });
-                            setStepError(null);
-                          }}
-                          onCityChange={(value) => {
-                            patchValues({ cityLocation: value });
+                          state={values.state}
+                          postalCode={values.postalCode}
+                          country={values.country}
+                          onChange={(patch) => {
+                            patchValues(patch);
                             setStepError(null);
                           }}
                         />
-                      ) : null}
-
-                      {currentStep.id === "revenue" ? (
-                        <BookMeetingRevenueStep
-                          value={values.monthlyRevenue}
-                          onChange={(revenue) => handleSingleChoice("monthlyRevenue", revenue)}
-                        />
-                      ) : null}
-
-                      {currentStep.id === "marketing" ? (
-                        <BookMeetingChoiceGrid
-                          ariaLabel="Marketing activities"
-                          layout="stack"
-                          multi
-                          options={MARKETING_ACTIVITY_OPTIONS}
-                          values={values.marketingActivities}
-                          onSelect={(value) => {
-                            toggleMulti("marketingActivities", value);
-                            setStepError(null);
-                          }}
-                        />
-                      ) : null}
-
-                      {currentStep.id === "situation" ? (
-                        <label className={styles.situationField}>
-                          <textarea
-                            rows={6}
-                            autoFocus
-                            className={styles.situationTextarea}
-                            placeholder="Type your answer here."
-                            value={values.currentSituation}
-                            onChange={(event) => patchValues({ currentSituation: event.target.value })}
-                          />
-                          <span className={styles.situationHint}>Shift and Enter for a new line.</span>
-                        </label>
                       ) : null}
 
                       {currentStep.id === "readiness" ? (
                         <BookMeetingFinalStep
-                          startTimeline={values.startTimeline}
-                          meetingCommitment={values.meetingCommitment}
-                          onTimelineChange={(value) => handleSingleChoice("startTimeline", value)}
-                          onCommitmentChange={(value) =>
-                            handleSingleChoice("meetingCommitment", value)
-                          }
+                          meetingDate={values.meetingDate}
+                          meetingTime={values.meetingTime}
+                          meetingDuration={values.meetingDuration}
+                          onDateChange={(meetingDate) => {
+                            patchValues({ meetingDate });
+                            setStepError(null);
+                          }}
+                          onTimeChange={(meetingTime) => {
+                            patchValues({ meetingTime });
+                            setStepError(null);
+                          }}
+                          onDurationChange={(meetingDuration) => {
+                            patchValues({ meetingDuration });
+                            setStepError(null);
+                          }}
+                          onTimeZoneChange={setMeetingTimeZone}
                         />
                       ) : null}
 
@@ -415,7 +470,7 @@ export default function BookMeetingForm({
                             Submitting…
                           </>
                         ) : isLastStep ? (
-                          "Submit"
+                          "Schedule"
                         ) : (
                           "Next"
                         )}

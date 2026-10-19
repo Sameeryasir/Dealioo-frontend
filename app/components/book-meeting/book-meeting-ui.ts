@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Building2,
   CalendarDays,
+  MapPin,
   Megaphone,
   MessageSquareText,
   TrendingUp,
@@ -11,6 +12,7 @@ import {
 export type BookMeetingStepId =
   | "contact"
   | "business"
+  | "location"
   | "revenue"
   | "marketing"
   | "situation"
@@ -35,12 +37,20 @@ export const BOOK_MEETING_STEP_UI: Record<BookMeetingStepId, BookMeetingStepUi> 
     accentClass: "landing-hero-accent-blue",
   },
   business: {
-    lead: "Tell us about your ",
+    lead: "About the ",
     accent: "business",
-    subtitle: "Your role, business name, and location.",
+    subtitle: "Name, contact, type, email, description, and website.",
     icon: Building2,
     iconClass: "bg-brand-convert text-white",
     accentClass: "landing-hero-accent-pink",
+  },
+  location: {
+    lead: "Where the business is ",
+    accent: "located",
+    subtitle: "Search, map, and address.",
+    icon: MapPin,
+    iconClass: "bg-brand-primary text-white",
+    accentClass: "landing-hero-accent-blue",
   },
   revenue: {
     lead: "What is your ",
@@ -67,9 +77,9 @@ export const BOOK_MEETING_STEP_UI: Record<BookMeetingStepId, BookMeetingStepUi> 
     accentClass: "landing-hero-accent-blue",
   },
   readiness: {
-    lead: "You are almost ",
-    accent: "done",
-    subtitle: "When you want to start and if you will come prepared.",
+    lead: "Schedule the ",
+    accent: "meeting",
+    subtitle: "Pick a day and a time, then send your request.",
     icon: CalendarDays,
     iconClass: "bg-brand-offer text-white",
     accentClass: "landing-hero-accent-green",
@@ -86,7 +96,6 @@ export const MEETING_PREVIEW_PHASES = [
 export function meetingPreviewPhaseIndex(stepIndex: number): number {
   if (stepIndex <= 1) return 0;
   if (stepIndex <= 2) return 1;
-  if (stepIndex <= 3) return 2;
   return 3;
 }
 

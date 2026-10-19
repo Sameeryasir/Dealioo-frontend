@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * Change: Fix country-code dropdown sizing/placement + search ranking.
- * Why: List forced a min height that covered the Next button on register step 1.
- * Related: BookMeetingPhoneInput, RegisterBusinessForm, BookMeetingPhoneInput.module.css
- */
-
 import { getCountryCallingCode } from "react-phone-number-input";
 import type { Country } from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -70,7 +64,6 @@ export function BookMeetingCountrySelect({
     [options],
   );
 
-  // Prefer names that start with the query so "p" shows Pakistan, not Cape Verde first.
   const filteredOptions = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return countryOptions;
@@ -120,7 +113,6 @@ export function BookMeetingCountrySelect({
     const actionsTop = actions?.getBoundingClientRect().top;
     const sheetRect = sheet?.getBoundingClientRect();
 
-    // Never cover the form's Next / Back actions row.
     const bottomLimit =
       actionsTop != null
         ? actionsTop - ACTIONS_GAP
@@ -141,13 +133,11 @@ export function BookMeetingCountrySelect({
       spaceBelow < MIN_USABLE_BELOW && spaceAbove > spaceBelow;
 
     const available = Math.max(0, openUp ? spaceAbove : spaceBelow);
-    // Hard-cap to free space so the menu never sits on top of Next.
     const listMaxHeight = Math.max(
       0,
       Math.min(PREFERRED_LIST_HEIGHT, available - chrome),
     );
 
-    // If both sides are too tight, still show a short scrollable list above.
     const finalListHeight =
       listMaxHeight >= COUNTRY_ROW_HEIGHT
         ? listMaxHeight
@@ -193,7 +183,6 @@ export function BookMeetingCountrySelect({
     };
   }, [open, updateDropdownPosition]);
 
-  // Recalc when filtered list size changes (search).
   useEffect(() => {
     if (!open) return;
     updateDropdownPosition();

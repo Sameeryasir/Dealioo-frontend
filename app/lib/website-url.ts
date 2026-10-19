@@ -18,6 +18,18 @@ export function isValidOptionalHttpsWebsiteUrl(value: string): boolean {
   }
 }
 
+export function withAutomaticHttps(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || /^https:\/\//i.test(trimmed)) return trimmed || value;
+  if (/^http:\/\//i.test(trimmed)) {
+    return `https://${trimmed.slice("http://".length)}`;
+  }
+  const domain =
+    /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:[/?#][^\s]*)?$/i;
+  if (domain.test(trimmed)) return `https://${trimmed}`;
+  return value;
+}
+
 export function optionalHttpsWebsiteUrlMessage(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;

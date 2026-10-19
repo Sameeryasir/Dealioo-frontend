@@ -11,9 +11,16 @@ export async function submitMeetingRequest(
   values: MeetingFormValues,
 ): Promise<SubmitMeetingRequestResponse> {
   try {
+    const { meetingDate, meetingTime, meetingDuration, meetingTimeZone, ...answers } = values;
     const response = await axios.post<SubmitMeetingRequestResponse>(
       `${getApiBaseUrl()}/meeting-requests`,
-      values,
+      {
+        ...answers,
+        scheduledDate: meetingDate,
+        scheduledTime: meetingTime,
+        scheduledDuration: meetingDuration,
+        scheduledTimeZone: meetingTimeZone,
+      },
       { headers: { "Content-Type": "application/json" } },
     );
     return response.data;

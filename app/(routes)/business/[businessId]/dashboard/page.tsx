@@ -2,6 +2,7 @@
 
 import { BusinessActivityOverviewPanel } from "@/app/components/business/BusinessActivityOverviewPanel";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
+import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
@@ -59,6 +60,7 @@ export default function BusinessDashboardPage() {
   }, []);
 
   const { data: restaurant } = useBusinessByIdQuery(businessId);
+  const { can } = useBusinessMembershipPermissions(businessId);
 
   const activityEnabled = businessId != null && hasAuthSession();
   const metaStatusQuery = useFacebookConnectionStatusQuery(businessId, {
@@ -84,7 +86,7 @@ export default function BusinessDashboardPage() {
 
   const showIntegrationsInfo =
     businessId != null &&
-    restaurant?.isOwner === true &&
+    (restaurant?.isOwner === true || can("settings")) &&
     !integrationsLoading &&
     missingIntegrations.length > 0;
 
