@@ -3,7 +3,6 @@
 import BusinessDashboardCard from "@/app/components/BusinessDashboardCard";
 import { OrgDashboardHeroIllustration } from "@/app/components/OrgDashboardHeroIllustration";
 import { StarterPlanLimitDialog } from "@/app/components/StarterPlanLimitDialog";
-import { SuperAdminDashboard } from "@/app/components/SuperAdminDashboard";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
@@ -38,6 +37,7 @@ function firstName(fullName: string | null | undefined): string {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
@@ -46,7 +46,13 @@ export default function DashboardPage() {
     setIsSuperAdmin(isSuperAdminUser());
   }, []);
 
-  if (!isClient) {
+  useEffect(() => {
+    if (isClient && isSuperAdmin) {
+      router.replace("/admin");
+    }
+  }, [isClient, isSuperAdmin, router]);
+
+  if (!isClient || isSuperAdmin) {
     return (
       <section className="org-dashboard-section" aria-label="Dashboard">
         <div className="brand-landing-section">
@@ -58,10 +64,6 @@ export default function DashboardPage() {
         </div>
       </section>
     );
-  }
-
-  if (isSuperAdmin) {
-    return <SuperAdminDashboard />;
   }
 
   return <OwnerDashboardPage />;

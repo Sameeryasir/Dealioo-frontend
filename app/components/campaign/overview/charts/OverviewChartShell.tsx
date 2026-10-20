@@ -1,5 +1,6 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 const accentTopBar: Record<string, string> = {
@@ -18,6 +19,14 @@ const accentGlow: Record<string, string> = {
   multi: "bg-[#1877f2]/8",
 };
 
+const accentIconSoft: Record<string, string> = {
+  green: "bg-[#ecfdf5] text-[#34a853]",
+  blue: "bg-[#e8f2ff] text-[#1877f2]",
+  pink: "bg-[#fdf2f8] text-[#e1306c]",
+  orange: "bg-[#fff7ed] text-[#f77737]",
+  multi: "bg-[#e8f2ff] text-[#1877f2]",
+};
+
 export function OverviewChartShell({
   title,
   subtitle,
@@ -26,6 +35,7 @@ export function OverviewChartShell({
   minHeightClass = "min-h-[220px]",
   accent = "blue",
   stat,
+  icon: Icon,
 }: {
   title: string;
   subtitle?: string;
@@ -34,6 +44,7 @@ export function OverviewChartShell({
   minHeightClass?: string;
   accent?: keyof typeof accentTopBar;
   stat?: ReactNode;
+  icon?: LucideIcon;
 }) {
   return (
     <div
@@ -50,15 +61,25 @@ export function OverviewChartShell({
 
       <div className="relative shrink-0 px-4 pb-2.5 pt-4 sm:px-5 sm:pt-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="m-0 text-[0.84rem] font-extrabold tracking-tight text-[#07111f] sm:text-[0.88rem]">
-              {title}
-            </h3>
-            {subtitle ? (
-              <p className="m-0 mt-0.5 text-[0.7rem] font-medium leading-snug text-slate-500">
-                {subtitle}
-              </p>
+          <div className="flex min-w-0 items-start gap-2.5">
+            {Icon ? (
+              <span
+                className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${accentIconSoft[accent]}`}
+                aria-hidden
+              >
+                <Icon className="size-4" strokeWidth={2.25} />
+              </span>
             ) : null}
+            <div className="min-w-0">
+              <h3 className="m-0 text-[0.84rem] font-extrabold tracking-tight text-[#07111f] sm:text-[0.88rem]">
+                {title}
+              </h3>
+              {subtitle ? (
+                <p className="m-0 mt-0.5 text-[0.7rem] font-medium leading-snug text-slate-500">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
           </div>
           {stat != null && stat !== "" ? (
             typeof stat === "string" || typeof stat === "number" ? (

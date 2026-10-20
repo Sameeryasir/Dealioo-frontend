@@ -86,7 +86,6 @@ export type MarkAllAdminNotificationsReadResponse = {
   unreadCount: number;
 };
 
-/** Marks one Super Admin notification as read. */
 export async function markAdminNotificationRead(
   notificationId: string,
 ): Promise<MarkAdminNotificationReadResponse> {
@@ -107,7 +106,6 @@ export async function markAdminNotificationRead(
   }
 }
 
-/** Marks every unread Super Admin notification as read. */
 export async function markAllAdminNotificationsRead(): Promise<MarkAllAdminNotificationsReadResponse> {
   try {
     const { data } =

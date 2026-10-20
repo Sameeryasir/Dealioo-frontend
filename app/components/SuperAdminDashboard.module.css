@@ -271,6 +271,327 @@
   }
 }
 
+.kpiGridFive {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .kpiGridFive {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 980px) {
+  .kpiGridFive {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .kpiGridFive {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.kpiGridFour {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .kpiGridFour {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .kpiGridFour {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.chartGridBottomTwo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 1100px) {
+  .chartGridBottomTwo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.panelToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+@media (min-width: 960px) {
+  .panelToolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.panelSearch {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: 2.7rem;
+}
+
+.panelSearch .searchInput {
+  padding-right: 3.4rem;
+}
+
+.searchKbd {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  height: 1.45rem;
+  padding: 0 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+@media (min-width: 720px) {
+  .searchKbd {
+    display: inline-flex;
+  }
+}
+
+.panelToolbarRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.periodPills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border: 1px solid #e8edf5;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.periodPill {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.periodPill:hover {
+  color: #0f172a;
+  background: #f8fbff;
+}
+
+.periodPillActive {
+  background: #1877f2;
+  color: #ffffff;
+}
+
+.periodPillActive:hover {
+  background: #166fe0;
+  color: #ffffff;
+}
+
+.kpiLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.kpiHelp {
+  display: inline-flex;
+  color: #94a3b8;
+}
+
+.kpiBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kpi-accent, #1877f2) 14%, #ffffff);
+  color: var(--kpi-accent, #1877f2);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kpiExplain {
+  margin: 0.45rem 0 0;
+  min-height: 2.1rem;
+  font-size: 0.72rem;
+  font-weight: 550;
+  line-height: 1.35;
+  color: #475569;
+}
+
+.kpiTrendSuffix {
+  margin-left: 0.15rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.kpiSpark {
+  height: 2.4rem;
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.chartGridTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 0.9rem;
+}
+
+@media (min-width: 1100px) {
+  .chartGridTop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.chartGridBottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .chartGridBottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .chartGridBottom {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.regionPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.95rem;
+  padding: 0.15rem 0.1rem 0.35rem;
+}
+
+@media (min-width: 520px) {
+  .regionPanel {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+}
+
+.regionMap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 9rem;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background: #f8fbff;
+}
+
+.regionMapSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.regionBars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.regionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.regionRowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.regionName {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+  min-width: 0;
+}
+
+.regionSwatch {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.regionMeta {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.regionTrack {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #eef3fb;
+  overflow: hidden;
+}
+
+.regionFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
 .kpiCard {
   position: relative;
   overflow: hidden;
@@ -280,17 +601,10 @@
   border-radius: 1.1rem;
   background: #ffffff;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
 .kpiCard::before {
   display: none;
-}
-
-.kpiCard:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--kpi-accent, #1877f2) 45%, #e8edf5);
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--kpi-accent, #1877f2) 14%, transparent);
 }
 
 .kpiTop {

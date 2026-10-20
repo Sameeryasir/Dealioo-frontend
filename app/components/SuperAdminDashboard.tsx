@@ -1,77 +1,38 @@
 "use client";
 
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
-import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
-import { OverviewChartLegend } from "@/app/components/campaign/overview/charts/OverviewChartLegend";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
-  formatMonthLabel,
   OVERVIEW_CHART_COLORS,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   overviewAxisInterval,
-  shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
-import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
+import { BusinessesByRegionCard } from "@/app/components/super-admin/BusinessesByRegionCard";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import {
   activityCalendarYearMonthCount,
-  currentActivityDateKey,
   currentActivityMonthKey,
-  formatActivityDateLabel,
-  formatActivityMonthLabel,
-  getActivityMonthRangeForKey,
-  resolveActivityDateRange,
 } from "@/app/lib/activity-month-filter";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { getSetupUser } from "@/app/lib/setup-user";
+import { usePlatformDashboardQuery } from "@/app/hooks/use-platform-dashboard-query";
 import {
-  getAdminMeetingRequests,
-  type AdminMeetingRequest,
-} from "@/app/services/admin/get-admin-meeting-requests";
-import {
-  getPlatformAdminKpis,
-  getPlatformAdminOverview,
-  getPlatformAdminTrends,
-  type PlatformAdminKpis,
-  type PlatformAdminOverview,
-  type PlatformAdminTrends,
-} from "@/app/services/admin/get-platform-overview";
+  type PlatformDashboardKpi,
+  type PlatformDashboardPeriod,
+} from "@/app/services/admin/get-platform-dashboard";
 import {
   ArrowDownRight,
   ArrowUpRight,
   Activity,
   Building2,
-  CalendarDays,
-  CheckCircle2,
-  ChevronDown,
-  ChevronsUpDown,
-  CircleMinus,
-  CircleOff,
-  Clock3,
-  Crown,
-  Filter,
-  Hash,
   Loader2,
-  Mail,
-  MapPin,
-  MoreVertical,
-  Phone,
-  Briefcase,
   RefreshCw,
-  ScanLine,
-  Search,
-  Shield,
-  ShieldCheck,
   Sparkles,
-  User,
-  Users,
   Wallet,
 } from "lucide-react";
-import Link from "next/link";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -87,8 +48,14 @@ import {
   YAxis,
 } from "recharts";
 
-const TABLE_PAGE_SIZE = 8;
 const BRAND_BLUE = "#1877f2";
+
+const PERIODS: Array<{ id: PlatformDashboardPeriod; label: string }> = [
+  { id: "today", label: "Today" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+  { id: "year", label: "Year" },
+];
 
 function greetingForNow(): string {
   const h = new Date().getHours();
@@ -102,243 +69,29 @@ function firstName(fullName: string): string {
   return part.charAt(0).toUpperCase() + part.slice(1);
 }
 
-function titleCaseWords(value: string): string {
-  return value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function isFutureMeeting(meeting: AdminMeetingRequest, now = Date.now()): boolean {
-  if (!meeting.scheduledDate || !meeting.scheduledTime) return false;
-  const zone = meeting.scheduledTimeZone?.trim() || "UTC";
-  const [year, month, day] = meeting.scheduledDate.split("-").map(Number);
-  const [hour, minute] = meeting.scheduledTime.split(":").map(Number);
-  const duration = meeting.scheduledDuration ?? 0;
-  const wallUtc = Date.UTC(year, month - 1, day, hour, minute + duration);
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).formatToParts(new Date(wallUtc));
-    const read = (type: Intl.DateTimeFormatPartTypes) =>
-      Number(parts.find((part) => part.type === type)?.value ?? "0");
-    const zonedAsUtc = Date.UTC(
-      read("year"),
-      read("month") - 1,
-      read("day"),
-      read("hour"),
-      read("minute"),
-      read("second"),
-    );
-    const offset = Math.round((zonedAsUtc - wallUtc) / 60_000);
-    return wallUtc - offset * 60_000 > now;
-  } catch {
-    return false;
-  }
-}
-
-function humanizeLabel(value: string | null | undefined): string {
-  if (!value?.trim()) return "";
-  return value
-    .trim()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => {
-      if (/^\d/.test(part)) return part.toLowerCase();
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join(" ");
-}
-
-function formatMoney(cents: number, currency = "USD"): string {
+function formatMoney(cents: number): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
-    currency: currency.toUpperCase() === "USD" ? "USD" : currency.toUpperCase(),
+    currency: "USD",
     maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
   }).format(cents / 100);
 }
 
-function formatCompactMoney(cents: number, currency = "USD"): string {
-  const amount = cents / 100;
+function formatMoneyDollars(amount: number): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
-    currency: currency.toUpperCase() === "USD" ? "USD" : currency.toUpperCase(),
-    notation: "compact",
-    compactDisplay: "short",
-    maximumFractionDigits: Math.abs(amount) >= 1000 ? 1 : amount % 1 === 0 ? 0 : 2,
+    currency: "USD",
+    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
   }).format(amount);
 }
 
-function formatRelative(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "—";
-  const diff = Date.now() - t;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 14) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatAbsoluteDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function MeetingRequestDetail({ meeting }: { meeting: AdminMeetingRequest }) {
-  const when = [
-    meeting.scheduledDate,
-    meeting.scheduledTime,
-    meeting.scheduledDuration ? `${meeting.scheduledDuration} min` : "",
-    meeting.scheduledTimeZone?.replaceAll("_", " "),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  const place = [meeting.cityLocation, meeting.state, meeting.postalCode, meeting.country]
-    .filter(Boolean)
-    .join(", ");
-  const activities = (meeting.marketingActivities ?? [])
-    .map((item) => humanizeLabel(item))
-    .filter(Boolean)
-    .join(", ");
-  const rows = [
-    ["Scheduled", when || "No time was saved"],
-    ["Visitor", `${meeting.firstName} ${meeting.lastName}`.trim()],
-    ["Visitor email", meeting.email],
-    ["Visitor phone", meeting.phone],
-    ["Business", meeting.businessName],
-    ["Business type", humanizeLabel(meeting.businessCategory)],
-    ["Business phone", meeting.businessPhone || ""],
-    ["Business email", meeting.businessEmail || ""],
-    ["Website", meeting.website || ""],
-    ["Location", place],
-    ["Role", humanizeLabel(meeting.businessRole)],
-    [
-      "Monthly revenue",
-      [humanizeLabel(meeting.monthlyRevenue), meeting.currency].filter(Boolean).join(" "),
-    ],
-    ["Marketing", activities],
-    ["Situation", meeting.currentSituation],
-    ["Start timeline", humanizeLabel(meeting.startTimeline)],
-    ["Commitment", humanizeLabel(meeting.meetingCommitment)],
-    ["Notes", meeting.description || ""],
-  ].filter(([, value]) => Boolean(value?.trim()));
-
-  return (
-    <section className={styles.meetingDetail} aria-label={`Meeting request ${meeting.id}`}>
-      <h3 className={styles.meetingDetailTitle}>Meeting request #{meeting.id}</h3>
-      <dl className={styles.meetingDetailGrid}>
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className={styles.meetingDetailLinks}>
-        {meeting.googleMeetLink ? (
-          <a href={meeting.googleMeetLink} target="_blank" rel="noreferrer">
-            Join with Google Meet
-          </a>
-        ) : (
-          <p>No Google Meet link yet. The calendar was not connected for this booking.</p>
-        )}
-        {meeting.googleEventLink ? (
-          <a href={meeting.googleEventLink} target="_blank" rel="noreferrer">
-            Open in Google Calendar
-          </a>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-const OWNER_AVATAR_TONES = [
-  styles.ownerToneViolet,
-  styles.ownerToneGreen,
-  styles.ownerToneBlue,
-  styles.ownerToneAmber,
-  styles.ownerToneRose,
-];
-
-function ownerAvatarTone(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash + seed.charCodeAt(i) * (i + 1)) % 997;
-  }
-  return OWNER_AVATAR_TONES[hash % OWNER_AVATAR_TONES.length];
-}
-
-function planTagMeta(planName: string | null | undefined, planSlug: string | null | undefined) {
-  const label = planName?.trim();
-  if (!label) {
-    return { Icon: CircleMinus, className: styles.planTagNone, label: "No plan" };
-  }
-  const key = (planSlug ?? label).toLowerCase();
-  if (key.includes("enterprise") || key.includes("expert")) {
-    return { Icon: Crown, className: styles.planTagEnterprise, label };
-  }
-  if (key.includes("starter")) {
-    return { Icon: Sparkles, className: styles.planTagStarter, label };
-  }
-  return { Icon: Crown, className: styles.planTagGrowth, label };
-}
-
-function roleTagMeta(roleName: string | null | undefined) {
-  const role = (roleName ?? "").toLowerCase();
-  if (role.includes("super")) {
-    return { Icon: ShieldCheck, className: styles.roleSuper, label: roleName ?? "Super Admin" };
-  }
-  if (role.includes("admin")) {
-    return { Icon: Shield, className: styles.roleAdmin, label: roleName ?? "Admin" };
-  }
-  if (role.includes("scanner")) {
-    return { Icon: ScanLine, className: styles.roleScanner, label: roleName ?? "Scanner" };
-  }
-  if (role.includes("owner")) {
-    return { Icon: Building2, className: styles.roleOwner, label: roleName ?? "Owner" };
-  }
-  return {
-    Icon: User,
-    className: styles.roleDefault,
-    label: roleName?.trim() ? roleName : "No role",
-  };
-}
-
-function Trend({ value }: { value: number }) {
+function TrendBadge({ value }: { value: number }) {
   const up = value >= 0;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={`${styles.kpiTrend} ${up ? styles.kpiTrendUp : styles.kpiTrendDown}`}>
+    <span
+      className={`${styles.kpiTrend} ${up ? styles.kpiTrendUp : styles.kpiTrendDown}`}
+    >
       <Icon className="size-3.5" aria-hidden />
       {Math.abs(value).toFixed(1)}%
     </span>
@@ -349,79 +102,74 @@ function useCountUp(target: number, ready: boolean, durationMs = 900): number {
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!ready) {
-      setDisplay(0);
-      return;
-    }
-
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion || target === 0) {
-      setDisplay(target);
-      return;
-    }
-
     let frame = 0;
-    const startedAt = performance.now();
+    let cancelled = false;
 
-    const tick = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / durationMs);
-      const eased = 1 - (1 - progress) ** 3;
-      setDisplay(target * eased);
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        setDisplay(target);
+    const start = () => {
+      if (cancelled) return;
+
+      if (!ready) {
+        setDisplay(0);
+        return;
       }
+
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion || target === 0) {
+        setDisplay(target);
+        return;
+      }
+
+      const startedAt = performance.now();
+
+      const tick = (now: number) => {
+        if (cancelled) return;
+        const progress = Math.min(1, (now - startedAt) / durationMs);
+        const eased = 1 - (1 - progress) ** 3;
+        setDisplay(target * eased);
+        if (progress < 1) {
+          frame = requestAnimationFrame(tick);
+        } else {
+          setDisplay(target);
+        }
+      };
+
+      setDisplay(0);
+      frame = requestAnimationFrame(tick);
     };
 
-    setDisplay(0);
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(start);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [durationMs, ready, target]);
 
   return display;
 }
 
-function formatKpiDisplay(
-  animated: number,
-  target: number,
-  format: "number" | "money" | "percent",
-): string {
-  if (format === "money") {
-    return formatCompactMoney(Math.round(animated));
-  }
-  if (format === "percent") {
-    const digits = Number.isInteger(target) ? 0 : 1;
-    return `${animated.toFixed(digits)}%`;
-  }
-  return String(Math.round(animated));
-}
-
-function KpiCard({
+function PanelKpiCard({
   label,
-  value,
-  changePct,
-  hint,
+  kpi,
+  money,
   icon: Icon,
   accent,
   soft,
-  format = "number",
-  ready = true,
+  ready,
 }: {
   label: string;
-  value: number;
-  changePct?: number;
-  hint?: string;
-  icon: typeof Users;
+  kpi: PlatformDashboardKpi;
+  money?: boolean;
+  icon: typeof Wallet;
   accent: string;
   soft: string;
-  format?: "number" | "money" | "percent";
-  ready?: boolean;
+  ready: boolean;
 }) {
-  const animated = useCountUp(value, ready);
-  const display = formatKpiDisplay(animated, value, format);
+  const animated = useCountUp(kpi.value, ready);
+  const display = money
+    ? formatMoney(Math.round(animated))
+    : String(Math.round(animated));
 
   return (
     <div
@@ -434,11 +182,13 @@ function KpiCard({
       }
     >
       <div className={styles.kpiTop}>
-        <div>
+        <div className="min-w-0">
           <p className={styles.kpiLabel}>{label}</p>
           <p
             className={styles.kpiValue}
-            aria-label={`${label}: ${formatKpiDisplay(value, value, format)}`}
+            aria-label={`${label}: ${
+              money ? formatMoney(kpi.value) : String(kpi.value)
+            }`}
           >
             {display}
           </p>
@@ -447,22 +197,17 @@ function KpiCard({
           <Icon className="size-4" strokeWidth={2.25} aria-hidden />
         </div>
       </div>
-      {typeof changePct === "number" ? <Trend value={changePct} /> : null}
-      {hint ? <p className={styles.kpiHint}>{hint}</p> : null}
+      <TrendBadge value={kpi.changePct} />
     </div>
   );
 }
 
 function PlatformTrendChart({
   data,
-  dataKey,
-  seriesName,
   stroke,
   money,
 }: {
-  data: Array<{ label: string }>;
-  dataKey: string;
-  seriesName: string;
+  data: Array<{ label: string; value: number }>;
   stroke: string;
   money?: boolean;
 }) {
@@ -477,7 +222,6 @@ function PlatformTrendChart({
             axisLine={false}
             tickLine={false}
             interval={overviewAxisInterval(data.length)}
-            tickFormatter={shortenMonthAxisLabel}
             height={34}
             dy={6}
           />
@@ -501,8 +245,8 @@ function PlatformTrendChart({
           <Tooltip content={<OverviewChartTooltip />} />
           <Line
             type="monotone"
-            dataKey={dataKey}
-            name={seriesName}
+            dataKey="value"
+            name={money ? "Earnings" : "Count"}
             stroke={stroke}
             strokeWidth={3}
             dot={{ r: 3.5, fill: "#ffffff", stroke, strokeWidth: 2.5 }}
@@ -515,227 +259,28 @@ function PlatformTrendChart({
 }
 
 export function SuperAdminDashboard() {
-  const [overview, setOverview] = useState<PlatformAdminOverview | null>(null);
-  const [kpis, setKpis] = useState<PlatformAdminKpis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [businessPage, setBusinessPage] = useState(1);
-  const [userPage, setUserPage] = useState(1);
-  const [meetingPage, setMeetingPage] = useState(1);
-  const [meetingRequests, setMeetingRequests] = useState<AdminMeetingRequest[]>(
-    [],
-  );
-  const [meetingsLoading, setMeetingsLoading] = useState(false);
-  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
   const displayName = getSetupUser()?.name?.trim() || "Super Admin";
-  const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
+  const [period, setPeriod] = useState<PlatformDashboardPeriod>("month");
   const [monthFilter, setMonthFilter] = useState(currentActivityMonthKey);
-  const [dateFilter, setDateFilter] = useState(currentActivityDateKey);
-  const [trends, setTrends] = useState<PlatformAdminTrends | null>(null);
-  const [trendsLoading, setTrendsLoading] = useState(true);
   const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
   const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
-  const periodRange = useMemo(() => {
-    if (calendarMode === "day") {
-      return resolveActivityDateRange(dateFilter, dashboardMonthCount);
-    }
-    return (
-      getActivityMonthRangeForKey(monthFilter, dashboardMonthCount) ??
-      resolveActivityDateRange(currentActivityDateKey(), dashboardMonthCount)
-    );
-  }, [calendarMode, dashboardMonthCount, dateFilter, monthFilter]);
-  const periodLabel =
-    calendarMode === "day"
-      ? formatActivityDateLabel(dateFilter)
-      : formatActivityMonthLabel(monthFilter);
 
-  const loadOverview = useCallback(async () => {
-    setLoading(true);
-    setErrorMessage(null);
-    void getPlatformAdminKpis()
-      .then((next) => setKpis(next))
-      .catch(() => {});
-    try {
-      const next = await getPlatformAdminOverview();
-      setOverview(next);
-      setKpis(next.kpis);
-    } catch (error) {
-      setOverview(null);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not load platform overview.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: panel,
+    isLoading,
+    isFetching,
+    error: errorMessage,
+    refetch,
+  } = usePlatformDashboardQuery({
+    period,
+    month: monthFilter,
+    timezone: viewerTimeZone,
+  });
 
-  const loadMeetingRequests = useCallback(async () => {
-    setMeetingsLoading(true);
-    try {
-      const data = await getAdminMeetingRequests();
-      setMeetingRequests(data.items);
-    } catch {
-      setMeetingRequests([]);
-    } finally {
-      setMeetingsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadOverview();
-    void loadMeetingRequests();
-  }, [loadOverview, loadMeetingRequests]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setTrendsLoading(true);
-    void getPlatformAdminTrends(
-      periodRange.from,
-      periodRange.to,
-      viewerTimeZone,
-    )
-      .then((next) => {
-        if (!cancelled) setTrends(next);
-      })
-      .catch(() => {
-        if (!cancelled) setTrends(null);
-      })
-      .finally(() => {
-        if (!cancelled) setTrendsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [periodRange.from, periodRange.to, viewerTimeZone]);
-
-  useEffect(() => {
-    setBusinessPage(1);
-    setUserPage(1);
-    setMeetingPage(1);
-  }, [query]);
-
-  const q = query.trim().toLowerCase();
-
-  const filteredBusinesses = useMemo(() => {
-    const rows = overview?.businesses ?? [];
-    if (!q) return rows;
-    return rows.filter((b) =>
-      [b.name, b.ownerEmail, b.ownerName, b.slug]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [overview?.businesses, q]);
-
-  const filteredUsers = useMemo(() => {
-    const rows = overview?.users ?? [];
-    if (!q) return rows;
-    return rows.filter((u) =>
-      [u.name, u.email, u.roleName, u.provider, u.planName, u.planSlug, String(u.id)]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [overview?.users, q]);
-
-  const filteredMeetings = useMemo(() => {
-    const upcoming = meetingRequests.filter((meeting) => isFutureMeeting(meeting));
-    if (!q) return upcoming;
-    return upcoming.filter((m) =>
-      [
-        m.firstName,
-        m.lastName,
-        m.email,
-        m.phone,
-        m.businessName,
-        m.businessRole,
-        m.businessCategory,
-        m.cityLocation,
-        m.monthlyRevenue,
-        m.startTimeline,
-        m.meetingCommitment,
-        String(m.id),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [meetingRequests, q]);
-
-  const selectedMeeting = useMemo(
-    () =>
-      meetingRequests.find(
-        (meeting) => meeting.id === selectedMeetingId && isFutureMeeting(meeting),
-      ) ?? null,
-    [meetingRequests, selectedMeetingId],
-  );
-
-  const businessTotalPages = Math.max(
-    1,
-    Math.ceil(filteredBusinesses.length / TABLE_PAGE_SIZE),
-  );
-  const userTotalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / TABLE_PAGE_SIZE),
-  );
-  const meetingTotalPages = Math.max(
-    1,
-    Math.ceil(filteredMeetings.length / TABLE_PAGE_SIZE),
-  );
-
-  useEffect(() => {
-    if (businessPage > businessTotalPages) setBusinessPage(businessTotalPages);
-  }, [businessPage, businessTotalPages]);
-
-  useEffect(() => {
-    if (userPage > userTotalPages) setUserPage(userTotalPages);
-  }, [userPage, userTotalPages]);
-
-  useEffect(() => {
-    if (meetingPage > meetingTotalPages) setMeetingPage(meetingTotalPages);
-  }, [meetingPage, meetingTotalPages]);
-
-  const pagedBusinesses = useMemo(() => {
-    const start = (businessPage - 1) * TABLE_PAGE_SIZE;
-    return filteredBusinesses.slice(start, start + TABLE_PAGE_SIZE);
-  }, [businessPage, filteredBusinesses]);
-
-  const pagedUsers = useMemo(() => {
-    const start = (userPage - 1) * TABLE_PAGE_SIZE;
-    return filteredUsers.slice(start, start + TABLE_PAGE_SIZE);
-  }, [filteredUsers, userPage]);
-
-  const pagedMeetings = useMemo(() => {
-    const start = (meetingPage - 1) * TABLE_PAGE_SIZE;
-    return filteredMeetings.slice(start, start + TABLE_PAGE_SIZE);
-  }, [filteredMeetings, meetingPage]);
-
-  const revenueChart = useMemo(
-    () =>
-      (trends?.points ?? []).map((point) => ({
-        label: formatMonthLabel(point.bucket),
-        value: point.revenueCents / 100,
-      })),
-    [trends?.points],
-  );
-
-  const businessChart = useMemo(
-    () =>
-      (trends?.points ?? []).map((point) => ({
-        label: formatMonthLabel(point.bucket),
-        count: point.businesses,
-      })),
-    [trends?.points],
-  );
-
-  const periodRevenueCents = trends?.totalRevenueCents ?? 0;
-  const periodNewBusinesses = trends?.newBusinesses ?? 0;
+  const loading = isLoading || isFetching;
+  const kpis = panel?.kpis;
+  const charts = panel?.charts;
+  const periodLabel = panel?.label || "This period";
 
   return (
     <section className={styles.page} aria-label="Super Admin platform overview">
@@ -747,81 +292,43 @@ export function SuperAdminDashboard() {
             </p>
             <h1 className={styles.title}>Platform Overview</h1>
             <p className={styles.subtitle}>
-              Live snapshot of businesses, users, and revenue across Dealioo.
+              Dealioo plan earnings and growth.
             </p>
           </div>
           <div className={styles.heroTools}>
-            <label className={styles.searchWrap}>
-              <Search className={styles.searchIcon} aria-hidden />
-              <input
-                className={styles.searchInput}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search businesses, users..."
-              />
-            </label>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+            <div className={styles.periodPills} role="group" aria-label="Time range">
+              {PERIODS.map((item) => (
                 <button
+                  key={item.id}
                   type="button"
-                  onClick={() => setCalendarMode("month")}
-                  className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
-                    calendarMode === "month"
-                      ? "bg-[#1877f2] text-white"
-                      : "text-slate-600"
+                  onClick={() => setPeriod(item.id)}
+                  className={`${styles.periodPill} ${
+                    period === item.id ? styles.periodPillActive : ""
                   }`}
                 >
-                  Month
+                  {item.label}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCalendarMode("day")}
-                  className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
-                    calendarMode === "day"
-                      ? "bg-[#1877f2] text-white"
-                      : "text-slate-600"
-                  }`}
-                >
-                  Day
-                </button>
-              </div>
-              {calendarMode === "month" ? (
-                <ActivityMonthCalendarPicker
-                  value={monthFilter}
-                  onChange={setMonthFilter}
-                  compact
-                  showAllMonths={false}
-                  monthCount={dashboardMonthCount}
-                />
-              ) : (
-                <PerformanceDateCalendar
-                  value={dateFilter}
-                  onChange={setDateFilter}
-                  monthCount={dashboardMonthCount}
-                />
-              )}
+              ))}
             </div>
+
+            {period === "month" ? (
+              <ActivityMonthCalendarPicker
+                value={monthFilter}
+                onChange={setMonthFilter}
+                compact
+                showAllMonths={false}
+                monthCount={dashboardMonthCount}
+              />
+            ) : null}
+
             <button
               type="button"
               className={styles.iconBtn}
-              onClick={() => {
-                void loadOverview();
-                void loadMeetingRequests();
-                setTrendsLoading(true);
-                void getPlatformAdminTrends(
-                  periodRange.from,
-                  periodRange.to,
-                  viewerTimeZone,
-                )
-                  .then((next) => setTrends(next))
-                  .catch(() => setTrends(null))
-                  .finally(() => setTrendsLoading(false));
-              }}
-              disabled={loading || meetingsLoading || trendsLoading}
+              onClick={() => void refetch()}
+              disabled={loading}
               aria-label="Refresh overview"
             >
-              {loading || trendsLoading ? (
+              {loading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <RefreshCw className="size-4" />
@@ -836,661 +343,142 @@ export function SuperAdminDashboard() {
               layout="inline"
               title="Something went wrong"
               message={errorMessage}
-              onRetry={() => void loadOverview()}
+              onRetry={() => void refetch()}
             />
           </div>
         ) : null}
 
-        <div className={styles.kpiGrid}>
-          <KpiCard
-            label="Total Businesses"
-            value={kpis?.totalBusinesses ?? 0}
-            changePct={kpis?.businessesChangePct}
-            hint="vs prior 30 days"
-            icon={Building2}
-            accent="#34a853"
-            soft="#ecfdf5"
-            ready={Boolean(kpis)}
-          />
-          <KpiCard
-            label="Total Users"
-            value={kpis?.totalUsers ?? 0}
-            changePct={kpis?.usersChangePct}
-            hint="vs prior 30 days"
-            icon={Users}
-            accent="#e1306c"
-            soft="#fdf2f8"
-            ready={Boolean(kpis)}
-          />
-          <KpiCard
-            label="Total Revenue"
-            value={periodRevenueCents}
-            hint={periodLabel}
+        <div className={styles.kpiGridFour}>
+          <PanelKpiCard
+            label="Monthly income"
+            kpi={kpis?.mrr ?? { value: 0, changePct: 0, sparkline: [], hint: "" }}
+            money
             icon={Wallet}
             accent="#e1306c"
             soft="#fdf2f8"
-            format="money"
-            ready={Boolean(trends)}
+            ready={Boolean(kpis)}
           />
-          <KpiCard
-            label="Platform Health"
-            value={99.9}
-            hint="All systems operational"
+          <PanelKpiCard
+            label="Paying customers"
+            kpi={
+              kpis?.payingSubscriptions ?? {
+                value: 0,
+                changePct: 0,
+                sparkline: [],
+                hint: "",
+              }
+            }
             icon={Activity}
-            accent="#34a853"
-            soft="#ecfdf5"
-            format="percent"
+            accent="#833aba"
+            soft="#f3e8ff"
+            ready={Boolean(kpis)}
+          />
+          <PanelKpiCard
+            label="New plan money"
+            kpi={
+              kpis?.planEarnings ?? {
+                value: 0,
+                changePct: 0,
+                sparkline: [],
+                hint: "",
+              }
+            }
+            money
+            icon={Wallet}
+            accent="#1877f2"
+            soft="#e8f2ff"
+            ready={Boolean(kpis)}
+          />
+          <PanelKpiCard
+            label="New plans"
+            kpi={
+              kpis?.newPlans ?? {
+                value: 0,
+                changePct: 0,
+                sparkline: [],
+                hint: "",
+              }
+            }
+            icon={Sparkles}
+            accent="#f77737"
+            soft="#fff7ed"
             ready={Boolean(kpis)}
           />
         </div>
 
-        <div className={styles.chartGrid}>
+        <div className={styles.chartGridTop}>
           <OverviewChartShell
-            title="Total revenue"
+            title="Plan Earnings"
             subtitle={periodLabel}
             accent="pink"
-            stat={formatMoney(periodRevenueCents)}
-            minHeightClass="min-h-[220px]"
+            icon={Wallet}
+            stat={formatMoneyDollars(charts?.planEarnings.reduce((s, r) => s + r.value, 0) ?? 0)}
+            minHeightClass="min-h-[240px]"
           >
-            {trendsLoading && !trends ? (
+            {loading && !charts ? (
               <div className={styles.loadingBox}>
                 <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
               </div>
             ) : (
-              <>
-                <PlatformTrendChart
-                  data={revenueChart}
-                  dataKey="value"
-                  seriesName="Revenue"
-                  stroke={OVERVIEW_CHART_COLORS.pink}
-                  money
-                />
-                <OverviewChartLegend
-                  items={[
-                    {
-                      label: "Revenue",
-                      value: formatMoney(periodRevenueCents),
-                      color: OVERVIEW_CHART_COLORS.pink,
-                    },
-                  ]}
-                />
-              </>
+              <PlatformTrendChart
+                data={charts?.planEarnings ?? []}
+                stroke={OVERVIEW_CHART_COLORS.pink}
+                money
+              />
             )}
           </OverviewChartShell>
 
           <OverviewChartShell
-            title="New businesses"
+            title="New Subscriptions"
             subtitle={periodLabel}
-            accent="blue"
-            stat={String(periodNewBusinesses)}
-            minHeightClass="min-h-[220px]"
+            accent="orange"
+            icon={Sparkles}
+            stat={String(
+              charts?.subscriptions.reduce((s, r) => s + r.value, 0) ?? 0,
+            )}
+            minHeightClass="min-h-[240px]"
           >
-            {trendsLoading && !trends ? (
+            {loading && !charts ? (
               <div className={styles.loadingBox}>
                 <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
               </div>
             ) : (
-              <>
-                <PlatformTrendChart
-                  data={businessChart}
-                  dataKey="count"
-                  seriesName="New businesses"
-                  stroke={OVERVIEW_CHART_COLORS.blue}
-                />
-                <OverviewChartLegend
-                  items={[
-                    {
-                      label: "New businesses",
-                      value: periodNewBusinesses.toLocaleString(),
-                      color: OVERVIEW_CHART_COLORS.blue,
-                    },
-                  ]}
-                />
-              </>
+              <PlatformTrendChart
+                data={charts?.subscriptions ?? []}
+                stroke={OVERVIEW_CHART_COLORS.orange}
+              />
             )}
           </OverviewChartShell>
         </div>
 
-        <div id="sa-businesses" className={`${styles.card} ${styles.tableCard}`}>
-          <div className={styles.cardHead}>
-            <div className={styles.tableHeadLeft}>
-              <span className={styles.tableHeadIcon} aria-hidden>
-                <Building2 className="size-5" strokeWidth={2.25} />
-              </span>
-              <div>
-                <h2 className={styles.cardTitle}>Active Businesses</h2>
-                <p className={styles.cardSub}>
-                  {filteredBusinesses.length} businesses on the platform
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className={styles.tableWrap}>
-            {loading && !overview ? (
+        <div className={styles.chartGridBottomTwo}>
+          <OverviewChartShell
+            title="New Businesses"
+            subtitle={periodLabel}
+            accent="blue"
+            icon={Building2}
+            stat={String(
+              charts?.businesses.reduce((s, r) => s + r.value, 0) ?? 0,
+            )}
+            minHeightClass="min-h-[220px]"
+          >
+            {loading && !charts ? (
               <div className={styles.loadingBox}>
                 <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
               </div>
-            ) : filteredBusinesses.length === 0 ? (
-              <p className={styles.empty}>No businesses found.</p>
             ) : (
-              <table className={`${styles.table} ${styles.bizTable}`}>
-                <thead>
-                  <tr>
-                    <th>
-                      <span className={styles.thSort}>
-                        Business
-                        <ChevronsUpDown className="size-3.5" aria-hidden />
-                      </span>
-                    </th>
-                    <th>Owner</th>
-                    <th>Status</th>
-                    <th>
-                      <span className={styles.thSort}>
-                        Created
-                        <ChevronDown className="size-3.5" aria-hidden />
-                      </span>
-                    </th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedBusinesses.map((b) => {
-                    const ownerLabel = b.ownerName?.trim() || b.ownerEmail || "Owner";
-                    return (
-                      <tr key={b.id}>
-                        <td>
-                          <div className={styles.bizCell}>
-                            <div
-                              className={`${styles.bizAvatar} ${
-                                b.logoUrl ? "" : styles.bizAvatarPlaceholder
-                              }`}
-                            >
-                              {b.logoUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={b.logoUrl} alt="" />
-                              ) : (
-                                <Building2 className="size-4" strokeWidth={2.25} aria-hidden />
-                              )}
-                            </div>
-                            <div>
-                              <div className={styles.bizName}>{b.name}</div>
-                              <div className={styles.bizMeta}>{b.slug}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.bizCell}>
-                            <div
-                              className={`${styles.ownerAvatar} ${
-                                b.ownerAvatar
-                                  ? styles.ownerAvatarPhoto
-                                  : ownerAvatarTone(ownerLabel)
-                              }`}
-                            >
-                              {b.ownerAvatar ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={b.ownerAvatar} alt="" />
-                              ) : (
-                                initialsFromName(ownerLabel)
-                              )}
-                            </div>
-                            <div>
-                              <div className={styles.bizName}>
-                                {b.ownerName ?? "—"}
-                              </div>
-                              <div className={styles.bizMeta}>
-                                <span className={styles.metaWithIcon}>
-                                  <Mail className="size-3" aria-hidden />
-                                  {b.ownerEmail ?? "—"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`${styles.statusPill} ${
-                              b.onboardingCompleted
-                                ? styles.statusActive
-                                : styles.statusWarn
-                            }`}
-                          >
-                            {b.onboardingCompleted ? (
-                              <CheckCircle2 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            ) : (
-                              <Clock3 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            )}
-                            {b.onboardingCompleted ? "Active" : "Setup"}
-                          </span>
-                        </td>
-                        <td>
-                          <div className={styles.createdStack}>
-                            <span className={styles.metaWithIcon}>
-                              <Clock3 className="size-3.5" aria-hidden />
-                              {formatRelative(b.createdAt)}
-                            </span>
-                            <span className={styles.createdSub}>
-                              <span className={styles.metaWithIcon}>
-                                <CalendarDays className="size-3" aria-hidden />
-                                {formatAbsoluteDate(b.createdAt)}
-                              </span>
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.actionRow}>
-                            <Link
-                              href={`/business/${b.id}/dashboard`}
-                              className={styles.viewDetailsBtn}
-                            >
-                              View details
-                            </Link>
-                            <button
-                              type="button"
-                              className={styles.moreBtn}
-                              aria-label={`More actions for ${b.name}`}
-                            >
-                              <MoreVertical className="size-4" aria-hidden />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <PlatformTrendChart
+                data={charts?.businesses ?? []}
+                stroke={OVERVIEW_CHART_COLORS.blue}
+              />
             )}
-          </div>
-          {filteredBusinesses.length > 0 ? (
-            <OffsetPagination
-              page={businessPage}
-              totalPages={businessTotalPages}
-              total={filteredBusinesses.length}
-              limit={TABLE_PAGE_SIZE}
-              loading={loading}
-              onPageChange={setBusinessPage}
-              itemLabel="businesses"
-            />
-          ) : null}
+          </OverviewChartShell>
+
+          <BusinessesByRegionCard
+            regions={panel?.regions ?? []}
+            loading={loading && !panel}
+          />
         </div>
-
-        <div id="sa-users" className={`${styles.card} ${styles.tableCard}`}>
-          <div className={styles.cardHead}>
-            <div className={styles.tableHeadLeft}>
-              <span className={styles.tableHeadIcon} aria-hidden>
-                <Users className="size-5" strokeWidth={2.25} />
-              </span>
-              <div>
-                <h2 className={styles.cardTitle}>Users</h2>
-                <p className={styles.cardSub}>
-                  {filteredUsers.length} accounts in the users table
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className={styles.tableWrap}>
-            {loading && !overview ? (
-              <div className={styles.loadingBox}>
-                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <p className={styles.empty}>No users found.</p>
-            ) : (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Plan</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Last login</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedUsers.map((u) => {
-                    const role = roleTagMeta(u.roleName);
-                    const RoleIcon = role.Icon;
-                    const plan = planTagMeta(u.planName, u.planSlug);
-                    const PlanIcon = plan.Icon;
-                    return (
-                      <tr key={u.id}>
-                        <td>
-                          <span className={styles.idChip}>
-                            <Hash className="size-3" strokeWidth={2.25} aria-hidden />
-                            {u.id}
-                          </span>
-                        </td>
-                        <td>
-                          <div className={styles.bizCell}>
-                            <div
-                              className={`${styles.userAvatar} ${
-                                u.avatar ? "" : styles.userAvatarPlaceholder
-                              }`}
-                            >
-                              {u.avatar ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={u.avatar} alt="" />
-                              ) : (
-                                <User className="size-4" strokeWidth={2.25} aria-hidden />
-                              )}
-                            </div>
-                            <div className={styles.bizName}>{u.name}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={styles.metaWithIcon}>
-                            <Mail className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            {u.email}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`${styles.roleTag} ${role.className}`}>
-                            <RoleIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            {role.label}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`${styles.planTag} ${plan.className}`}>
-                            <PlanIcon className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            {plan.label}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`${styles.statusPill} ${
-                              u.isActive ? styles.statusActive : styles.statusMuted
-                            }`}
-                          >
-                            {u.isActive ? (
-                              <CheckCircle2 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            ) : (
-                              <CircleOff className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            )}
-                            {u.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td>
-                          <div className={styles.createdStack}>
-                            <span className={styles.metaWithIcon}>
-                              <CalendarDays className="size-3.5" strokeWidth={2.25} aria-hidden />
-                              {formatRelative(u.createdAt)}
-                            </span>
-                            <span className={styles.createdSub}>
-                              <span className={styles.metaWithIcon}>
-                                <Clock3 className="size-3" strokeWidth={2.25} aria-hidden />
-                                {formatAbsoluteDate(u.createdAt)}
-                              </span>
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={styles.metaWithIcon}>
-                            <Clock3 className="size-3.5" strokeWidth={2.25} aria-hidden />
-                            {u.lastLoginAt ? formatRelative(u.lastLoginAt) : "Never"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-          {filteredUsers.length > 0 ? (
-            <OffsetPagination
-              page={userPage}
-              totalPages={userTotalPages}
-              total={filteredUsers.length}
-              limit={TABLE_PAGE_SIZE}
-              loading={loading}
-              onPageChange={setUserPage}
-              itemLabel="users"
-            />
-          ) : null}
-        </div>
-
-        <div className={`${styles.card} ${styles.tableCard} ${styles.meetingsCard}`}>
-          <div className={styles.meetingsHead}>
-            <div className={styles.meetingsHeadLeft}>
-              <span className={styles.meetingsIcon} aria-hidden>
-                <CalendarDays className="size-6" strokeWidth={2.25} />
-              </span>
-              <div>
-                <h2 className={styles.cardTitle}>Meeting requests</h2>
-                <p className={styles.cardSub}>
-                  {filteredMeetings.length === 1
-                    ? "1 user who booked a meeting"
-                    : `${filteredMeetings.length} users who booked a meeting`}
-                </p>
-              </div>
-            </div>
-            <button type="button" className={styles.meetingsFilterBtn}>
-              <Filter className="size-3.5" strokeWidth={2.25} aria-hidden />
-              Filter
-              <ChevronDown className="size-3.5" strokeWidth={2.25} aria-hidden />
-            </button>
-          </div>
-          {selectedMeeting ? (
-            <MeetingRequestDetail meeting={selectedMeeting} />
-          ) : null}
-          <div className={styles.meetingsListWrap}>
-            {meetingsLoading && meetingRequests.length === 0 ? (
-              <div className={styles.loadingBox}>
-                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
-              </div>
-            ) : filteredMeetings.length === 0 ? (
-              <p className={styles.empty}>No meeting requests yet.</p>
-            ) : (
-              <div className={styles.meetingsTableShell}>
-                <div className={`${styles.meetingRow} ${styles.meetingHeaderRow}`} aria-hidden>
-                  <span className={styles.meetingMetaLabel}>ID</span>
-                  <span className={styles.meetingMetaLabel}>Name</span>
-                  <span className={styles.meetingMetaLabel}>Contact</span>
-                  <span className={styles.meetingMetaLabel}>Business</span>
-                  <span className={styles.meetingMetaLabel}>Role</span>
-                  <span className={styles.meetingMetaLabel}>Location</span>
-                  <span className={styles.meetingMetaLabel}>Meet link</span>
-                  <span className={styles.meetingMetaLabel}>Timeline</span>
-                  <span className={styles.meetingMetaLabel}>Requested</span>
-                  <span className={styles.meetingMetaLabel} />
-                </div>
-                <ul className={styles.meetingsList}>
-                  {pagedMeetings.map((m) => {
-                    const fullName = titleCaseWords(
-                      `${m.firstName} ${m.lastName}`.trim(),
-                    );
-                    const committed = m.meetingCommitment === "yes";
-                    const commitmentLabel = committed
-                      ? "Committed"
-                      : m.meetingCommitment === "not_sure"
-                        ? "Not sure"
-                        : humanizeLabel(m.meetingCommitment) || "—";
-                    const businessSub = [
-                      humanizeLabel(m.businessCategory),
-                      humanizeLabel(m.monthlyRevenue),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-                    const roleLabel = humanizeLabel(m.businessRole) || "—";
-                    const locationLabel = humanizeLabel(m.cityLocation) || "—";
-                    const scheduleLabel =
-                      [m.scheduledDate, m.scheduledTime].filter(Boolean).join(" · ") ||
-                      "—";
-                    const scheduleSub = [
-                      m.scheduledDuration ? `${m.scheduledDuration} min` : "",
-                      m.scheduledTimeZone?.replaceAll("_", " ") || "",
-                      humanizeLabel(m.startTimeline),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-                    return (
-                      <li
-                        key={m.id}
-                        className={styles.meetingItem}
-                        onClick={() =>
-                          setSelectedMeetingId((current) =>
-                            current === m.id ? null : m.id,
-                          )
-                        }
-                      >
-                        <div className={styles.meetingRow}>
-                          <span className={styles.meetingsIdChip}>
-                            <Hash className="size-3" aria-hidden />
-                            {m.id}
-                          </span>
-                          <div className={styles.meetingIdentity}>
-                            <span className={styles.meetingsAvatar} aria-hidden>
-                              {initialsFromName(fullName || m.email)}
-                            </span>
-                            <div className={styles.meetingIdentityText}>
-                              <div
-                                className={styles.meetingPersonName}
-                                title={fullName || undefined}
-                              >
-                                {fullName || "—"}
-                              </div>
-                              <span
-                                className={`${styles.meetingsCommitPill} ${
-                                  committed
-                                    ? styles.meetingsCommitYes
-                                    : styles.meetingsCommitMaybe
-                                }`}
-                              >
-                                <span className={styles.meetingsCommitDot} aria-hidden />
-                                {commitmentLabel}
-                              </span>
-                            </div>
-                          </div>
-                          <div className={styles.meetingsContact}>
-                            <span
-                              className={styles.meetingsContactLine}
-                              title={m.email}
-                            >
-                              <Mail className="size-3.5" aria-hidden />
-                              <span className={styles.meetingsContactText}>
-                                {m.email}
-                              </span>
-                            </span>
-                            <span
-                              className={styles.meetingsContactLine}
-                              title={m.phone}
-                            >
-                              <Phone className="size-3.5" aria-hidden />
-                              <span className={styles.meetingsContactText}>
-                                {m.phone}
-                              </span>
-                            </span>
-                          </div>
-                          <div className={styles.meetingsBizCell}>
-                            <span className={styles.meetingsBizIcon} aria-hidden>
-                              <Briefcase className="size-4" strokeWidth={2.25} />
-                            </span>
-                            <div className={styles.meetingsBizText}>
-                              <div
-                                className={styles.meetingPersonName}
-                                title={m.businessName || undefined}
-                              >
-                                {m.businessName || "—"}
-                              </div>
-                              {businessSub ? (
-                                <div className={styles.bizMeta} title={businessSub}>
-                                  {businessSub}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                          <span
-                            className={styles.meetingsRolePill}
-                            title={roleLabel}
-                          >
-                            {roleLabel}
-                          </span>
-                          <span
-                            className={styles.meetingsContactLine}
-                            title={locationLabel}
-                          >
-                            <MapPin className="size-3.5" aria-hidden />
-                            <span className={styles.meetingsContactText}>
-                              {locationLabel}
-                            </span>
-                          </span>
-                          {m.googleMeetLink ? (
-                            <a
-                              className={styles.meetingTableLink}
-                              href={m.googleMeetLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              Join Meet
-                            </a>
-                          ) : (
-                            <span className={styles.meetingsContactText}>—</span>
-                          )}
-                          <span
-                            className={styles.meetingsTimeline}
-                            title={[scheduleLabel, scheduleSub].filter(Boolean).join(" · ")}
-                          >
-                            <CalendarDays className="size-3.5" aria-hidden />
-                            <span className={styles.meetingsSchedule}>
-                              <span className={styles.meetingsContactText}>
-                                {scheduleLabel}
-                              </span>
-                              {scheduleSub ? (
-                                <span className={styles.createdSub}>{scheduleSub}</span>
-                              ) : null}
-                            </span>
-                          </span>
-                          <div className={styles.meetingsRequested}>
-                            <span className={styles.meetingsRequestedTop}>
-                              <Clock3 className="size-3.5" aria-hidden />
-                              {formatRelative(m.createdAt)}
-                            </span>
-                            <span className={styles.createdSub}>
-                              {formatAbsoluteDate(m.createdAt)}
-                            </span>
-                          </div>
-                          <div className={styles.meetingRowActions}>
-                            <button
-                              type="button"
-                              className={styles.moreBtn}
-                              aria-label={`View details for ${fullName || m.email}`}
-                              aria-expanded={selectedMeetingId === m.id}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setSelectedMeetingId((current) =>
-                                  current === m.id ? null : m.id,
-                                );
-                              }}
-                            >
-                              <MoreVertical className="size-4" aria-hidden />
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-          </div>
-          {filteredMeetings.length > 0 ? (
-            <OffsetPagination
-              page={meetingPage}
-              totalPages={meetingTotalPages}
-              total={filteredMeetings.length}
-              limit={TABLE_PAGE_SIZE}
-              loading={meetingsLoading}
-              onPageChange={setMeetingPage}
-              itemLabel="meeting requests"
-            />
-          ) : null}
-        </div>
-
-
       </div>
     </section>
   );

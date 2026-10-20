@@ -63,6 +63,7 @@ export type PlatformAdminOverview = {
       planSlug: string;
       planName: string;
       count: number;
+      mrrCents: number;
     }>;
   };
   businesses: PlatformAdminBusiness[];
@@ -74,10 +75,14 @@ export type PlatformAdminTrends = {
   to: string;
   totalRevenueCents: number;
   newBusinesses: number;
+  newUsers: number;
+  newSubscriptions: number;
   points: Array<{
     bucket: string;
     revenueCents: number;
     businesses: number;
+    users: number;
+    subscriptions: number;
   }>;
 };
 
@@ -132,11 +137,15 @@ export async function getPlatformAdminTrends(
       to: data?.to ?? to,
       totalRevenueCents: num(data?.totalRevenueCents),
       newBusinesses: num(data?.newBusinesses),
+      newUsers: num(data?.newUsers),
+      newSubscriptions: num(data?.newSubscriptions),
       points: Array.isArray(data?.points)
         ? data.points.map((point) => ({
             bucket: String(point?.bucket ?? ""),
             revenueCents: num(point?.revenueCents),
             businesses: num(point?.businesses),
+            users: num(point?.users),
+            subscriptions: num(point?.subscriptions),
           }))
         : [],
     };
@@ -158,7 +167,12 @@ export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview>
           ? data.charts.businessesLast30Days
           : [],
         subscriptionBreakdown: Array.isArray(data?.charts?.subscriptionBreakdown)
-          ? data.charts.subscriptionBreakdown
+          ? data.charts.subscriptionBreakdown.map((row) => ({
+              planSlug: String(row?.planSlug ?? ""),
+              planName: String(row?.planName ?? ""),
+              count: num(row?.count),
+              mrrCents: num(row?.mrrCents),
+            }))
           : [],
       },
       businesses: Array.isArray(data?.businesses) ? data.businesses : [],

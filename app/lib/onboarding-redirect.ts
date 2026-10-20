@@ -6,6 +6,7 @@ import {
 import { fetchMyBusinesses } from "@/app/services/business/get-my-business";
 import { getMyUserSubscription } from "@/app/services/subscription/user-subscription";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
+import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 
 function isPaidSubscriptionStatus(status: string | null | undefined): boolean {
   const normalized = status?.trim().toLowerCase();
@@ -13,6 +14,10 @@ function isPaidSubscriptionStatus(status: string | null | undefined): boolean {
 }
 
 export function resolvePostLoginPath(status: OnboardingStatus): string {
+  if (isSuperAdminUser()) {
+    return "/admin";
+  }
+
   if (isInvitedTeamUser()) {
     return "/dashboard";
   }
@@ -35,6 +40,10 @@ export function resolvePostLoginPath(status: OnboardingStatus): string {
 }
 
 export function resolvePostAuthPath(status: OnboardingStatus): string {
+  if (isSuperAdminUser()) {
+    return "/admin";
+  }
+
   if (isInvitedTeamUser()) {
     return "/dashboard";
   }
@@ -78,6 +87,10 @@ async function loadOnboardingStatusWithRetry(): Promise<OnboardingStatus | null>
 }
 
 export async function fetchAuthenticatedOnboardingDestination(): Promise<string> {
+  if (isSuperAdminUser()) {
+    return "/admin";
+  }
+
   if (isInvitedTeamUser()) {
     return "/dashboard";
   }

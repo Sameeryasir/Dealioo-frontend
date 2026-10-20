@@ -150,12 +150,15 @@ export function SuperAdminNotifications({
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadOlderRef = useRef(feed.loadMore);
-  loadOlderRef.current = feed.loadMore;
   const groups = useMemo(
     () => groupNotificationsByDay(feed.items),
     [feed.items],
   );
   const isNavbar = variant === "navbar";
+
+  useEffect(() => {
+    loadOlderRef.current = feed.loadMore;
+  }, [feed.loadMore]);
 
   useEffect(() => {
     if (!open) return;
