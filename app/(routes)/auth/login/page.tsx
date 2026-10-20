@@ -36,6 +36,11 @@ function LoginPageInner() {
   const inviteTokenParam = searchParams.get("inviteToken");
   const legacyReturnTo = searchParams.get("returnTo");
   const inviteNotice = searchParams.get("inviteNotice");
+  const setPasswordParam = searchParams.get("setPassword");
+  const setPasswordEmailParam = searchParams.get("email");
+  const autoStartPasswordSetup =
+    setPasswordParam === "1" || setPasswordParam === "true";
+  const initialRecoveryEmail = setPasswordEmailParam?.trim() || null;
   const { inviteToken, loginHref, signupHref } = useMemo(
     () =>
       resolveInviteAuthHrefs({
@@ -163,6 +168,8 @@ function LoginPageInner() {
         submitting={submitting}
         errorMessage={errorMessage}
         signupHref={signupHref}
+        initialRecoveryEmail={initialRecoveryEmail}
+        autoStartPasswordSetup={autoStartPasswordSetup}
         onCredentialsSubmit={onCredentialsSubmit}
         onForgotPassword={onForgotPassword}
         onVerifyRecoveryOtp={onVerifyRecoveryOtp}

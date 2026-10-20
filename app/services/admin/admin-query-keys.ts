@@ -27,5 +27,41 @@ export const adminQueryKeys = {
       limit,
       onboarding,
     ] as const,
-  meetings: () => [...adminQueryKeys.all, "meetings"] as const,
+  meetingsSummary: () => [...adminQueryKeys.all, "meetings", "summary"] as const,
+  meetings: (
+    scope = "upcoming",
+    page = 1,
+    search = "",
+    limit = 10,
+    sort = "meeting_asc",
+  ) =>
+    [
+      ...adminQueryKeys.all,
+      "meetings",
+      scope,
+      page,
+      search,
+      limit,
+      sort,
+    ] as const,
+  meetingsRoot: () => [...adminQueryKeys.all, "meetings"] as const,
+  customerOnboardingsRoot: () =>
+    [...adminQueryKeys.all, "customer-onboardings"] as const,
+  customerOnboardings: (
+    page: number,
+    search: string,
+    limit: number,
+    status: string,
+    sort: string,
+  ) =>
+    [
+      ...adminQueryKeys.customerOnboardingsRoot(),
+      page,
+      search,
+      limit,
+      status,
+      sort,
+    ] as const,
+  customerOnboarding: (id: number) =>
+    [...adminQueryKeys.customerOnboardingsRoot(), id] as const,
 };

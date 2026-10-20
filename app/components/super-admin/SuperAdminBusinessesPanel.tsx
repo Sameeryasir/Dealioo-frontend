@@ -6,6 +6,7 @@ import {
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSelect";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { Skeleton } from "@/app/components/skeleton";
 import {
   formatAbsoluteDate,
   initialsFromName,
@@ -36,9 +37,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Eye,
   Filter,
   Globe,
-  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -49,6 +50,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -76,6 +78,69 @@ const TAB_OPTIONS: Array<{ id: BusinessTab; label: string }> = [
   { id: "onboarded", label: "Completed" },
   { id: "not_onboarded", label: "In Progress" },
 ];
+
+function BusinessesTableSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <table
+      className={styles.usersDirTable}
+      aria-busy="true"
+      aria-label="Loading businesses"
+    >
+      <thead>
+        <tr>
+          <th style={{ width: "3rem" }}>
+            <Skeleton className="h-3 w-4" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-20" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-14" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-16" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-16" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-12" />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, index) => (
+          <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-5" />
+            </td>
+            <td>
+              <div className={styles.userCell}>
+                <Skeleton className="size-9 shrink-0 rounded-full" />
+                <div className={styles.userCellText}>
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="mt-1.5 h-3 w-24" />
+                </div>
+              </div>
+            </td>
+            <td>
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-28" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-20" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-12" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 function BusinessLogo({
   business,
@@ -355,6 +420,14 @@ function BusinessDetailsModal({
           >
             Close
           </button>
+          <Link
+            href={`/business/${business.id}/dashboard`}
+            className={styles.userControlPrimary}
+            onClick={onClose}
+          >
+            <Eye className="size-3.5" strokeWidth={2.25} aria-hidden />
+            View business
+          </Link>
         </div>
       </section>
     </div>
@@ -880,12 +953,7 @@ export function SuperAdminBusinessesPanel() {
         <div className={styles.usersDirTableCard}>
           <div className={styles.usersDirTableWrap}>
             {loading && items.length === 0 ? (
-              <div className={styles.loadingBox}>
-                <Loader2
-                  className="size-6 animate-spin"
-                  style={{ color: "#1877f2" }}
-                />
-              </div>
+              <BusinessesTableSkeleton />
             ) : items.length === 0 ? (
               <p className={styles.empty}>No businesses found.</p>
             ) : (
@@ -897,6 +965,9 @@ export function SuperAdminBusinessesPanel() {
                     <th>Status</th>
                     <th>Location</th>
                     <th>Created</th>
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -956,6 +1027,25 @@ export function SuperAdminBusinessesPanel() {
                           <span className={styles.usersDirDateMain}>
                             {formatAbsoluteDate(business.createdAt)}
                           </span>
+                        </td>
+                        <td
+                          className={styles.userMenuCell}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Link
+                            href={`/business/${business.id}/dashboard`}
+                            className={styles.meetingTableLink}
+                            aria-label={`View ${business.name || "business"}`}
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              <Eye
+                                className="size-3.5"
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                              View
+                            </span>
+                          </Link>
                         </td>
                       </tr>
                     );

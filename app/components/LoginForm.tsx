@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type LoginFormValues = {
@@ -35,6 +35,8 @@ export type LoginFormProps = {
   submitting: boolean;
   errorMessage: string | null;
   signupHref?: string;
+  initialRecoveryEmail?: string | null;
+  autoStartPasswordSetup?: boolean;
   onCredentialsSubmit: (email: string, password: string) => Promise<void>;
   onForgotPassword: (email: string) => Promise<void>;
   onVerifyRecoveryOtp: (email: string, otp: number) => Promise<void>;
@@ -62,6 +64,8 @@ export default function LoginForm({
   submitting,
   errorMessage,
   signupHref = "/auth/signup",
+  initialRecoveryEmail = null,
+  autoStartPasswordSetup = false,
   onCredentialsSubmit,
   onForgotPassword,
   onVerifyRecoveryOtp,
@@ -78,6 +82,8 @@ export default function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
+  const [passwordSetupMode, setPasswordSetupMode] = useState(false);
+  const autoStartedRef = useRef(false);
 
   const {
     register,
@@ -110,6 +116,38 @@ export default function LoginForm({
   });
 
   const resetPasswordValue = watchReset("password");
+
+  useEffect(() => {
+    const email = initialRecoveryEmail?.trim();
+    if (!autoStartPasswordSetup || !email || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    setPasswordSetupMode(true);
+    resetForgotEmailForm({ email });
+    setOtpEmail(email);
+    setLocalError(null);
+    setForgotSubmitting(true);
+    void (async () => {
+      try {
+        await onForgotPassword(email);
+        setRecoveryOtp(null);
+        setView("otp");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not send verification code.";
+        setLocalError(message);
+        setView("forgotEmail");
+      } finally {
+        setForgotSubmitting(false);
+      }
+    })();
+  }, [
+    autoStartPasswordSetup,
+    initialRecoveryEmail,
+    onForgotPassword,
+    resetForgotEmailForm,
+  ]);
 
   const needsSignup =
     errorMessage != null && /sign up first/i.test(errorMessage);
@@ -193,10 +231,22 @@ export default function LoginForm({
           ) : view === "forgotEmail" ? (
             <>
               <h2 className="brand-landing-display auth-signup-step-title">
-                Reset your <span className="landing-hero-accent-pink">password</span>
+                {passwordSetupMode ? (
+                  <>
+                    Set your{" "}
+                    <span className="landing-hero-accent-pink">password</span>
+                  </>
+                ) : (
+                  <>
+                    Reset your{" "}
+                    <span className="landing-hero-accent-pink">password</span>
+                  </>
+                )}
               </h2>
               <p className="auth-signup-step-sub mt-1.5">
-                Enter your account email and we&apos;ll send you a verification code.
+                {passwordSetupMode
+                  ? "Confirm your account email and we will send a verification code so you can choose a password."
+                  : "Enter your account email and we will send you a verification code."}
               </p>
             </>
           ) : view === "otp" ? (
@@ -213,10 +263,20 @@ export default function LoginForm({
           ) : (
             <>
               <h2 className="brand-landing-display auth-signup-step-title">
-                Set a new <span className="landing-hero-accent-pink">password</span>
+                {passwordSetupMode ? (
+                  <>
+                    Choose your{" "}
+                    <span className="landing-hero-accent-pink">password</span>
+                  </>
+                ) : (
+                  <>
+                    Set a new{" "}
+                    <span className="landing-hero-accent-pink">password</span>
+                  </>
+                )}
               </h2>
               <p className="auth-signup-step-sub mt-1.5">
-                Choose a new password for {otpEmail || "your account"}.
+                Choose a password for {otpEmail || "your account"}.
               </p>
             </>
           )}

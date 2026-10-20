@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useCredentialContext } from "@/app/contexts/credential-context";
 import { logoutSession } from "@/app/services/auth/logout";
+import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { clearSetupUser, getSetupUser } from "@/app/lib/setup-user";
 import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { ArrowLeft, LogOut, PanelLeft, UserRound } from "lucide-react";
@@ -12,6 +13,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarExpand } from "@/app/contexts/sidebar-expand-context";
 import { parseRoutePositiveInt } from "@/app/lib/numbers";
+
+const ADMIN_BUSINESSES_HREF = "/admin/businesses";
 
 const BusinessNotifications = dynamic(
   () => import("@/app/components/BusinessNotifications"),
@@ -37,6 +40,7 @@ export default function BusinessNavbar() {
   const { clearPassword } = useCredentialContext();
   const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebarExpand();
   const [user, setUser] = useState<VerifyOtpUser | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRootRef = useRef<HTMLDivElement>(null);
 
@@ -71,7 +75,12 @@ export default function BusinessNavbar() {
 
   useEffect(() => {
     setUser(getSetupUser());
+    setIsSuperAdmin(isSuperAdminUser());
   }, []);
+
+  const switchBusinessHref = isSuperAdmin
+    ? ADMIN_BUSINESSES_HREF
+    : ORG_DASHBOARD_HREF;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -134,7 +143,7 @@ export default function BusinessNavbar() {
 
           {showSwitchBusiness ? (
             <Link
-              href={ORG_DASHBOARD_HREF}
+              href={switchBusinessHref}
               className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.78rem] font-semibold text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 sm:px-3 sm:text-[0.8125rem]"
               aria-label="Switch business — back to all businesses"
             >

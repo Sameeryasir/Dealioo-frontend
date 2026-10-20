@@ -133,10 +133,10 @@ export function SuperAdminOnboardingPanel() {
               <ScanLine className="size-5" strokeWidth={2.25} />
             </span>
             <div>
-              <h2 className={styles.cardTitle}>Customer onboarding</h2>
+              <h2 className={styles.cardTitle}>Setup status</h2>
               <p className={styles.cardSub}>
-                {total.toLocaleString()} customer
-                {total === 1 ? "" : "s"} in this view
+                {total.toLocaleString()} business
+                {total === 1 ? "" : "es"} in this view
               </p>
             </div>
           </div>

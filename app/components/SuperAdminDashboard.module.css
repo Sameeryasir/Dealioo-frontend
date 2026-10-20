@@ -1772,6 +1772,894 @@
   gap: 0.7rem 1rem;
 }
 
+.meetingsTableWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.meetingsTable {
+  width: 100%;
+  min-width: 68rem;
+  table-layout: fixed;
+}
+
+.meetingsTable .meetingRow {
+  display: table-row;
+  grid-template-columns: none;
+  gap: 0;
+}
+
+.meetingsTable .meetingRow td {
+  vertical-align: middle;
+  padding-top: 0.95rem;
+  padding-bottom: 0.95rem;
+  overflow: hidden;
+}
+
+.meetingsTable th:nth-child(1),
+.meetingsTable td:nth-child(1) {
+  width: 16%;
+}
+
+.meetingsTable th:nth-child(2),
+.meetingsTable td:nth-child(2) {
+  width: 12%;
+}
+
+.meetingsTable th:nth-child(3),
+.meetingsTable td:nth-child(3) {
+  width: 15%;
+}
+
+.meetingsTable th:nth-child(4),
+.meetingsTable td:nth-child(4) {
+  width: 10%;
+}
+
+.meetingsTable th:nth-child(5),
+.meetingsTable td:nth-child(5) {
+  width: 12%;
+}
+
+.meetingsTable th:nth-child(6),
+.meetingsTable td:nth-child(6) {
+  width: 11%;
+}
+
+.meetingsTable th:nth-child(7),
+.meetingsTable td:nth-child(7) {
+  width: 14rem;
+  overflow: visible;
+}
+
+.meetingsTable .meetingRow[data-selected="true"] {
+  background: #f0f7ff;
+}
+
+.meetingOutcomeEmpty {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.meetingExportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.7rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+}
+
+.meetingExportBtn:hover:not(:disabled) {
+  border-color: #c7d7ea;
+  background: #f8fafc;
+}
+
+.meetingExportBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.meetingActionGroup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.meetingPrimaryAction,
+.meetingSecondaryAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.52rem 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.meetingPrimaryAction {
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, #2b7cff 0%, #1769ff 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(23, 105, 255, 0.22);
+}
+
+.meetingPrimaryAction:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(23, 105, 255, 0.28);
+}
+
+.meetingPrimaryAction:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.meetingSecondaryAction {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.meetingSecondaryAction:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.meetingActionSplit {
+  position: relative;
+}
+
+.meetingActionMenuBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid #dbe5f2;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.meetingActionMenuBtn:hover,
+.meetingActionMenuBtn[aria-expanded="true"] {
+  border-color: #1769ff;
+  background: #eff6ff;
+  color: #1769ff;
+}
+
+.meetingMenuDropdown {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 40;
+  min-width: 15.5rem;
+  padding: 0.45rem;
+  border: 1px solid #e3ebf5;
+  border-radius: 0.95rem;
+  background: #fff;
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.14),
+    0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.meetingMenuDropdownFixed {
+  position: fixed;
+  top: auto;
+  right: auto;
+  z-index: 90;
+}
+
+.meetingMenuLabel {
+  margin: 0;
+  padding: 0.35rem 0.65rem 0.45rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meetingMenuItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: none;
+  padding: 0.62rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.meetingMenuItem:hover {
+  background: #f4f8ff;
+  color: #1769ff;
+}
+
+.meetingMenuIcon {
+  display: inline-flex;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: #eff6ff;
+  color: #1769ff;
+}
+
+.meetingMenuDivider {
+  height: 1px;
+  margin: 0.3rem 0.45rem;
+  background: #eef2f7;
+}
+
+.usersDirTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.statusAttended {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.statusNoShow {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.statusCancelled {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.meetingsCard {
+  border-radius: 1.25rem;
+  border-color: #e7edf5;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.04),
+    0 1px 2px rgba(15, 23, 42, 0.03);
+  overflow: clip;
+}
+
+.meetingsTable thead th {
+  background: linear-gradient(180deg, #fbfcfe 0%, #f5f8fc 100%);
+}
+
+.meetingsTable tbody tr {
+  transition: background 0.12s ease;
+}
+
+.meetingsTable tbody tr:hover {
+  background: #f7faff;
+}
+
+.meetingScopeTabs {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.28rem;
+  border: 1px solid #d7e3f2;
+  border-radius: 999px;
+  background: #f4f7fb;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.meetingScopeTabs .usersDirTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.15rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.45rem 0.95rem;
+  white-space: nowrap;
+}
+
+.meetingScopeTabs .usersDirTab:hover {
+  background: #fff;
+  color: #0f172a;
+}
+
+.meetingScopeTabs .usersDirTabActive {
+  border-color: #c7d7ea;
+  background: #fff;
+  color: #1769ff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.meetingScopeTabs .usersDirTabActive:hover {
+  background: #fff;
+  color: #1769ff;
+}
+
+.meetingsOutcomeStack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.meetingsEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.meetingsEmpty p {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.meetingModalPanel {
+  position: relative;
+  width: min(100%, 34rem);
+  max-height: min(92vh, 40rem);
+  overflow: auto;
+  margin: 0;
+  padding: 0 0 1.25rem;
+  border: 1px solid #dbe7f5;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow:
+    0 28px 70px rgba(15, 23, 42, 0.22),
+    0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.meetingModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.25rem 1.25rem 0.85rem;
+}
+
+.meetingModalEyebrow {
+  margin: 0 0 0.25rem;
+  color: #1769ff;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meetingModalHeader h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.2rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.meetingModalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid #e7edf5;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.meetingModalClose:hover {
+  border-color: #c7d7ea;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.meetingModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 1.25rem;
+}
+
+.meetingModalLead {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #e8eef7;
+  border-radius: 0.9rem;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+  color: #475569;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.meetingConfirmPanel {
+  position: relative;
+  display: flex;
+  width: min(100%, 42rem);
+  max-height: min(92vh, 48rem);
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid #dbe7f5;
+  border-radius: 1.35rem;
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(59, 130, 246, 0.1), transparent 55%),
+    #fff;
+  box-shadow:
+    0 28px 70px rgba(15, 23, 42, 0.22),
+    0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.meetingConfirmHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 1.35rem 1.35rem 1rem;
+}
+
+.meetingConfirmHeaderMain {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.meetingConfirmHeroIcon {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  background: #eff6ff;
+  color: #1769ff;
+  box-shadow: inset 0 0 0 1px rgba(23, 105, 255, 0.08);
+}
+
+.meetingConfirmHeaderCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.meetingConfirmEyebrow {
+  margin: 0;
+  color: #1769ff;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meetingConfirmHeaderCopy h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.meetingConfirmLead {
+  margin: 0.15rem 0 0;
+  max-width: 34rem;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.meetingConfirmBody {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow: auto;
+  padding: 0 1.35rem 0.35rem;
+}
+
+.meetingConfirmSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem 1.05rem;
+  border: 1px solid #e6eef8;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.meetingConfirmSectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.meetingConfirmSectionIcon {
+  display: inline-flex;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.55rem;
+}
+
+.meetingConfirmSectionIconBlue {
+  background: #eff6ff;
+  color: #1769ff;
+}
+
+.meetingConfirmSectionIconPurple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.meetingConfirmSectionTitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.74rem;
+  font-weight: 780;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meetingConfirmGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+  margin: 0;
+}
+
+.meetingConfirmField {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.meetingConfirmField dt {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.meetingConfirmField dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.meetingConfirmField dd[data-empty="true"] {
+  color: #94a3b8;
+  font-weight: 650;
+}
+
+.meetingConfirmWarning {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #fde68a;
+  border-radius: 0.85rem;
+  background: #fffbeb;
+  color: #b45309;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.meetingConfirmFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.85rem;
+}
+
+.meetingConfirmFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.meetingConfirmFormField input,
+.meetingConfirmFormField select {
+  min-height: 2.4rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.7rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.meetingConfirmFormField input:focus,
+.meetingConfirmFormField select:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.meetingConfirmFormField input:disabled,
+.meetingConfirmFormField select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.meetingConfirmExisting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.95rem;
+  background: #eff6ff;
+}
+
+.meetingConfirmExistingHead {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  color: #1d4ed8;
+}
+
+.meetingConfirmExistingHead h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.meetingConfirmExistingHead p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.meetingConfirmExistingHint {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.meetingConfirmExistingActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.meetingConfirmFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 1rem 1.35rem 1.3rem;
+  border-top: 1px solid #eef2f7;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.meetingConfirmCancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.55rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.8rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meetingConfirmCancel:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.meetingConfirmCancel:disabled,
+.meetingConfirmSubmit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.meetingConfirmSubmit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.55rem;
+  padding: 0.6rem 1.15rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, #2b7cff 0%, #1769ff 100%);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(23, 105, 255, 0.24);
+}
+
+.meetingConfirmSubmit:hover:not(:disabled) {
+  box-shadow: 0 12px 24px rgba(23, 105, 255, 0.3);
+}
+
+@media (max-width: 640px) {
+  .meetingConfirmPanel {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 1.15rem 1.15rem 0 0;
+  }
+
+  .meetingConfirmGrid,
+  .meetingConfirmFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .meetingConfirmFooter,
+  .meetingConfirmExistingActions {
+    flex-direction: column-reverse;
+  }
+
+  .meetingConfirmCancel,
+  .meetingConfirmSubmit {
+    width: 100%;
+  }
+}
+
+.meetingModalChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.meetingChoiceBtn {
+  border: 1px solid #e3ebf5;
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0.85rem 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.meetingChoiceBtn:hover {
+  border-color: #b7cceb;
+  background: #f8fbff;
+}
+
+.meetingChoiceBtnActive {
+  border-color: #1769ff;
+  background: linear-gradient(180deg, #f4f8ff 0%, #eaf2ff 100%);
+  color: #1769ff;
+  box-shadow: 0 8px 18px rgba(23, 105, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.meetingModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.meetingModalField textarea,
+.meetingModalField select {
+  width: 100%;
+  border: 1px solid #e3ebf5;
+  border-radius: 0.85rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 500;
+  padding: 0.75rem 0.85rem;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.meetingModalField textarea:focus,
+.meetingModalField select:focus {
+  outline: none;
+  border-color: #1769ff;
+  box-shadow: 0 0 0 3px rgba(23, 105, 255, 0.12);
+}
+
+.meetingModalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding-top: 0.25rem;
+}
+
+@media (max-width: 720px) {
+  .meetingActionGroup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .meetingPrimaryAction,
+  .meetingSecondaryAction {
+    justify-content: center;
+  }
+
+  .meetingModalPanel {
+    border-radius: 1.15rem 1.15rem 0 0;
+  }
+}
+
 .meetingHeaderRow {
   padding: 0 1.15rem 0.65rem;
 }
@@ -1805,6 +2693,24 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #fff;
+  box-shadow: -10px 0 14px -12px rgba(15, 23, 42, 0.18);
+  overflow: visible;
+}
+
+.meetingsTable thead th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f5f8fc 100%);
+  box-shadow: -10px 0 14px -12px rgba(15, 23, 42, 0.18);
+}
+
+.meetingsTable tbody tr:hover .meetingRowActions {
+  background: #f7faff;
 }
 
 .meetingMetaLabel {
@@ -1840,17 +2746,18 @@
 
 .meetingsAvatar {
   display: inline-flex;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.55rem;
+  height: 2.55rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: var(--sa-blue-soft);
   color: var(--sa-blue);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
 }
 
 .meetingsCommitPill {
@@ -1972,7 +2879,52 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.12rem;
+  gap: 0.28rem;
+}
+
+.meetingsDateLine,
+.meetingsTimeLine,
+.meetingsZoneLine {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meetingsDateLine {
+  color: #059669;
+}
+
+.meetingsDateLine svg {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.meetingsTimeLine {
+  color: #64748b;
+  font-weight: 650;
+}
+
+.meetingsTimeLine svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.meetingsZoneLine {
+  color: #1769ff;
+  font-weight: 650;
+}
+
+.meetingsZoneLine svg {
+  color: #1769ff;
+  flex-shrink: 0;
 }
 
 .meetingsTimeline {
@@ -1990,6 +2942,78 @@
 .meetingsTimeline svg {
   color: #059669;
   flex-shrink: 0;
+}
+
+.meetingsFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1.15rem 1rem;
+  border-top: 1px solid #eef2f7;
+  background: #fcfdff;
+}
+
+.meetingsFooterMeta {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 550;
+}
+
+.meetingsFooterPager {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.meetingsPageBtn {
+  display: inline-flex;
+  min-width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e7edf5;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meetingsPageBtn:hover:not(:disabled) {
+  border-color: #c7d7ea;
+  background: #f8fafc;
+}
+
+.meetingsPageBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.meetingsPageBtnActive {
+  border-color: #1769ff;
+  background: #1769ff;
+  color: #fff;
+}
+
+.meetingsPageSize {
+  margin-left: 0.25rem;
+}
+
+.meetingsPageSize select {
+  height: 2rem;
+  border: 1px solid #e7edf5;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 0 0.55rem;
+  cursor: pointer;
 }
 
 .meetingsRequested {
@@ -2473,11 +3497,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--sa-line);
-  border-radius: 0.95rem;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  padding: 1.05rem 1.1rem;
+  border: 1px solid #e7edf5;
+  border-radius: 1.05rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.035),
+    0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .usersDirStatLabel {

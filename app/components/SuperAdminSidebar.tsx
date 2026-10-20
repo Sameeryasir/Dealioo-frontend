@@ -8,6 +8,7 @@ import { logoutSession } from "@/app/services/auth/logout";
 import {
   Building2,
   CalendarDays,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   ScanLine,
@@ -54,8 +55,14 @@ const NAV_ITEMS: NavItem[] = [
     activeMatch: "prefix",
   },
   {
+    href: "/admin/customer-onboarding",
+    label: "Customer Onboarding",
+    icon: ClipboardList,
+    activeMatch: "prefix",
+  },
+  {
     href: "/admin/onboarding",
-    label: "Onboarding",
+    label: "Setup status",
     icon: ScanLine,
     activeMatch: "prefix",
   },
