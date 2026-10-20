@@ -17,6 +17,49 @@ export type AdminBusinessesPage = {
   };
 };
 
+function normalizeBusiness(
+  raw: Partial<PlatformAdminBusiness> | null | undefined,
+): PlatformAdminBusiness | null {
+  if (!raw || typeof raw !== "object") return null;
+  const id = Number(raw.id);
+  if (!Number.isFinite(id) || id < 1) return null;
+
+  const setupProgressPercent = Math.max(
+    0,
+    Math.min(100, Number(raw.setupProgressPercent) || 0),
+  );
+  const setupComplete =
+    typeof raw.setupComplete === "boolean"
+      ? raw.setupComplete
+      : setupProgressPercent === 100;
+
+  return {
+    id,
+    name: String(raw.name ?? ""),
+    slug: String(raw.slug ?? ""),
+    logoUrl: raw.logoUrl ?? null,
+    city: raw.city ?? null,
+    state: raw.state ?? null,
+    country: raw.country ?? null,
+    postalCode: raw.postalCode ?? null,
+    email: raw.email ?? null,
+    phoneNumber: raw.phoneNumber ?? null,
+    onboardingCompleted: Boolean(raw.onboardingCompleted),
+    stripeConnected: Boolean(raw.stripeConnected),
+    metaConnected: Boolean(raw.metaConnected),
+    googleAdsConnected: Boolean(raw.googleAdsConnected),
+    twilioConnected: Boolean(raw.twilioConnected),
+    setupProgressPercent,
+    setupComplete,
+    createdAt: String(raw.createdAt ?? ""),
+    ownerName: raw.ownerName ?? null,
+    ownerEmail: raw.ownerEmail ?? null,
+    ownerAvatar: raw.ownerAvatar ?? null,
+    planName: raw.planName ?? null,
+    planSlug: raw.planSlug ?? null,
+  };
+}
+
 export async function getAdminBusinesses(input: {
   page: number;
   limit: number;
@@ -38,7 +81,11 @@ export async function getAdminBusinesses(input: {
     );
 
     return {
-      items: Array.isArray(data?.items) ? data.items : [],
+      items: Array.isArray(data?.items)
+        ? data.items
+            .map((item) => normalizeBusiness(item))
+            .filter((item): item is PlatformAdminBusiness => item != null)
+        : [],
       meta: {
         page: Number(data?.meta?.page) || input.page,
         limit: Number(data?.meta?.limit) || input.limit,
