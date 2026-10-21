@@ -78,7 +78,7 @@ export async function getAdminMeetingRequests(params: {
 }): Promise<AdminMeetingRequestsResponse> {
   try {
     const query = new URLSearchParams();
-    query.set("scope", params.scope ?? "upcoming");
+    query.set("scope", params.scope ?? "all");
     query.set("page", String(params.page ?? 1));
     query.set("limit", String(params.limit ?? 10));
     if (params.search?.trim()) query.set("search", params.search.trim());

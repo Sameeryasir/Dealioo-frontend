@@ -1,13 +1,12 @@
 "use client";
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
-import { SuperAdminSectionChrome } from "@/app/components/super-admin/SuperAdminSectionChrome";
 import {
   formatRelative,
   humanizeLabel,
   initialsFromName,
-  SA_TABLE_PAGE_SIZE,
 } from "@/app/components/super-admin/super-admin-list-helpers";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
@@ -31,20 +30,26 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
+  Building2,
   CalendarCheck2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
+  CircleDot,
   Clock3,
   Copy,
   Download,
   ExternalLink,
   Eye,
+  Filter,
+  Hash,
+  Mail,
   MapPin,
   MoreVertical,
+  Phone,
+  Search,
   TrendingUp,
   UserRound,
   UsersRound,
+  Video,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -61,6 +66,16 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 const EMPTY_MEETINGS: AdminMeetingRequest[] = [];
+const PAGE_SIZE = 10;
+
+type MeetingScope = "all" | "upcoming" | "past" | "deal_won";
+
+const SCOPE_OPTIONS: Array<{ id: MeetingScope; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "past", label: "Past" },
+  { id: "deal_won", label: "Deal won" },
+];
 
 const AVATAR_TONES = [
   { background: "#eff6ff", color: "#1769ff" },
@@ -118,18 +133,18 @@ function percentOf(part: number, total: number): string {
 
 function statusBadge(meeting: AdminMeetingRequest): {
   label: string;
-  className: string;
+  tone: "green" | "yellow" | "muted";
 } {
   if (meeting.attendance === "CANCELLED") {
-    return { label: "Cancelled", className: styles.statusCancelled };
+    return { label: "Cancelled", tone: "muted" };
   }
   if (meeting.attendance === "NO_SHOW") {
-    return { label: "No show", className: styles.statusNoShow };
+    return { label: "No show", tone: "muted" };
   }
   if (meeting.attendance === "ATTENDED") {
-    return { label: "Attended", className: styles.statusAttended };
+    return { label: "Attended", tone: "green" };
   }
-  return { label: "Past / open", className: styles.statusMuted };
+  return { label: "Past / open", tone: "yellow" };
 }
 
 function MeetingModalShell({
@@ -365,51 +380,353 @@ function DetailsDrawer({
   meeting: AdminMeetingRequest;
   onClose: () => void;
 }) {
-  const when = [
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  const fullName =
+    `${meeting.firstName} ${meeting.lastName}`.trim() || "Visitor";
+  const attendanceLabel = humanizeLabel(meeting.attendance) || "Not recorded";
+  const outcomeLabel = humanizeLabel(meeting.salesOutcome) || "Not recorded";
+  const scheduleWhen = [
     formatMeetingDateLabel(meeting.scheduledDate),
     formatMeetingTimeLabel(meeting.scheduledTime),
-    meeting.scheduledDuration ? `${meeting.scheduledDuration} min` : "",
-    meeting.scheduledTimeZone?.replaceAll("_", " "),
   ]
     .filter(Boolean)
     .join(" · ");
 
-  const rows = [
-    ["Visitor", `${meeting.firstName} ${meeting.lastName}`.trim()],
-    ["Email", meeting.email],
-    ["Phone", meeting.phone],
-    ["Business", meeting.businessName || "Not provided"],
-    ["Category", humanizeLabel(meeting.businessCategory) || "Not provided"],
-    ["Scheduled", when || "Not scheduled"],
-    ["Attendance", humanizeLabel(meeting.attendance) || "Not recorded"],
-    ["Sales outcome", humanizeLabel(meeting.salesOutcome) || "Not recorded"],
-    ["Meeting notes", meeting.meetingNotes || ""],
-    ["Follow-up notes", meeting.followUpNotes || ""],
-  ].filter(([, value]) => Boolean(value?.trim()));
+  const contactRows: Array<{
+    label: string;
+    value: string;
+    icon: typeof Mail;
+  }> = [
+    {
+      label: "Email",
+      value: meeting.email?.trim() || "Not set",
+      icon: Mail,
+    },
+    {
+      label: "Phone",
+      value: meeting.phone?.trim() || "Not set",
+      icon: Phone,
+    },
+    {
+      label: "Location",
+      value: meeting.cityLocation?.trim() || "Not set",
+      icon: MapPin,
+    },
+    {
+      label: "Requested on",
+      value: formatCreatedAbsolute(meeting.createdAt),
+      icon: Clock3,
+    },
+  ];
+
+  const scheduleRows: Array<{
+    label: string;
+    value: string;
+    icon: typeof CalendarDays;
+  }> = [
+    {
+      label: "Scheduled",
+      value: scheduleWhen || "Not scheduled",
+      icon: CalendarDays,
+    },
+    {
+      label: "Duration",
+      value: meeting.scheduledDuration
+        ? `${meeting.scheduledDuration} min`
+        : "Not set",
+      icon: Clock3,
+    },
+    {
+      label: "Time zone",
+      value: meeting.scheduledTimeZone?.replaceAll("_", " ") || "Not set",
+      icon: MapPin,
+    },
+  ];
+
+  const businessRows: Array<{
+    label: string;
+    value: string;
+    icon: typeof Building2;
+  }> = [
+    {
+      label: "Business",
+      value: meeting.businessName?.trim() || "Not provided",
+      icon: Building2,
+    },
+    {
+      label: "Category",
+      value: humanizeLabel(meeting.businessCategory) || "Not provided",
+      icon: CircleDot,
+    },
+    {
+      label: "Attendance",
+      value: attendanceLabel,
+      icon: CalendarCheck2,
+    },
+    {
+      label: "Sales outcome",
+      value: outcomeLabel,
+      icon: TrendingUp,
+    },
+  ];
+
+  const noteRows = [
+    {
+      label: "Meeting notes",
+      value: meeting.meetingNotes?.trim() || "",
+    },
+    {
+      label: "Follow-up notes",
+      value: meeting.followUpNotes?.trim() || "",
+    },
+  ].filter((row) => Boolean(row.value));
+
+  const attendanceChipActive = meeting.attendance === "ATTENDED";
 
   return (
-    <MeetingModalShell title={`Meeting #${meeting.id}`} onClose={onClose}>
-      <dl className={styles.meetingDetailGrid}>
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
+    <div
+      className={styles.userModalBackdrop}
+      role="presentation"
+      onClick={onClose}
+    >
+      <section
+        className={`${styles.usersDirDetailSheet} ${styles.usersDirDetailSheetFlat}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sa-meeting-details-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className={styles.usersDirDetailClose}
+          onClick={onClose}
+          aria-label="Close meeting details"
+        >
+          <X className="size-4" strokeWidth={2.25} aria-hidden />
+        </button>
+
+        <div className={styles.usersDirDetailBody}>
+          <div className={styles.usersDirDetailIdentity}>
+            <div className={styles.usersDirDetailAvatarRing}>
+              <span className={styles.userAvatarLg} aria-hidden>
+                {initialsFromName(fullName)}
+              </span>
+            </div>
+            <div className={styles.usersDirDetailIdentityText}>
+              <p className={styles.usersDirDetailEyebrow}>Meeting request</p>
+              <h3
+                id="sa-meeting-details-title"
+                className={styles.usersDirDetailName}
+              >
+                {fullName}
+              </h3>
+              <p className={styles.usersDirDetailEmail}>
+                {meeting.email || "—"}
+              </p>
+              <div className={styles.usersDirDetailChips}>
+                <span
+                  className={`${styles.usersDirDetailChip} ${
+                    attendanceChipActive
+                      ? styles.usersDirDetailChipActive
+                      : styles.usersDirDetailChipMuted
+                  }`}
+                >
+                  <span className={styles.usersDirStatusDot} aria-hidden />
+                  {attendanceLabel}
+                </span>
+                <span
+                  className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                >
+                  <TrendingUp className="size-3" strokeWidth={2.5} aria-hidden />
+                  {outcomeLabel}
+                </span>
+                <span
+                  className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                >
+                  <Building2 className="size-3" strokeWidth={2.5} aria-hidden />
+                  {meeting.businessName?.trim() || "No business"}
+                </span>
+              </div>
+            </div>
           </div>
-        ))}
-      </dl>
-      <div className={styles.meetingDetailLinks}>
-        {meeting.googleMeetLink ? (
-          <a href={meeting.googleMeetLink} target="_blank" rel="noreferrer">
-            Join with Google Meet
-          </a>
-        ) : null}
-        {meeting.googleEventLink ? (
-          <a href={meeting.googleEventLink} target="_blank" rel="noreferrer">
-            Open in Google Calendar
-          </a>
-        ) : null}
-      </div>
-    </MeetingModalShell>
+
+          <div className={styles.usersDirDetailSection}>
+            <h4 className={styles.usersDirDetailSectionTitle}>
+              Contact & request
+            </h4>
+            <div className={styles.usersDirDetailInfoGrid}>
+              {contactRows.map(({ label, value, icon: Icon }) => (
+                <div key={label} className={styles.usersDirDetailInfoRow}>
+                  <span
+                    className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                    aria-hidden
+                  >
+                    <Icon className="size-3.5" strokeWidth={2.25} />
+                  </span>
+                  <div className={styles.usersDirDetailInfoCopy}>
+                    <span className={styles.usersDirDetailInfoLabel}>
+                      {label}
+                    </span>
+                    <span className={styles.usersDirDetailInfoValue}>
+                      {value}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.usersDirDetailSection}>
+            <h4 className={styles.usersDirDetailSectionTitle}>Schedule</h4>
+            <div className={styles.usersDirDetailInfoGrid}>
+              {scheduleRows.map(({ label, value, icon: Icon }) => (
+                <div key={label} className={styles.usersDirDetailInfoRow}>
+                  <span
+                    className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                    aria-hidden
+                  >
+                    <Icon className="size-3.5" strokeWidth={2.25} />
+                  </span>
+                  <div className={styles.usersDirDetailInfoCopy}>
+                    <span className={styles.usersDirDetailInfoLabel}>
+                      {label}
+                    </span>
+                    <span className={styles.usersDirDetailInfoValue}>
+                      {value}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.usersDirDetailSection}>
+            <h4 className={styles.usersDirDetailSectionTitle}>
+              Business & outcome
+            </h4>
+            <div className={styles.usersDirDetailInfoGrid}>
+              {businessRows.map(({ label, value, icon: Icon }) => (
+                <div key={label} className={styles.usersDirDetailInfoRow}>
+                  <span
+                    className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                    aria-hidden
+                  >
+                    <Icon className="size-3.5" strokeWidth={2.25} />
+                  </span>
+                  <div className={styles.usersDirDetailInfoCopy}>
+                    <span className={styles.usersDirDetailInfoLabel}>
+                      {label}
+                    </span>
+                    <span className={styles.usersDirDetailInfoValue}>
+                      {value}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {noteRows.length > 0 ? (
+            <div className={styles.usersDirDetailSection}>
+              <h4 className={styles.usersDirDetailSectionTitle}>Notes</h4>
+              <div className={styles.usersDirDetailInfoGrid}>
+                {noteRows.map((row) => (
+                  <div key={row.label} className={styles.usersDirDetailInfoRow}>
+                    <span
+                      className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                      aria-hidden
+                    >
+                      <CircleDot className="size-3.5" strokeWidth={2.25} />
+                    </span>
+                    <div className={styles.usersDirDetailInfoCopy}>
+                      <span className={styles.usersDirDetailInfoLabel}>
+                        {row.label}
+                      </span>
+                      <span className={styles.usersDirDetailInfoValue}>
+                        {row.value}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {meeting.googleMeetLink || meeting.googleEventLink ? (
+            <div className={styles.usersDirDetailSection}>
+              <h4 className={styles.usersDirDetailSectionTitle}>
+                Calendar links
+              </h4>
+              <div className={styles.usersDirDetailInfoGrid}>
+                {meeting.googleMeetLink ? (
+                  <div className={styles.usersDirDetailInfoRow}>
+                    <span
+                      className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                      aria-hidden
+                    >
+                      <Video className="size-3.5" strokeWidth={2.25} />
+                    </span>
+                    <div className={styles.usersDirDetailInfoCopy}>
+                      <span className={styles.usersDirDetailInfoLabel}>
+                        Google Meet
+                      </span>
+                      <a
+                        href={meeting.googleMeetLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.usersDirDetailInfoValue}
+                      >
+                        Join with Google Meet
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+                {meeting.googleEventLink ? (
+                  <div className={styles.usersDirDetailInfoRow}>
+                    <span
+                      className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                      aria-hidden
+                    >
+                      <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                    </span>
+                    <div className={styles.usersDirDetailInfoCopy}>
+                      <span className={styles.usersDirDetailInfoLabel}>
+                        Google Calendar
+                      </span>
+                      <a
+                        href={meeting.googleEventLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.usersDirDetailInfoValue}
+                      >
+                        Open in Google Calendar
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className={styles.usersDirDetailFooter}>
+          <button
+            type="button"
+            className={styles.userControlSecondary}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -625,7 +942,7 @@ function RowMenu({
 
 function primaryActionFor(
   meeting: AdminMeetingRequest,
-  scope: "upcoming" | "past" | "deal_won",
+  scope: MeetingScope,
 ): {
   label: string;
   kind: "details" | "attendance" | "outcome" | "onboarding" | "onboarded";
@@ -710,10 +1027,8 @@ export function SuperAdminMeetingsPanel() {
   const [query, setQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(SA_TABLE_PAGE_SIZE);
-  const [scope, setScope] = useState<"upcoming" | "past" | "deal_won">(
-    "upcoming",
-  );
+  const [scope, setScope] = useState<MeetingScope>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [menuMeetingId, setMenuMeetingId] = useState<number | null>(null);
   const [detailsMeeting, setDetailsMeeting] =
     useState<AdminMeetingRequest | null>(null);
@@ -730,6 +1045,29 @@ export function SuperAdminMeetingsPanel() {
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  useEffect(() => {
+    const onOverlayOpen = () => {
+      setFilterOpen(false);
+      setMenuMeetingId(null);
+    };
+    window.addEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    return () => {
+      window.removeEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(`.${styles.usersDirFilterMenu}`)) return;
+      if (target?.closest?.(`.${styles.usersDirFilterBtn}`)) return;
+      setFilterOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [filterOpen]);
+
   const summaryQuery = useQuery({
     queryKey: adminQueryKeys.meetingsSummary(),
     queryFn: getAdminMeetingRequestsSummary,
@@ -742,14 +1080,14 @@ export function SuperAdminMeetingsPanel() {
       scope,
       page,
       debouncedSearch,
-      limit,
+      PAGE_SIZE,
       "meeting_asc",
     ),
     queryFn: () =>
       getAdminMeetingRequests({
         scope,
         page,
-        limit,
+        limit: PAGE_SIZE,
         search: debouncedSearch,
         sort: "meeting_asc",
       }),
@@ -770,8 +1108,6 @@ export function SuperAdminMeetingsPanel() {
   const loading =
     (meetingsQuery.isLoading || meetingsQuery.isFetching) &&
     meetings.length === 0;
-  const refreshing =
-    meetingsQuery.isFetching || summaryQuery.isFetching;
   const errorMessage = meetingsQuery.error
     ? getApiErrorMessage(
         meetingsQuery.error,
@@ -833,6 +1169,7 @@ export function SuperAdminMeetingsPanel() {
   const busy = outcomeMutation.isPending;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
   const total = meta?.total ?? 0;
+  const showingStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 
   const runPrimary = (meeting: AdminMeetingRequest) => {
     const action = primaryActionFor(meeting, scope);
@@ -853,489 +1190,517 @@ export function SuperAdminMeetingsPanel() {
     [summary, counts],
   );
 
+  const scopeCounts: Record<MeetingScope, number> = {
+    all: counts.all,
+    upcoming: counts.upcoming,
+    past: counts.past,
+    deal_won: counts.dealWon,
+  };
+
   return (
-    <SuperAdminSectionChrome
-      title="Meeting requests"
-      subtitle="Bookings from the Dealioo website calendar. Record attendance and sales outcomes. Create accounts in Customer Onboarding."
-      query={query}
-      onQueryChange={setQuery}
-      searchPlaceholder="Search meetings, visitors or business..."
-      onRefresh={() => {
-        void meetingsQuery.refetch();
-        void summaryQuery.refetch();
-      }}
-      refreshing={refreshing}
+    <section
+      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions}`}
+      aria-label="Meeting requests"
     >
-      {summaryQuery.isLoading && !summary ? (
-        <KpiSkeleton />
-      ) : (
-        <div className={styles.usersDirStats}>
-          <article className={styles.usersDirStatCard}>
-            <div>
-              <p className={styles.usersDirStatLabel}>Total requests</p>
-              <p className={styles.usersDirStatValue}>{stats.total}</p>
-              <p className={styles.usersDirStatHint}>
-                +{stats.createdThisWeek} this week
-              </p>
-            </div>
-            <span
-              className={styles.usersDirStatIcon}
-              style={{ background: "#eff6ff", color: "#1769ff" }}
-              aria-hidden
-            >
-              <CalendarDays className="size-4" strokeWidth={2.25} />
-            </span>
-          </article>
-          <article className={styles.usersDirStatCard}>
-            <div>
-              <p className={styles.usersDirStatLabel}>Upcoming</p>
-              <p className={styles.usersDirStatValue}>{stats.upcoming}</p>
-              <p
-                className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
-              >
-                {percentOf(stats.upcoming, stats.total)}
-              </p>
-            </div>
-            <span
-              className={styles.usersDirStatIcon}
-              style={{ background: "#ecfdf5", color: "#059669" }}
-              aria-hidden
-            >
-              <CalendarCheck2 className="size-4" strokeWidth={2.25} />
-            </span>
-          </article>
-          <article className={styles.usersDirStatCard}>
-            <div>
-              <p className={styles.usersDirStatLabel}>Attended</p>
-              <p className={styles.usersDirStatValue}>{stats.attended}</p>
-              <p
-                className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
-              >
-                {percentOf(stats.attended, stats.total)}
-              </p>
-            </div>
-            <span
-              className={styles.usersDirStatIcon}
-              style={{ background: "#f5f3ff", color: "#7c3aed" }}
-              aria-hidden
-            >
-              <UsersRound className="size-4" strokeWidth={2.25} />
-            </span>
-          </article>
-          <article className={styles.usersDirStatCard}>
-            <div>
-              <p className={styles.usersDirStatLabel}>Accounts created</p>
-              <p className={styles.usersDirStatValue}>
-                {stats.onboardingStarted}
-              </p>
-              <p
-                className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
-              >
-                {percentOf(stats.onboardingStarted, stats.total)}
-              </p>
-            </div>
-            <span
-              className={styles.usersDirStatIcon}
-              style={{ background: "#fff7ed", color: "#ea580c" }}
-              aria-hidden
-            >
-              <TrendingUp className="size-4" strokeWidth={2.25} />
-            </span>
-          </article>
-        </div>
-      )}
-
-      <div className={styles.usersDirToolbar}>
-        <div
-          className={styles.meetingScopeTabs}
-          role="tablist"
-          aria-label="Meeting time filters"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={scope === "upcoming"}
-            className={`${styles.usersDirTab} ${
-              scope === "upcoming" ? styles.usersDirTabActive : ""
-            }`}
-            onClick={() => {
-              setScope("upcoming");
-              setPage(1);
-            }}
-          >
-            <CalendarDays className="size-3.5" strokeWidth={2.25} aria-hidden />
-            Upcoming ({counts.upcoming})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={scope === "past"}
-            className={`${styles.usersDirTab} ${
-              scope === "past" ? styles.usersDirTabActive : ""
-            }`}
-            onClick={() => {
-              setScope("past");
-              setPage(1);
-            }}
-          >
-            <Clock3 className="size-3.5" strokeWidth={2.25} aria-hidden />
-            Past ({counts.past})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={scope === "deal_won"}
-            className={`${styles.usersDirTab} ${
-              scope === "deal_won" ? styles.usersDirTabActive : ""
-            }`}
-            onClick={() => {
-              setScope("deal_won");
-              setPage(1);
-            }}
-          >
-            <TrendingUp className="size-3.5" strokeWidth={2.25} aria-hidden />
-            Deal won ({counts.dealWon})
-          </button>
-        </div>
-        <label className={styles.usersDirSort}>
-          <span className="sr-only">Page size</span>
-          <select
-            value={limit}
-            onChange={(event) => {
-              setLimit(Number(event.target.value));
-              setPage(1);
-            }}
-          >
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
-          </select>
-        </label>
-      </div>
-
-      {errorMessage ? (
-        <div className="mb-4">
-          <AsyncErrorRetry
-            layout="inline"
-            title="Something went wrong"
-            message={errorMessage}
-            onRetry={() => void meetingsQuery.refetch()}
-          />
-        </div>
-      ) : null}
-
-      <div className={`${styles.card} ${styles.tableCard} ${styles.meetingsCard}`}>
-        <div className={styles.cardHead}>
-          <div className={styles.tableHeadLeft}>
-            <span className={styles.tableHeadIcon} aria-hidden>
-              <CalendarDays className="size-5" strokeWidth={2.25} />
-            </span>
-            <div>
-              <h2 className={styles.cardTitle}>All requests</h2>
-              <p className={styles.cardSub}>
-                Meeting requests from the Dealioo website calendar
-              </p>
-            </div>
+      <div className={styles.inner}>
+        <div className={styles.usersDirHero}>
+          <div className={styles.heroCopy}>
+            <h1 className={styles.title}>Meeting requests</h1>
+            <p className={styles.subtitle}>
+              Bookings from the Dealioo website calendar. Record attendance and
+              sales outcomes. Create accounts in Customer Onboarding.
+            </p>
           </div>
-          <button
-            type="button"
-            className={styles.meetingExportBtn}
-            disabled={exportMutation.isPending || total === 0}
-            onClick={() => exportMutation.mutate()}
-          >
-            <Download className="size-4" strokeWidth={2.25} aria-hidden />
-            Export
-          </button>
-        </div>
 
-        <div className={styles.meetingsTableWrap}>
-          {loading ? (
-            <TableSkeleton />
-          ) : meetings.length === 0 ? (
-            <div className={styles.meetingsEmpty}>
-              <UserRound className="size-7 text-slate-400" aria-hidden />
-              <p>No meeting requests found.</p>
-              <p>Try another tab or clear your search.</p>
-              {debouncedSearch ? (
-                <button
-                  type="button"
-                  className={styles.userControlSecondary}
-                  onClick={() => setQuery("")}
-                >
-                  Clear search
-                </button>
+          <div className={styles.usersDirHeroActions}>
+            <label className={styles.usersDirSearch}>
+              <Search className={styles.usersDirSearchIcon} aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search meetings, visitors or business..."
+                className={styles.usersDirSearchInput}
+                aria-label="Search meetings"
+              />
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                className={styles.usersDirFilterBtn}
+                aria-expanded={filterOpen}
+                aria-haspopup="menu"
+                onClick={() => setFilterOpen((open) => !open)}
+              >
+                <Filter className="size-4" strokeWidth={2.25} aria-hidden />
+                Filter
+                {scope !== "all" ? (
+                  <span className="ml-1 text-[0.72rem] font-semibold text-slate-500">
+                    · {SCOPE_OPTIONS.find((option) => option.id === scope)?.label}
+                  </span>
+                ) : null}
+              </button>
+              {filterOpen ? (
+                <div className={styles.usersDirFilterMenu} role="menu">
+                  {SCOPE_OPTIONS.map((option) => {
+                    const count = scopeCounts[option.id];
+                    const selected = scope === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selected}
+                        className={`${styles.usersDirFilterMenuItem} ${
+                          selected ? styles.usersDirFilterMenuItemSelected : ""
+                        }`}
+                        onClick={() => {
+                          setScope(option.id);
+                          setPage(1);
+                          setFilterOpen(false);
+                        }}
+                      >
+                        <span>
+                          {option.label}{" "}
+                          <span className={styles.usersDirFilterMenuCount}>
+                            ({count})
+                          </span>
+                        </span>
+                        {selected ? (
+                          <span className={styles.usersDirFilterMenuApplied}>
+                            Applied
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
             </div>
-          ) : (
-            <table className={`${styles.table} ${styles.meetingsTable}`}>
-              <thead>
-                <tr>
-                  <th>Visitor</th>
-                  <th>Business</th>
-                  <th>Meeting Date &amp; Time</th>
-                  <th>Status</th>
-                  <th>Outcome / Account</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetings.map((meeting, index) => {
-                  const fullName =
-                    `${meeting.firstName} ${meeting.lastName}`.trim() ||
-                    "Visitor";
-                  const tone = AVATAR_TONES[index % AVATAR_TONES.length]!;
-                  const action = primaryActionFor(meeting, scope);
-                  const badge =
-                    scope === "upcoming" && !meeting.attendance
-                      ? {
-                          label: "Upcoming",
-                          className: styles.statusActive,
-                        }
-                      : statusBadge(meeting);
-
-                  return (
-                    <tr
-                      key={meeting.id}
-                      className={`${styles.meetingRow} ${styles.usersDirRowClickable}`}
-                      onClick={() => setDetailsMeeting(meeting)}
-                    >
-                      <td>
-                        <div className={styles.meetingIdentity}>
-                          <span
-                            className={styles.meetingsAvatar}
-                            style={{
-                              background: tone.background,
-                              color: tone.color,
-                            }}
-                            aria-hidden
-                          >
-                            {initialsFromName(fullName)}
-                          </span>
-                          <div className={styles.meetingIdentityText}>
-                            <div className={styles.meetingPersonName}>
-                              {fullName}
-                            </div>
-                            <div className={styles.bizMeta}>{meeting.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.meetingsBizText}>
-                          <div className={styles.bizName}>
-                            {meeting.businessName || "Not provided"}
-                          </div>
-                          <div className={styles.bizMeta}>
-                            {humanizeLabel(meeting.businessCategory) ||
-                              "Not provided"}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.meetingsSchedule}>
-                          <span className={styles.meetingsDateLine}>
-                            <CalendarDays
-                              className="size-3.5"
-                              strokeWidth={2.25}
-                              aria-hidden
-                            />
-                            {formatMeetingDateLabel(meeting.scheduledDate)}
-                          </span>
-                          <span className={styles.meetingsTimeLine}>
-                            <Clock3
-                              className="size-3.5"
-                              strokeWidth={2.25}
-                              aria-hidden
-                            />
-                            {formatMeetingTimeLabel(meeting.scheduledTime) ||
-                              "Time not set"}
-                          </span>
-                          {meeting.scheduledTimeZone ? (
-                            <span className={styles.meetingsZoneLine}>
-                              <MapPin
-                                className="size-3.5"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              <span className={styles.meetingsContactText}>
-                                {meeting.scheduledTimeZone.replaceAll("_", " ")}
-                              </span>
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className={`${styles.statusPill} ${badge.className}`}
-                        >
-                          <span className={styles.statusDot} aria-hidden />
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td>
-                        {meeting.salesOutcome || meeting.onboardingId ? (
-                          <div className={styles.meetingsOutcomeStack}>
-                            <span className={styles.bizName}>
-                              {meeting.salesOutcome
-                                ? humanizeLabel(meeting.salesOutcome)
-                                : "—"}
-                            </span>
-                            <span className={styles.bizMeta}>
-                              {meeting.businessId
-                                ? "Account created"
-                                : meeting.salesOutcome === "DEAL_WON"
-                                  ? "Create in Onboarding"
-                                  : "No account yet"}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className={styles.meetingOutcomeEmpty}>
-                            — Not recorded
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className={styles.createdStack}>
-                          <span>{formatRelative(meeting.createdAt)}</span>
-                          <span className={styles.createdSub}>
-                            {formatCreatedAbsolute(meeting.createdAt)}
-                          </span>
-                        </div>
-                      </td>
-                      <td
-                        className={styles.meetingRowActions}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <div className={styles.meetingActionGroup}>
-                          {action.kind === "onboarded" ? (
-                            <span
-                              className={`${styles.statusPill} ${styles.statusActive}`}
-                            >
-                              <span className={styles.statusDot} aria-hidden />
-                              Onboarded
-                            </span>
-                          ) : action.kind === "onboarding" ? (
-                            <Link
-                              href="/admin/customer-onboarding"
-                              className={styles.meetingPrimaryAction}
-                            >
-                              <ExternalLink
-                                className="size-3.5"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              {action.label}
-                            </Link>
-                          ) : action.kind === "details" ? (
-                            <button
-                              type="button"
-                              className={styles.meetingSecondaryAction}
-                              disabled={busy}
-                              onClick={() => setDetailsMeeting(meeting)}
-                            >
-                              <Eye
-                                className="size-3.5"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              View details
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className={styles.meetingPrimaryAction}
-                              disabled={busy}
-                              onClick={() => runPrimary(meeting)}
-                            >
-                              <CalendarCheck2
-                                className="size-3.5"
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                              {action.label}
-                            </button>
-                          )}
-                          <RowMenu
-                            meeting={meeting}
-                            open={menuMeetingId === meeting.id}
-                            onOpenChange={(open) =>
-                              setMenuMeetingId(open ? meeting.id : null)
-                            }
-                            onViewDetails={() => setDetailsMeeting(meeting)}
-                            onRecordAttendance={() =>
-                              setAttendanceMeeting(meeting)
-                            }
-                            onRecordOutcome={() => setOutcomeMeeting(meeting)}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+            <button
+              type="button"
+              className={styles.usersDirFilterBtn}
+              disabled={exportMutation.isPending || total === 0}
+              onClick={() => exportMutation.mutate()}
+            >
+              <Download className="size-4" strokeWidth={2.25} aria-hidden />
+              {exportMutation.isPending ? "Exporting…" : "Export"}
+            </button>
+          </div>
         </div>
 
-        <div className={styles.meetingsFooter}>
-          <p className={styles.meetingsFooterMeta}>
-            Showing {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} of {total} requests
-          </p>
-          <div className={styles.meetingsFooterPager}>
-            <button
-              type="button"
-              className={styles.meetingsPageBtn}
-              disabled={meetingsQuery.isFetching || page <= 1}
-              aria-label="Previous page"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              <ChevronLeft className="size-4" aria-hidden />
-            </button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1)
-              .slice(
-                Math.max(0, Math.min(page - 3, totalPages - 5)),
-                Math.max(0, Math.min(page - 3, totalPages - 5)) + 5,
-              )
-              .map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  className={`${styles.meetingsPageBtn} ${
-                    pageNumber === page ? styles.meetingsPageBtnActive : ""
-                  }`}
-                  disabled={meetingsQuery.isFetching}
-                  onClick={() => setPage(pageNumber)}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-            <button
-              type="button"
-              className={styles.meetingsPageBtn}
-              disabled={meetingsQuery.isFetching || page >= totalPages}
-              aria-label="Next page"
-              onClick={() =>
-                setPage((current) => Math.min(totalPages, current + 1))
-              }
-            >
-              <ChevronRight className="size-4" aria-hidden />
-            </button>
-            <label className={styles.meetingsPageSize}>
-              <select
-                value={limit}
-                aria-label="Rows per page"
-                onChange={(event) => {
-                  setLimit(Number(event.target.value));
-                  setPage(1);
-                }}
-              >
-                <option value={10}>10 / page</option>
-                <option value={20}>20 / page</option>
-                <option value={50}>50 / page</option>
-              </select>
-            </label>
+        {errorMessage ? (
+          <div className="mb-4">
+            <AsyncErrorRetry
+              layout="inline"
+              title="Something went wrong"
+              message={errorMessage}
+              onRetry={() => void meetingsQuery.refetch()}
+            />
           </div>
+        ) : null}
+
+        {summaryQuery.isLoading && !summary ? (
+          <KpiSkeleton />
+        ) : (
+          <div className={styles.usersDirStats}>
+            <article className={styles.usersDirStatCard}>
+              <div>
+                <p className={styles.usersDirStatLabel}>Total requests</p>
+                <p className={styles.usersDirStatValue}>{stats.total}</p>
+                <p className={styles.usersDirStatHint}>
+                  +{stats.createdThisWeek} this week
+                </p>
+              </div>
+              <span
+                className={styles.usersDirStatIcon}
+                style={{ background: "#eff6ff", color: "#1769ff" }}
+                aria-hidden
+              >
+                <CalendarDays className="size-4" strokeWidth={2.25} />
+              </span>
+            </article>
+            <article className={styles.usersDirStatCard}>
+              <div>
+                <p className={styles.usersDirStatLabel}>Upcoming</p>
+                <p className={styles.usersDirStatValue}>{stats.upcoming}</p>
+                <p
+                  className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
+                >
+                  {percentOf(stats.upcoming, stats.total)}
+                </p>
+              </div>
+              <span
+                className={styles.usersDirStatIcon}
+                style={{ background: "#ecfdf5", color: "#059669" }}
+                aria-hidden
+              >
+                <CalendarCheck2 className="size-4" strokeWidth={2.25} />
+              </span>
+            </article>
+            <article className={styles.usersDirStatCard}>
+              <div>
+                <p className={styles.usersDirStatLabel}>Attended</p>
+                <p className={styles.usersDirStatValue}>{stats.attended}</p>
+                <p
+                  className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
+                >
+                  {percentOf(stats.attended, stats.total)}
+                </p>
+              </div>
+              <span
+                className={styles.usersDirStatIcon}
+                style={{ background: "#f5f3ff", color: "#7c3aed" }}
+                aria-hidden
+              >
+                <UsersRound className="size-4" strokeWidth={2.25} />
+              </span>
+            </article>
+            <article className={styles.usersDirStatCard}>
+              <div>
+                <p className={styles.usersDirStatLabel}>Accounts created</p>
+                <p className={styles.usersDirStatValue}>
+                  {stats.onboardingStarted}
+                </p>
+                <p
+                  className={`${styles.usersDirStatHint} ${styles.usersDirStatHintMuted}`}
+                >
+                  {percentOf(stats.onboardingStarted, stats.total)}
+                </p>
+              </div>
+              <span
+                className={styles.usersDirStatIcon}
+                style={{ background: "#fff7ed", color: "#ea580c" }}
+                aria-hidden
+              >
+                <TrendingUp className="size-4" strokeWidth={2.25} />
+              </span>
+            </article>
+          </div>
+        )}
+
+        <div className={styles.usersDirToolbar}>
+          <p className={styles.usersDirFooterMeta}>
+            Showing{" "}
+            {SCOPE_OPTIONS.find((option) => option.id === scope)?.label ??
+              "All"}{" "}
+            meetings
+          </p>
+        </div>
+
+        <div className={styles.usersDirTableCard}>
+          <div className={styles.usersDirTableWrap}>
+            {loading ? (
+              <TableSkeleton />
+            ) : meetings.length === 0 ? (
+              <p className={styles.empty}>No meeting requests found.</p>
+            ) : (
+              <table
+                className={`${styles.usersDirTable} ${styles.meetingsTable}`}
+              >
+                <thead>
+                  <tr>
+                    <th style={{ width: "3rem" }}>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Hash
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span className="sr-only">Row number</span>
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <UserRound
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Visitor
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Building2
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Business
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CalendarDays
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Date
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Clock3
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Time
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <MapPin
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Timezone
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CircleDot
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Status
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <TrendingUp
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Outcome / Account
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CalendarCheck2
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Created
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <MoreVertical
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Actions
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meetings.map((meeting, index) => {
+                    const rowNumber = showingStart + index;
+                    const fullName =
+                      `${meeting.firstName} ${meeting.lastName}`.trim() ||
+                      "Visitor";
+                    const tone = AVATAR_TONES[index % AVATAR_TONES.length]!;
+                    const action = primaryActionFor(meeting, scope);
+                    const badge =
+                      scope === "upcoming" && !meeting.attendance
+                        ? { label: "Upcoming", tone: "green" as const }
+                        : statusBadge(meeting);
+                    const statusPillClass =
+                      badge.tone === "green"
+                        ? styles.usersDirStatusPill
+                        : badge.tone === "yellow"
+                          ? `${styles.usersDirStatusPill} ${styles.usersDirStatusPillProgress}`
+                          : `${styles.usersDirStatusPill} ${styles.usersDirStatusPillInactive}`;
+
+                    return (
+                      <tr
+                        key={meeting.id}
+                        className={`${styles.meetingRow} ${styles.usersDirRowClickable}`}
+                        onClick={() => setDetailsMeeting(meeting)}
+                      >
+                        <td>
+                          <span className={styles.usersDirDateMain}>
+                            {rowNumber}.
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.meetingIdentity}>
+                            <span
+                              className={styles.meetingsAvatar}
+                              style={{
+                                background: tone.background,
+                                color: tone.color,
+                              }}
+                              aria-hidden
+                            >
+                              {initialsFromName(fullName)}
+                            </span>
+                            <div className={styles.meetingIdentityText}>
+                              <div className={styles.meetingPersonName}>
+                                {fullName}
+                              </div>
+                              <div className={styles.bizMeta}>
+                                {meeting.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.meetingsBizText}>
+                            <div className={styles.bizName}>
+                              {meeting.businessName || "Not provided"}
+                            </div>
+                            <div className={styles.bizMeta}>
+                              {humanizeLabel(meeting.businessCategory) ||
+                                "Not provided"}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          {formatMeetingDateLabel(meeting.scheduledDate)}
+                        </td>
+                        <td>
+                          {formatMeetingTimeLabel(meeting.scheduledTime) || "—"}
+                        </td>
+                        <td>
+                          <span className={styles.meetingsContactText}>
+                            {meeting.scheduledTimeZone
+                              ? meeting.scheduledTimeZone.replaceAll("_", " ")
+                              : "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={statusPillClass}>
+                            <span
+                              className={styles.usersDirStatusDot}
+                              aria-hidden
+                            />
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td>
+                          {meeting.salesOutcome || meeting.onboardingId ? (
+                            <div className={styles.meetingsOutcomeStack}>
+                              <span className={styles.bizName}>
+                                {meeting.salesOutcome
+                                  ? humanizeLabel(meeting.salesOutcome)
+                                  : "—"}
+                              </span>
+                              <span className={styles.bizMeta}>
+                                {meeting.businessId
+                                  ? "Account created"
+                                  : meeting.salesOutcome === "DEAL_WON"
+                                    ? "Create in Onboarding"
+                                    : "No account yet"}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className={styles.meetingOutcomeEmpty}>
+                              — Not recorded
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div className={styles.createdStack}>
+                            <span>{formatRelative(meeting.createdAt)}</span>
+                            <span className={styles.createdSub}>
+                              {formatCreatedAbsolute(meeting.createdAt)}
+                            </span>
+                          </div>
+                        </td>
+                        <td onClick={(event) => event.stopPropagation()}>
+                          <div className={styles.meetingActionGroup}>
+                            {action.kind === "onboarded" ? (
+                              <span className={styles.usersDirStatusPill}>
+                                <span
+                                  className={styles.usersDirStatusDot}
+                                  aria-hidden
+                                />
+                                Onboarded
+                              </span>
+                            ) : action.kind === "onboarding" ? (
+                              <Link
+                                href="/admin/customer-onboarding"
+                                className={styles.usersDirActionLink}
+                              >
+                                <ExternalLink
+                                  className="size-3.5"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                {action.label}
+                              </Link>
+                            ) : action.kind === "details" ? (
+                              <button
+                                type="button"
+                                className={styles.usersDirActionLink}
+                                disabled={busy}
+                                onClick={() => setDetailsMeeting(meeting)}
+                              >
+                                <Eye
+                                  className="size-3.5"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                View
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.usersDirActionLink}
+                                disabled={busy}
+                                onClick={() => runPrimary(meeting)}
+                              >
+                                <CalendarCheck2
+                                  className="size-3.5"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                {action.label}
+                              </button>
+                            )}
+                            <RowMenu
+                              meeting={meeting}
+                              open={menuMeetingId === meeting.id}
+                              onOpenChange={(open) =>
+                                setMenuMeetingId(open ? meeting.id : null)
+                              }
+                              onViewDetails={() => setDetailsMeeting(meeting)}
+                              onRecordAttendance={() =>
+                                setAttendanceMeeting(meeting)
+                              }
+                              onRecordOutcome={() =>
+                                setOutcomeMeeting(meeting)
+                              }
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <OffsetPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={PAGE_SIZE}
+            loading={meetingsQuery.isFetching}
+            onPageChange={setPage}
+            itemLabel="meetings"
+          />
         </div>
       </div>
 
@@ -1383,7 +1748,6 @@ export function SuperAdminMeetingsPanel() {
           }}
         />
       ) : null}
-
-    </SuperAdminSectionChrome>
+    </section>
   );
 }

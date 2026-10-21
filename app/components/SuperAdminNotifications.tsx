@@ -162,6 +162,7 @@ export function SuperAdminNotifications({
 
   useEffect(() => {
     if (!open) return;
+    window.dispatchEvent(new CustomEvent("dealio:sa-overlay-open"));
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };

@@ -9,9 +9,10 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  CreditCard,
   LayoutDashboard,
   LogOut,
-  ScanLine,
+  Phone,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -49,6 +50,18 @@ const NAV_ITEMS: NavItem[] = [
     activeMatch: "prefix",
   },
   {
+    href: "/admin/plans",
+    label: "Plans",
+    icon: CreditCard,
+    activeMatch: "prefix",
+  },
+  {
+    href: "/admin/twilio",
+    label: "Twilio",
+    icon: Phone,
+    activeMatch: "prefix",
+  },
+  {
     href: "/admin/meeting-requests",
     label: "Meeting requests",
     icon: CalendarDays,
@@ -58,12 +71,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/customer-onboarding",
     label: "Customer Onboarding",
     icon: ClipboardList,
-    activeMatch: "prefix",
-  },
-  {
-    href: "/admin/onboarding",
-    label: "Setup status",
-    icon: ScanLine,
     activeMatch: "prefix",
   },
 ];

@@ -29,7 +29,7 @@ export const adminQueryKeys = {
     ] as const,
   meetingsSummary: () => [...adminQueryKeys.all, "meetings", "summary"] as const,
   meetings: (
-    scope = "upcoming",
+    scope = "all",
     page = 1,
     search = "",
     limit = 10,
@@ -64,4 +64,8 @@ export const adminQueryKeys = {
     ] as const,
   customerOnboarding: (id: number) =>
     [...adminQueryKeys.customerOnboardingsRoot(), id] as const,
+  subscriptionPlansRoot: () =>
+    [...adminQueryKeys.all, "subscription-plans"] as const,
+  subscriptionPlans: () => [...adminQueryKeys.subscriptionPlansRoot()] as const,
+  twilioDashboard: () => [...adminQueryKeys.all, "twilio", "dashboard"] as const,
 };

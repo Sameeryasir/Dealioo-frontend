@@ -5,7 +5,6 @@ export type BillingCycle = "monthly" | "annual";
 export type PricingTier = {
   price: string;
   period: string;
-  /** Struck-through list price shown next to the discounted `price`. */
   originalPrice: string | null;
   promo: string | null;
   subline: string | null;
@@ -81,7 +80,6 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     name: "Growth Expert",
     badge: "Best ROI",
     tagline: "AI plus a dedicated marketing expert.",
-    // No summary line — Expert Services list is enough on the card.
     description: "",
     monthly: {
       price: "$299",

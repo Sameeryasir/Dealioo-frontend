@@ -3,10 +3,10 @@ import { authAxios } from "@/app/lib/auth-axios";
 import type { PlatformAdminUser } from "@/app/services/admin/get-platform-overview";
 
 export type CreateAdminUserInput = {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
-  password: string;
   roleName: string;
   confirmElevateToSuperAdmin?: boolean;
 };

@@ -14,7 +14,18 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { adminQueryKeys } from "@/app/services/admin/admin-query-keys";
 import { getAdminBusinesses } from "@/app/services/admin/get-admin-businesses";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleOff, Loader2, ScanLine } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  CircleDot,
+  CircleOff,
+  Crown,
+  Hash,
+  Loader2,
+  ScanLine,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 type OnboardingFilter = "all" | "onboarded" | "not_onboarded";
@@ -65,6 +76,7 @@ export function SuperAdminOnboardingPanel() {
   };
   const total = meta?.total ?? 0;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
+  const showingStart = total === 0 ? 0 : (page - 1) * SA_TABLE_PAGE_SIZE + 1;
   const loading = businessesQuery.isLoading || businessesQuery.isFetching;
   const errorMessage = businessesQuery.error
     ? getApiErrorMessage(
@@ -153,56 +165,119 @@ export function SuperAdminOnboardingPanel() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Customer</th>
-                  <th>Owner</th>
-                  <th>Plan</th>
-                  <th>Status</th>
-                  <th>Created</th>
+                  <th style={{ width: "3rem" }}>
+                    <span className={styles.meetingsThWithIcon}>
+                      <Hash
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      <span className="sr-only">Row number</span>
+                    </span>
+                  </th>
+                  <th>
+                    <span className={styles.meetingsThWithIcon}>
+                      <Building2
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      Customer
+                    </span>
+                  </th>
+                  <th>
+                    <span className={styles.meetingsThWithIcon}>
+                      <UserRound
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      Owner
+                    </span>
+                  </th>
+                  <th>
+                    <span className={styles.meetingsThWithIcon}>
+                      <Crown
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      Plan
+                    </span>
+                  </th>
+                  <th>
+                    <span className={styles.meetingsThWithIcon}>
+                      <CircleDot
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      Status
+                    </span>
+                  </th>
+                  <th>
+                    <span className={styles.meetingsThWithIcon}>
+                      <CalendarDays
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      Created
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((business) => (
-                  <tr key={business.id}>
-                    <td>
-                      <div className={styles.bizName}>{business.name}</div>
-                      <div className={styles.bizMeta}>{business.slug}</div>
-                    </td>
-                    <td>
-                      <div className={styles.bizName}>
-                        {business.ownerName || "—"}
-                      </div>
-                      <div className={styles.bizMeta}>
-                        {business.ownerEmail || "—"}
-                      </div>
-                    </td>
-                    <td>{business.planName || "No plan"}</td>
-                    <td>
-                      {business.onboardingCompleted ? (
-                        <span
-                          className={`${styles.statusPill} ${styles.statusActive}`}
-                        >
-                          <CheckCircle2 className="size-3.5" aria-hidden />
-                          Onboarded
+                {items.map((business, index) => {
+                  const rowNumber = showingStart + index;
+                  return (
+                    <tr key={business.id}>
+                      <td>
+                        <span className={styles.usersDirDateMain}>
+                          {rowNumber}.
                         </span>
-                      ) : (
-                        <span
-                          className={`${styles.statusPill} ${styles.statusWarn}`}
-                        >
-                          <CircleOff className="size-3.5" aria-hidden />
-                          Not onboarded
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div className={styles.createdStack}>
-                        <span>{formatRelative(business.createdAt)}</span>
-                        <span className={styles.createdSub}>
-                          {formatAbsoluteDate(business.createdAt)}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>
+                        <div className={styles.bizName}>{business.name}</div>
+                        <div className={styles.bizMeta}>{business.slug}</div>
+                      </td>
+                      <td>
+                        <div className={styles.bizName}>
+                          {business.ownerName || "—"}
+                        </div>
+                        <div className={styles.bizMeta}>
+                          {business.ownerEmail || "—"}
+                        </div>
+                      </td>
+                      <td>{business.planName || "No plan"}</td>
+                      <td>
+                        {business.onboardingCompleted ? (
+                          <span
+                            className={`${styles.statusPill} ${styles.statusActive}`}
+                          >
+                            <CheckCircle2 className="size-3.5" aria-hidden />
+                            Onboarded
+                          </span>
+                        ) : (
+                          <span
+                            className={`${styles.statusPill} ${styles.statusWarn}`}
+                          >
+                            <CircleOff className="size-3.5" aria-hidden />
+                            Not onboarded
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className={styles.createdStack}>
+                          <span>{formatRelative(business.createdAt)}</span>
+                          <span className={styles.createdSub}>
+                            {formatAbsoluteDate(business.createdAt)}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

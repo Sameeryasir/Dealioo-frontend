@@ -6,12 +6,11 @@ import type {
 } from "@/app/services/admin/get-platform-overview";
 
 export type AdminUsersTab =
-  | "all"
   | "active"
   | "inactive"
-  | "admins"
   | "managers"
-  | "viewers";
+  | "staff"
+  | "scanners";
 
 export type AdminUsersSort = "newest" | "oldest" | "name_asc" | "name_desc";
 
@@ -25,12 +24,11 @@ export type AdminUsersSummary = {
   activeSharePct: number;
   inactiveSharePct: number;
   tabs: {
-    all: number;
     active: number;
     inactive: number;
-    admins: number;
     managers: number;
-    viewers: number;
+    staff: number;
+    scanners: number;
   };
 };
 
@@ -55,12 +53,11 @@ const EMPTY_SUMMARY: AdminUsersSummary = {
   activeSharePct: 0,
   inactiveSharePct: 0,
   tabs: {
-    all: 0,
     active: 0,
     inactive: 0,
-    admins: 0,
     managers: 0,
-    viewers: 0,
+    staff: 0,
+    scanners: 0,
   },
 };
 
@@ -97,12 +94,11 @@ function asSummary(raw: unknown): AdminUsersSummary {
     activeSharePct: Number(data.activeSharePct) || 0,
     inactiveSharePct: Number(data.inactiveSharePct) || 0,
     tabs: {
-      all: Number(tabs.all) || 0,
       active: Number(tabs.active) || 0,
       inactive: Number(tabs.inactive) || 0,
-      admins: Number(tabs.admins) || 0,
       managers: Number(tabs.managers) || 0,
-      viewers: Number(tabs.viewers) || 0,
+      staff: Number(tabs.staff) || 0,
+      scanners: Number(tabs.scanners) || 0,
     },
   };
 }
@@ -118,7 +114,7 @@ export async function getAdminUsers(input: {
     const params = new URLSearchParams({
       page: String(input.page),
       limit: String(input.limit),
-      tab: input.tab ?? "all",
+      tab: input.tab ?? "active",
       sort: input.sort ?? "newest",
     });
     if (input.search?.trim()) params.set("search", input.search.trim());

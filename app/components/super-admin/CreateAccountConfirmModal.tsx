@@ -156,7 +156,11 @@ export function CreateAccountConfirmModal({
         <header className={styles.meetingConfirmHeader}>
           <div className={styles.meetingConfirmHeaderMain}>
             <span className={styles.meetingConfirmHeroIcon} aria-hidden>
-              <UserRoundPlus className="size-5" strokeWidth={2.25} />
+              <UserRoundPlus
+                className="size-5"
+                color="#000000"
+                strokeWidth={2.25}
+              />
             </span>
             <div className={styles.meetingConfirmHeaderCopy}>
               <p className={styles.meetingConfirmEyebrow}>Customer onboarding</p>
@@ -185,7 +189,11 @@ export function CreateAccountConfirmModal({
                 className={`${styles.meetingConfirmSectionIcon} ${styles.meetingConfirmSectionIconBlue}`}
                 aria-hidden
               >
-                <UserRound className="size-3.5" strokeWidth={2.25} />
+                <UserRound
+                  className="size-3.5"
+                  color="#000000"
+                  strokeWidth={2.25}
+                />
               </span>
               <h3 className={styles.meetingConfirmSectionTitle}>
                 Customer account
@@ -234,7 +242,11 @@ export function CreateAccountConfirmModal({
                 className={`${styles.meetingConfirmSectionIcon} ${styles.meetingConfirmSectionIconPurple}`}
                 aria-hidden
               >
-                <Store className="size-3.5" strokeWidth={2.25} />
+                <Store
+                  className="size-3.5"
+                  color="#000000"
+                  strokeWidth={2.25}
+                />
               </span>
               <h3 className={styles.meetingConfirmSectionTitle}>Business</h3>
             </div>

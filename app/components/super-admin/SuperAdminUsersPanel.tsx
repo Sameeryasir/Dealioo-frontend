@@ -1,7 +1,12 @@
 "use client";
 
+import {
+  BookMeetingPhoneInput,
+  isValidPhoneNumber,
+} from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import {
   formatAbsoluteDate,
   initialsFromName,
@@ -13,7 +18,6 @@ import { getSetupUser } from "@/app/lib/setup-user";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { adminQueryKeys } from "@/app/services/admin/admin-query-keys";
 import { createAdminUser } from "@/app/services/admin/create-admin-user";
-import { getAdminRoles } from "@/app/services/admin/get-admin-roles";
 import {
   getAdminUsers,
   type AdminUsersSort,
@@ -35,11 +39,11 @@ import {
   Briefcase,
   Box,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
+  CircleDot,
   Clock3,
   Crown,
   Filter,
+  Hash,
   Loader2,
   Lock,
   Mail,
@@ -60,7 +64,6 @@ import {
 import {
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -75,26 +78,21 @@ type UserDraft = {
   roleName: string;
 };
 
-type CreateDraft = UserDraft & {
-  password: string;
-  confirmElevateToSuperAdmin: boolean;
+type CreateDraft = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
 };
 
-function isStrongAdminPassword(password: string): boolean {
-  return (
-    password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)
-  );
-}
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+const PAGE_SIZE = 10;
 
 const TAB_OPTIONS: Array<{ id: AdminUsersTab; label: string }> = [
-  { id: "all", label: "All Users" },
   { id: "active", label: "Active" },
   { id: "inactive", label: "Inactive" },
-  { id: "admins", label: "Admins" },
   { id: "managers", label: "Managers" },
-  { id: "viewers", label: "Viewers" },
+  { id: "staff", label: "Staff" },
+  { id: "scanners", label: "Scanner" },
 ];
 
 function toDraft(user: PlatformAdminUser): UserDraft {
@@ -352,20 +350,17 @@ function UserDetailsModal({
     label: string;
     value: string;
     icon: typeof Mail;
-    tone: "blue" | "green" | "purple";
   }> = [
-    { label: "Email", value: user.email || "—", icon: Mail, tone: "blue" },
+    { label: "Email", value: user.email || "—", icon: Mail },
     {
       label: "Phone",
       value: user.phone?.trim() || "Not set",
       icon: Phone,
-      tone: "blue",
     },
     {
       label: "Joined on",
       value: formatAbsoluteDate(user.createdAt),
       icon: CalendarDays,
-      tone: "green",
     },
     {
       label: "Last active",
@@ -373,7 +368,6 @@ function UserDetailsModal({
         ? formatAbsoluteDate(user.lastLoginAt)
         : "Never",
       icon: Clock3,
-      tone: "purple",
     },
   ];
 
@@ -381,25 +375,21 @@ function UserDetailsModal({
     label: string;
     value: string;
     icon: typeof Box;
-    tone: "blue" | "green" | "purple";
   }> = [
     {
       label: "Provider",
       value: (user.provider || "—").toUpperCase(),
       icon: Box,
-      tone: "blue",
     },
     {
       label: "Email verified",
       value: user.emailVerified ? "Verified" : "Not verified",
       icon: ShieldCheck,
-      tone: "green",
     },
     {
       label: "Businesses",
       value: String(businesses.length),
       icon: Users,
-      tone: "purple",
     },
   ];
 
@@ -450,11 +440,15 @@ function UserDetailsModal({
                   <span className={styles.usersDirStatusDot} aria-hidden />
                   {user.isActive ? "Active" : "Inactive"}
                 </span>
-                <span className={styles.usersDirDetailChipRole}>
+                <span
+                  className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                >
                   <Shield className="size-3" strokeWidth={2.5} aria-hidden />
                   {user.roleName || "No role"}
                 </span>
-                <span className={styles.usersDirDetailChipPlan}>
+                <span
+                  className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                >
                   <Briefcase className="size-3" strokeWidth={2.5} aria-hidden />
                   {user.planName || "No plan"}
                 </span>
@@ -463,16 +457,10 @@ function UserDetailsModal({
           </div>
 
           <div className={styles.usersDirDetailStats}>
-            {summaryStats.map(({ label, value, icon: Icon, tone }) => (
+            {summaryStats.map(({ label, value, icon: Icon }) => (
               <div key={label} className={styles.usersDirDetailStat}>
                 <span
-                  className={`${styles.usersDirDetailStatIcon} ${
-                    tone === "green"
-                      ? styles.usersDirDetailToneGreen
-                      : tone === "purple"
-                        ? styles.usersDirDetailTonePurple
-                        : styles.usersDirDetailToneBlue
-                  }`}
+                  className={`${styles.usersDirDetailStatIcon} ${styles.usersDirDetailToneBlue}`}
                   aria-hidden
                 >
                   <Icon className="size-3.5" strokeWidth={2.25} />
@@ -490,32 +478,24 @@ function UserDetailsModal({
               Contact & activity
             </h4>
             <div className={styles.usersDirDetailInfoGrid}>
-              {contactAndActivityRows.map(
-                ({ label, value, icon: Icon, tone }) => (
-                  <div key={label} className={styles.usersDirDetailInfoRow}>
-                    <span
-                      className={`${styles.usersDirDetailInfoIcon} ${
-                        tone === "green"
-                          ? styles.usersDirDetailToneGreen
-                          : tone === "purple"
-                            ? styles.usersDirDetailTonePurple
-                            : styles.usersDirDetailToneBlue
-                      }`}
-                      aria-hidden
-                    >
-                      <Icon className="size-3.5" strokeWidth={2.25} />
+              {contactAndActivityRows.map(({ label, value, icon: Icon }) => (
+                <div key={label} className={styles.usersDirDetailInfoRow}>
+                  <span
+                    className={`${styles.usersDirDetailInfoIcon} ${styles.usersDirDetailToneBlue}`}
+                    aria-hidden
+                  >
+                    <Icon className="size-3.5" strokeWidth={2.25} />
+                  </span>
+                  <div className={styles.usersDirDetailInfoCopy}>
+                    <span className={styles.usersDirDetailInfoLabel}>
+                      {label}
                     </span>
-                    <div className={styles.usersDirDetailInfoCopy}>
-                      <span className={styles.usersDirDetailInfoLabel}>
-                        {label}
-                      </span>
-                      <span className={styles.usersDirDetailInfoValue}>
-                        {value}
-                      </span>
-                    </div>
+                    <span className={styles.usersDirDetailInfoValue}>
+                      {value}
+                    </span>
                   </div>
-                ),
-              )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -534,7 +514,9 @@ function UserDetailsModal({
                     <span className={styles.usersDirDetailBusinessName}>
                       {business.name}
                     </span>
-                    <span className={styles.usersDirDetailBusinessRolePill}>
+                    <span
+                      className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                    >
                       <Crown className="size-3" strokeWidth={2.5} aria-hidden />
                       {business.role}
                     </span>
@@ -604,105 +586,151 @@ function UserManageModal({
       }}
     >
       <section
-        className={styles.userControl}
+        className={`${styles.userControl} ${styles.userControlAdd}`}
         role="dialog"
         aria-modal="true"
-        aria-label={`Manage ${user.name}`}
+        aria-labelledby="sa-manage-user-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={styles.userControlHead}>
-          <div className={styles.userCell}>
-            <UserAvatar user={user} />
-            <div className={styles.userCellText}>
-              <h3 className={styles.userControlTitle}>Manage user</h3>
-              <p className={styles.userControlSub}>
-                Update profile details for this account.
-              </p>
+        <button
+          type="button"
+          className={styles.userControlClose}
+          onClick={onClose}
+          disabled={saving}
+          aria-label="Close"
+        >
+          <X className="size-4" strokeWidth={2.25} aria-hidden />
+        </button>
+
+        <div className={styles.userControlAddHead}>
+          <span className={styles.userControlAddHeroIcon} aria-hidden>
+            <UserCog className="size-6" color="#1877f2" strokeWidth={2.25} />
+          </span>
+          <div>
+            <h3 id="sa-manage-user-title" className={styles.userControlTitle}>
+              Manage user
+            </h3>
+            <p className={styles.userControlSub}>
+              Update profile details for this account.
+            </p>
+            <div className={styles.userControlAddMeta}>
+              <span className={styles.userControlAddMetaChip}>
+                <User className="size-3" strokeWidth={2.25} aria-hidden />
+                {user.name || user.email}
+              </span>
+              {user.roleName ? (
+                <span className={styles.userControlAddMetaChip}>
+                  <Shield className="size-3" strokeWidth={2.25} aria-hidden />
+                  {user.roleName}
+                </span>
+              ) : null}
             </div>
           </div>
-          <button
-            type="button"
-            className={styles.userControlClose}
-            onClick={onClose}
-            disabled={saving}
-          >
-            Close
-          </button>
         </div>
 
-        <div className={styles.userControlGrid}>
-          <div className={styles.userControlField}>
-            <label htmlFor={`sa-user-name-${user.id}`}>
-              <User className="size-3.5" strokeWidth={2.25} aria-hidden />
-              Name
-            </label>
-            <input
-              id={`sa-user-name-${user.id}`}
-              value={draft.name}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              disabled={saving}
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor={`sa-user-email-${user.id}`}>
-              <Mail className="size-3.5" strokeWidth={2.25} aria-hidden />
-              Email
-            </label>
-            <input
-              id={`sa-user-email-${user.id}`}
-              type="email"
-              value={draft.email}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  email: event.target.value,
-                }))
-              }
-              disabled={saving}
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor={`sa-user-phone-${user.id}`}>
-              <Phone className="size-3.5" strokeWidth={2.25} aria-hidden />
-              Phone
-            </label>
-            <input
-              id={`sa-user-phone-${user.id}`}
-              value={draft.phone}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  phone: event.target.value,
-                }))
-              }
-              disabled={saving}
-              placeholder="Optional"
-            />
+        <div className={styles.userControlAddBody}>
+          <div className={styles.userControlAddCard}>
+            <p className={styles.userControlAddSectionLabel}>Profile</p>
+            <div className={styles.userControlField}>
+              <label htmlFor={`sa-user-name-${user.id}`}>
+                <User
+                  className={`size-3.5 ${styles.userControlFieldIcon}`}
+                  color="#000000"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Name
+              </label>
+              <input
+                id={`sa-user-name-${user.id}`}
+                value={draft.name}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                disabled={saving}
+                placeholder="Full name"
+                autoComplete="name"
+              />
+            </div>
+
+            <p className={styles.userControlAddSectionLabel}>Contact</p>
+            <div className={styles.userControlField}>
+              <label htmlFor={`sa-user-email-${user.id}`}>
+                <Mail
+                  className={`size-3.5 ${styles.userControlFieldIcon}`}
+                  color="#000000"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Email
+              </label>
+              <input
+                id={`sa-user-email-${user.id}`}
+                type="email"
+                value={draft.email}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                disabled={saving}
+                placeholder="name@company.com"
+                autoComplete="email"
+              />
+            </div>
+            <div className={styles.userControlField}>
+              <label>
+                <Phone
+                  className={`size-3.5 ${styles.userControlFieldIcon}`}
+                  color="#000000"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Phone
+              </label>
+              <div className={styles.userControlAddPhoneBox}>
+                <BookMeetingPhoneInput
+                  value={draft.phone}
+                  onChange={(phone) =>
+                    setDraft((current) => ({
+                      ...current,
+                      phone,
+                    }))
+                  }
+                  variant="boxed"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         <div className={styles.userControlActions}>
-          <button
-            type="button"
-            className={styles.userControlSecondary}
-            disabled={saving}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.userControlPrimary}
-            disabled={saving}
-            onClick={() => onSave(draft)}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          <p className={styles.userControlAddFooterNote}>
+            Required: name and email.
+          </p>
+          <div className={styles.userControlAddFooterBtns}>
+            <button
+              type="button"
+              className={styles.userControlSecondary}
+              disabled={saving}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.userControlPrimary}
+              disabled={saving}
+              onClick={() => onSave(draft)}
+            >
+              <Pencil className="size-4" strokeWidth={2.4} aria-hidden />
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
         </div>
       </section>
     </div>
@@ -710,28 +738,20 @@ function UserManageModal({
 }
 
 function AddUserModal({
-  roles,
   saving,
   onClose,
   onSave,
 }: {
-  roles: string[];
   saving: boolean;
   onClose: () => void;
   onSave: (draft: CreateDraft) => void;
 }) {
   const [draft, setDraft] = useState<CreateDraft>({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
-    password: "",
-    roleName: roles[0] || "Admin",
-    confirmElevateToSuperAdmin: false,
   });
-  const roleOptions =
-    roles.length > 0 ? roles : ["Admin", "Member", "Super Admin"];
-  const elevatingToSuperAdmin =
-    draft.roleName.trim().toLowerCase() === "super admin";
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -750,152 +770,176 @@ function AddUserModal({
       }}
     >
       <section
-        className={styles.userControl}
+        className={`${styles.userControl} ${styles.userControlAdd}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Add user"
+        aria-labelledby="sa-add-user-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={styles.userControlHead}>
+        <button
+          type="button"
+          className={styles.userControlClose}
+          onClick={onClose}
+          disabled={saving}
+          aria-label="Close"
+        >
+          <X className="size-4" strokeWidth={2.25} aria-hidden />
+        </button>
+
+        <div className={styles.userControlAddHead}>
+          <span className={styles.userControlAddHeroIcon} aria-hidden>
+            <UserPlus className="size-6" color="#1877f2" strokeWidth={2.25} />
+          </span>
           <div>
-            <h3 className={styles.userControlTitle}>Add user</h3>
+            <h3 id="sa-add-user-title" className={styles.userControlTitle}>
+              Add user
+            </h3>
             <p className={styles.userControlSub}>
-              Create a Dealioo account and assign a platform role.
+              Create a Dealioo Admin account. They will get an email to set
+              their password.
             </p>
+            <div className={styles.userControlAddMeta}>
+              <span className={styles.userControlAddMetaChip}>
+                <Shield className="size-3" strokeWidth={2.25} aria-hidden />
+                Admin role
+              </span>
+              <span className={styles.userControlAddMetaChip}>
+                <Mail className="size-3" strokeWidth={2.25} aria-hidden />
+                Set-password email
+              </span>
+            </div>
           </div>
-          <button
-            type="button"
-            className={styles.userControlClose}
-            onClick={onClose}
-            disabled={saving}
-          >
-            Close
-          </button>
         </div>
 
-        <div className={styles.userControlGrid}>
-          <div className={styles.userControlField}>
-            <label htmlFor="sa-add-user-name">Name</label>
-            <input
-              id="sa-add-user-name"
-              value={draft.name}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              disabled={saving}
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor="sa-add-user-email">Email</label>
-            <input
-              id="sa-add-user-email"
-              type="email"
-              value={draft.email}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  email: event.target.value,
-                }))
-              }
-              disabled={saving}
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor="sa-add-user-phone">Phone</label>
-            <input
-              id="sa-add-user-phone"
-              value={draft.phone}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  phone: event.target.value,
-                }))
-              }
-              disabled={saving}
-              placeholder="Optional"
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor="sa-add-user-password">Password</label>
-            <input
-              id="sa-add-user-password"
-              type="password"
-              value={draft.password}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  password: event.target.value,
-                }))
-              }
-              disabled={saving}
-              placeholder="8+ chars, 1 uppercase, 1 number"
-            />
-          </div>
-          <div className={styles.userControlField}>
-            <label htmlFor="sa-add-user-role">Role</label>
-            <select
-              id="sa-add-user-role"
-              value={draft.roleName}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  roleName: event.target.value,
-                  confirmElevateToSuperAdmin: false,
-                }))
-              }
-              disabled={saving}
-            >
-              {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </div>
-          {elevatingToSuperAdmin ? (
-            <div
-              className={styles.userControlField}
-              style={{ gridColumn: "1 / -1" }}
-            >
-              <label htmlFor="sa-add-user-confirm-sa">
+        <div className={styles.userControlAddBody}>
+          <div className={styles.userControlAddCard}>
+            <p className={styles.userControlAddSectionLabel}>Profile</p>
+            <div className={styles.userControlAddNameRow}>
+              <div className={styles.userControlField}>
+                <label htmlFor="sa-add-user-first-name">
+                  <User
+                    className={`size-3.5 ${styles.userControlFieldIcon}`}
+                    color="#000000"
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                  First name
+                </label>
                 <input
-                  id="sa-add-user-confirm-sa"
-                  type="checkbox"
-                  checked={draft.confirmElevateToSuperAdmin}
+                  id="sa-add-user-first-name"
+                  value={draft.firstName}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
-                      confirmElevateToSuperAdmin: event.target.checked,
+                      firstName: event.target.value,
                     }))
                   }
                   disabled={saving}
+                  placeholder="First name"
+                  autoComplete="given-name"
                 />
-                I confirm creating another Super Admin account
-              </label>
+              </div>
+              <div className={styles.userControlField}>
+                <label htmlFor="sa-add-user-last-name">
+                  <User
+                    className={`size-3.5 ${styles.userControlFieldIcon}`}
+                    color="#000000"
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                  Last name
+                </label>
+                <input
+                  id="sa-add-user-last-name"
+                  value={draft.lastName}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      lastName: event.target.value,
+                    }))
+                  }
+                  disabled={saving}
+                  placeholder="Last name"
+                  autoComplete="family-name"
+                />
+              </div>
             </div>
-          ) : null}
+
+            <p className={styles.userControlAddSectionLabel}>Contact</p>
+            <div className={styles.userControlField}>
+              <label htmlFor="sa-add-user-email">
+                <Mail
+                  className={`size-3.5 ${styles.userControlFieldIcon}`}
+                  color="#000000"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Email
+              </label>
+              <input
+                id="sa-add-user-email"
+                type="email"
+                value={draft.email}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                disabled={saving}
+                placeholder="name@company.com"
+                autoComplete="email"
+              />
+            </div>
+            <div className={styles.userControlField}>
+              <label>
+                <Phone
+                  className={`size-3.5 ${styles.userControlFieldIcon}`}
+                  color="#000000"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Phone
+              </label>
+              <div className={styles.userControlAddPhoneBox}>
+                <BookMeetingPhoneInput
+                  value={draft.phone}
+                  onChange={(phone) =>
+                    setDraft((current) => ({
+                      ...current,
+                      phone,
+                    }))
+                  }
+                  variant="boxed"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className={styles.userControlActions}>
-          <button
-            type="button"
-            className={styles.userControlSecondary}
-            disabled={saving}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.userControlPrimary}
-            disabled={saving}
-            onClick={() => onSave(draft)}
-          >
-            {saving ? "Creating…" : "Create user"}
-          </button>
+          <p className={styles.userControlAddFooterNote}>
+            Required: first name, last name, and email.
+          </p>
+          <div className={styles.userControlAddFooterBtns}>
+            <button
+              type="button"
+              className={styles.userControlSecondary}
+              disabled={saving}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.userControlPrimary}
+              disabled={saving}
+              onClick={() => onSave(draft)}
+            >
+              <UserPlus className="size-4" strokeWidth={2.4} aria-hidden />
+              {saving ? "Creating…" : "Create user"}
+            </button>
+          </div>
         </div>
       </section>
     </div>
@@ -907,16 +951,14 @@ export function SuperAdminUsersPanel() {
   const [query, setQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
-  const [tab, setTab] = useState<AdminUsersTab>("all");
+  const [tab, setTab] = useState<AdminUsersTab>("active");
   const [sort, setSort] = useState<AdminUsersSort>("newest");
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [manageUserId, setManageUserId] = useState<number | null>(null);
   const [detailsUserId, setDetailsUserId] = useState<number | null>(null);
   const [statusUserId, setStatusUserId] = useState<number | null>(null);
   const [menuUserId, setMenuUserId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [filterHintOpen, setFilterHintOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -926,18 +968,41 @@ export function SuperAdminUsersPanel() {
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  useEffect(() => {
+    const onOverlayOpen = () => {
+      setFilterOpen(false);
+      setMenuUserId(null);
+    };
+    window.addEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    return () => {
+      window.removeEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(`.${styles.usersDirFilterMenu}`)) return;
+      if (target?.closest?.(`.${styles.usersDirFilterBtn}`)) return;
+      setFilterOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [filterOpen]);
+
   const usersQuery = useQuery({
     queryKey: adminQueryKeys.users(
       page,
       debouncedSearch,
-      pageSize,
+      PAGE_SIZE,
       tab,
       sort,
     ),
     queryFn: () =>
       getAdminUsers({
         page,
-        limit: pageSize,
+        limit: PAGE_SIZE,
         search: debouncedSearch,
         tab,
         sort,
@@ -945,13 +1010,6 @@ export function SuperAdminUsersPanel() {
     enabled: hasAuthSession(),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
-  });
-
-  const rolesQuery = useQuery({
-    queryKey: adminQueryKeys.roles(),
-    queryFn: getAdminRoles,
-    enabled: hasAuthSession(),
-    staleTime: 5 * 60_000,
   });
 
   const updateMutation = useMutation({
@@ -979,7 +1037,7 @@ export function SuperAdminUsersPanel() {
   const createMutation = useMutation({
     mutationFn: createAdminUser,
     onSuccess: async () => {
-      toast.success("User created.");
+      toast.success("User created. A set-password email was sent.");
       setAddOpen(false);
       await queryClient.invalidateQueries({
         queryKey: adminQueryKeys.usersRoot(),
@@ -995,6 +1053,7 @@ export function SuperAdminUsersPanel() {
   const summary = usersQuery.data?.summary;
   const total = meta?.total ?? 0;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
+  const showingStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const loading = usersQuery.isLoading || usersQuery.isFetching;
   const errorMessage = usersQuery.error
     ? getApiErrorMessage(usersQuery.error, "Could not load users.")
@@ -1002,19 +1061,7 @@ export function SuperAdminUsersPanel() {
   const manageUser = items.find((user) => user.id === manageUserId) ?? null;
   const detailsUser = items.find((user) => user.id === detailsUserId) ?? null;
   const statusUser = items.find((user) => user.id === statusUserId) ?? null;
-  const roleNames = (rolesQuery.data ?? []).map((role) => role.name);
   const nextActive = statusUser ? !statusUser.isActive : false;
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    const start = Math.max(1, Math.min(page - 2, totalPages - maxButtons + 1));
-    const end = Math.min(totalPages, start + maxButtons - 1);
-    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
-  }, [page, totalPages]);
-  const showingStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const showingEnd = Math.min(page * pageSize, total);
-  const allSelected =
-    items.length > 0 && items.every((user) => selectedIds.includes(user.id));
-
   const stats = [
     {
       label: "Total Users",
@@ -1058,7 +1105,10 @@ export function SuperAdminUsersPanel() {
   ];
 
   return (
-    <section className={`${styles.page} ${styles.usersDir}`} aria-label="Users">
+    <section
+      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions}`}
+      aria-label="Users"
+    >
       <div className={styles.inner}>
         <div className={styles.usersDirHero}>
           <div className={styles.heroCopy}>
@@ -1085,18 +1135,52 @@ export function SuperAdminUsersPanel() {
               <button
                 type="button"
                 className={styles.usersDirFilterBtn}
-                aria-expanded={filterHintOpen}
-                onClick={() => setFilterHintOpen((open) => !open)}
+                aria-expanded={filterOpen}
+                aria-haspopup="menu"
+                onClick={() => setFilterOpen((open) => !open)}
               >
                 <Filter className="size-4" strokeWidth={2.25} aria-hidden />
                 Filter
+                {tab !== "active" ? (
+                  <span className="ml-1 text-[0.72rem] font-semibold text-slate-500">
+                    · {TAB_OPTIONS.find((option) => option.id === tab)?.label}
+                  </span>
+                ) : null}
               </button>
-              {filterHintOpen ? (
-                <div className={styles.userMenuDropdown} role="menu">
-                  <p className="m-0 px-2.5 py-2 text-[0.75rem] font-medium leading-snug text-slate-500">
-                    Use the tabs below to filter by status or role. Search also
-                    matches name, email, and role.
-                  </p>
+              {filterOpen ? (
+                <div className={styles.usersDirFilterMenu} role="menu">
+                  {TAB_OPTIONS.map((option) => {
+                    const count = summary?.tabs[option.id] ?? 0;
+                    const selected = tab === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selected}
+                        className={`${styles.usersDirFilterMenuItem} ${
+                          selected ? styles.usersDirFilterMenuItemSelected : ""
+                        }`}
+                        onClick={() => {
+                          setTab(option.id);
+                          setPage(1);
+                          setFilterOpen(false);
+                        }}
+                      >
+                        <span>
+                          {option.label}{" "}
+                          <span className={styles.usersDirFilterMenuCount}>
+                            ({count})
+                          </span>
+                        </span>
+                        {selected ? (
+                          <span className={styles.usersDirFilterMenuApplied}>
+                            Applied
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>
@@ -1153,30 +1237,11 @@ export function SuperAdminUsersPanel() {
         </div>
 
         <div className={styles.usersDirToolbar}>
-          <div className={styles.usersDirTabs} role="tablist" aria-label="User filters">
-            {TAB_OPTIONS.map((option) => {
-              const count = summary?.tabs[option.id] ?? 0;
-              const active = tab === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`${styles.usersDirTab} ${
-                    active ? styles.usersDirTabActive : ""
-                  }`}
-                  onClick={() => {
-                    setTab(option.id);
-                    setPage(1);
-                    setSelectedIds([]);
-                  }}
-                >
-                  {option.label} ({count})
-                </button>
-              );
-            })}
-          </div>
+          <p className={styles.usersDirFooterMeta}>
+            Showing{" "}
+            {TAB_OPTIONS.find((option) => option.id === tab)?.label ?? "Active"}{" "}
+            users
+          </p>
 
           <label className={styles.usersDirSort}>
             <ArrowUpDown className="size-3.5 opacity-70" aria-hidden />
@@ -1211,57 +1276,101 @@ export function SuperAdminUsersPanel() {
               <table className={styles.usersDirTable}>
                 <thead>
                   <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        className={styles.usersDirCheck}
-                        checked={allSelected}
-                        aria-label="Select all users on this page"
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            setSelectedIds(items.map((user) => user.id));
-                          } else {
-                            setSelectedIds([]);
-                          }
-                        }}
-                      />
+                    <th style={{ width: "3rem" }}>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Hash
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span className="sr-only">Row number</span>
+                      </span>
                     </th>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Plan</th>
-                    <th>Status</th>
-                    <th>Joined On</th>
-                    <th>Last Active</th>
                     <th>
-                      <span className="sr-only">Actions</span>
+                      <span className={styles.meetingsThWithIcon}>
+                        <User
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        User
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Shield
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Role
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Crown
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Plan
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CircleDot
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Status
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CalendarDays
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Joined On
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Clock3
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Last Active
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <MoreVertical
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span className="sr-only">Actions</span>
+                      </span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((user) => {
-                    const checked = selectedIds.includes(user.id);
+                  {items.map((user, index) => {
+                    const rowNumber = showingStart + index;
                     return (
                       <tr
                         key={user.id}
                         className={styles.usersDirRowClickable}
                         onClick={() => setDetailsUserId(user.id)}
                       >
-                        <td
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            className={styles.usersDirCheck}
-                            checked={checked}
-                            aria-label={`Select ${user.name || user.email}`}
-                            onChange={(event) => {
-                              setSelectedIds((current) =>
-                                event.target.checked
-                                  ? [...current, user.id]
-                                  : current.filter((id) => id !== user.id),
-                              );
-                            }}
-                          />
+                        <td>
+                          <span className={styles.usersDirDateMain}>
+                            {rowNumber}.
+                          </span>
                         </td>
                         <td>
                           <div className={styles.userCell}>
@@ -1275,18 +1384,12 @@ export function SuperAdminUsersPanel() {
                           </div>
                         </td>
                         <td>
-                          <span className={styles.usersDirRolePill}>
-                            <Shield className="size-3" strokeWidth={2.5} aria-hidden />
+                          <span className={styles.usersDirDateMain}>
                             {user.roleName || "—"}
                           </span>
                         </td>
                         <td>
-                          <span className={styles.usersDirPlanPill}>
-                            <Briefcase
-                              className="size-3"
-                              strokeWidth={2.5}
-                              aria-hidden
-                            />
+                          <span className={styles.usersDirDateMain}>
                             {user.planName || "No plan"}
                           </span>
                         </td>
@@ -1345,63 +1448,15 @@ export function SuperAdminUsersPanel() {
             )}
           </div>
 
-          <div className={styles.usersDirFooter}>
-            <p className={styles.usersDirFooterMeta}>
-              Showing {showingStart}-{showingEnd} of {total} users
-            </p>
-            <div className={styles.usersDirPager}>
-              <button
-                type="button"
-                className={styles.usersDirPageBtn}
-                disabled={loading || page <= 1}
-                aria-label="Previous page"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                <ChevronLeft className="size-4" aria-hidden />
-              </button>
-              {pageNumbers.map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  className={`${styles.usersDirPageBtn} ${
-                    pageNumber === page ? styles.usersDirPageBtnActive : ""
-                  }`}
-                  disabled={loading}
-                  onClick={() => setPage(pageNumber)}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button
-                type="button"
-                className={styles.usersDirPageBtn}
-                disabled={loading || page >= totalPages}
-                aria-label="Next page"
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-              >
-                <ChevronRight className="size-4" aria-hidden />
-              </button>
-              <select
-                className={styles.usersDirPageSize}
-                value={pageSize}
-                aria-label="Rows per page"
-                onChange={(event) => {
-                  setPageSize(
-                    Number(event.target.value) as (typeof PAGE_SIZE_OPTIONS)[number],
-                  );
-                  setPage(1);
-                }}
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    {size} / page
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <OffsetPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={PAGE_SIZE}
+            loading={loading}
+            onPageChange={setPage}
+            itemLabel="users"
+          />
         </div>
       </div>
 
@@ -1421,12 +1476,21 @@ export function SuperAdminUsersPanel() {
           saving={updateMutation.isPending}
           onClose={() => setManageUserId(null)}
           onSave={(draft) => {
+            if (!draft.name.trim() || !draft.email.trim()) {
+              toast.error("Name and email are required.");
+              return;
+            }
+            const phone = draft.phone.trim();
+            if (phone && !isValidPhoneNumber(phone)) {
+              toast.error("Enter a valid phone number, or leave it empty.");
+              return;
+            }
             updateMutation.mutate({
               userId: manageUser.id,
               input: {
                 name: draft.name.trim(),
                 email: draft.email.trim(),
-                phone: draft.phone.trim(),
+                phone,
               },
             });
           }}
@@ -1435,39 +1499,28 @@ export function SuperAdminUsersPanel() {
 
       {addOpen ? (
         <AddUserModal
-          roles={roleNames}
           saving={createMutation.isPending}
           onClose={() => setAddOpen(false)}
           onSave={(draft) => {
-            if (!draft.name.trim() || !draft.email.trim() || !draft.password) {
-              toast.error("Name, email, and password are required.");
-              return;
-            }
-            if (!isStrongAdminPassword(draft.password)) {
-              toast.error(
-                "Password must be at least 8 characters and include an uppercase letter and a number.",
-              );
-              return;
-            }
             if (
-              draft.roleName.trim().toLowerCase() === "super admin" &&
-              !draft.confirmElevateToSuperAdmin
+              !draft.firstName.trim() ||
+              !draft.lastName.trim() ||
+              !draft.email.trim()
             ) {
-              toast.error(
-                "Confirm Super Admin assignment before creating this user.",
-              );
+              toast.error("First name, last name, and email are required.");
+              return;
+            }
+            const phone = draft.phone.trim();
+            if (phone && !isValidPhoneNumber(phone)) {
+              toast.error("Enter a valid phone number, or leave it empty.");
               return;
             }
             createMutation.mutate({
-              name: draft.name.trim(),
+              firstName: draft.firstName.trim(),
+              lastName: draft.lastName.trim(),
               email: draft.email.trim(),
-              phone: draft.phone.trim() || undefined,
-              password: draft.password,
-              roleName: draft.roleName,
-              confirmElevateToSuperAdmin:
-                draft.roleName.trim().toLowerCase() === "super admin"
-                  ? true
-                  : undefined,
+              phone: phone || undefined,
+              roleName: "Admin",
             });
           }}
         />

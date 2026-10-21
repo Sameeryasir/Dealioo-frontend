@@ -1,6 +1,7 @@
 "use client";
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
 import {
   CreateAccountConfirmModal,
@@ -33,11 +34,16 @@ import {
 } from "@tanstack/react-query";
 import {
   Building2,
-  ChevronLeft,
-  ChevronRight,
+  CalendarDays,
+  CircleDot,
   ClipboardList,
+  Clock3,
+  Filter,
+  Hash,
+  MoreVertical,
   Rocket,
   Search,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,6 +51,12 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type AccountTab = "all" | "ready" | "created";
+
+const TAB_OPTIONS: Array<{ id: AccountTab; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "ready", label: "Ready to create" },
+  { id: "created", label: "Account created" },
+];
 
 function isWonDeal(meeting: AdminMeetingRequest): boolean {
   return (
@@ -77,6 +89,9 @@ function OnboardingTableSkeleton({ rows = 8 }: { rows?: number }) {
     <table className={styles.usersDirTable} aria-busy="true">
       <thead>
         <tr>
+          <th style={{ width: "3rem" }}>
+            <Skeleton className="h-3 w-4" />
+          </th>
           {Array.from({ length: 6 }).map((_, index) => (
             <th key={index}>
               <Skeleton className="h-3 w-16" />
@@ -87,6 +102,9 @@ function OnboardingTableSkeleton({ rows = 8 }: { rows?: number }) {
       <tbody>
         {Array.from({ length: rows }).map((_, index) => (
           <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-5" />
+            </td>
             <td>
               <Skeleton className="h-4 w-28" />
               <Skeleton className="mt-1.5 h-3 w-36" />
@@ -120,7 +138,8 @@ export function SuperAdminCustomerOnboardingPanel() {
   const [query, setQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<AccountTab>("ready");
+  const [tab, setTab] = useState<AccountTab>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [createAccountMeeting, setCreateAccountMeeting] =
     useState<AdminMeetingRequest | null>(null);
   const [existingUserConflict, setExistingUserConflict] =
@@ -133,6 +152,26 @@ export function SuperAdminCustomerOnboardingPanel() {
     }, 250);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    const onOverlayOpen = () => setFilterOpen(false);
+    window.addEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    return () => {
+      window.removeEventListener("dealio:sa-overlay-open", onOverlayOpen);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(`.${styles.usersDirFilterMenu}`)) return;
+      if (target?.closest?.(`.${styles.usersDirFilterBtn}`)) return;
+      setFilterOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [filterOpen]);
 
   const meetingsQuery = useQuery({
     queryKey: adminQueryKeys.meetings("all", 1, "", 200, "newest"),
@@ -178,6 +217,7 @@ export function SuperAdminCustomerOnboardingPanel() {
     (safePage - 1) * SA_TABLE_PAGE_SIZE,
     safePage * SA_TABLE_PAGE_SIZE,
   );
+  const showingStart = total === 0 ? 0 : (safePage - 1) * SA_TABLE_PAGE_SIZE + 1;
 
   const loading = meetingsQuery.isLoading || meetingsQuery.isFetching;
   const errorMessage = meetingsQuery.error
@@ -186,19 +226,6 @@ export function SuperAdminCustomerOnboardingPanel() {
         "Could not load customer onboarding.",
       )
     : null;
-
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    const start = Math.max(
-      1,
-      Math.min(safePage - 2, totalPages - maxButtons + 1),
-    );
-    const end = Math.min(totalPages, start + maxButtons - 1);
-    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
-  }, [safePage, totalPages]);
-
-  const showingStart = total === 0 ? 0 : (safePage - 1) * SA_TABLE_PAGE_SIZE + 1;
-  const showingEnd = Math.min(safePage * SA_TABLE_PAGE_SIZE, total);
 
   const startMutation = useMutation({
     mutationFn: ({
@@ -287,15 +314,15 @@ export function SuperAdminCustomerOnboardingPanel() {
     setCreateAccountMeeting(meeting);
   };
 
-  const tabs: Array<{ id: AccountTab; label: string; count: number }> = [
-    { id: "ready", label: "Ready to create", count: counts.ready },
-    { id: "created", label: "Account created", count: counts.created },
-    { id: "all", label: "All", count: counts.all },
-  ];
+  const tabCounts: Record<AccountTab, number> = {
+    all: counts.all,
+    ready: counts.ready,
+    created: counts.created,
+  };
 
   return (
     <section
-      className={`${styles.page} ${styles.usersDir}`}
+      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions}`}
       aria-label="Customer Onboarding"
     >
       <div className={styles.inner}>
@@ -319,6 +346,59 @@ export function SuperAdminCustomerOnboardingPanel() {
                 aria-label="Search customer onboarding"
               />
             </label>
+            <div className="relative">
+              <button
+                type="button"
+                className={styles.usersDirFilterBtn}
+                aria-expanded={filterOpen}
+                aria-haspopup="menu"
+                onClick={() => setFilterOpen((open) => !open)}
+              >
+                <Filter className="size-4" strokeWidth={2.25} aria-hidden />
+                Filter
+                {tab !== "all" ? (
+                  <span className="ml-1 text-[0.72rem] font-semibold text-slate-500">
+                    · {TAB_OPTIONS.find((option) => option.id === tab)?.label}
+                  </span>
+                ) : null}
+              </button>
+              {filterOpen ? (
+                <div className={styles.usersDirFilterMenu} role="menu">
+                  {TAB_OPTIONS.map((option) => {
+                    const count = tabCounts[option.id];
+                    const selected = tab === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selected}
+                        className={`${styles.usersDirFilterMenuItem} ${
+                          selected ? styles.usersDirFilterMenuItemSelected : ""
+                        }`}
+                        onClick={() => {
+                          setTab(option.id);
+                          setPage(1);
+                          setFilterOpen(false);
+                        }}
+                      >
+                        <span>
+                          {option.label}{" "}
+                          <span className={styles.usersDirFilterMenuCount}>
+                            ({count})
+                          </span>
+                        </span>
+                        {selected ? (
+                          <span className={styles.usersDirFilterMenuApplied}>
+                            Applied
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
             <Link
               href="/admin/meeting-requests"
               className={styles.usersDirAddBtn}
@@ -340,32 +420,10 @@ export function SuperAdminCustomerOnboardingPanel() {
         ) : null}
 
         <div className={styles.usersDirToolbar}>
-          <div
-            className={styles.usersDirTabs}
-            role="tablist"
-            aria-label="Account status filters"
-          >
-            {tabs.map((option) => {
-              const active = tab === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`${styles.usersDirTab} ${
-                    active ? styles.usersDirTabActive : ""
-                  }`}
-                  onClick={() => {
-                    setTab(option.id);
-                    setPage(1);
-                  }}
-                >
-                  {option.label} ({option.count})
-                </button>
-              );
-            })}
-          </div>
+          <p className={styles.usersDirFooterMeta}>
+            Showing{" "}
+            {TAB_OPTIONS.find((option) => option.id === tab)?.label ?? "All"}
+          </p>
         </div>
 
         <div className={styles.usersDirTableCard}>
@@ -391,24 +449,92 @@ export function SuperAdminCustomerOnboardingPanel() {
               <table className={styles.usersDirTable}>
                 <thead>
                   <tr>
-                    <th>Customer</th>
-                    <th>Business</th>
-                    <th>Meeting</th>
-                    <th>Account</th>
-                    <th>Updated</th>
+                    <th style={{ width: "3rem" }}>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Hash
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span className="sr-only">Row number</span>
+                      </span>
+                    </th>
                     <th>
-                      <span className="sr-only">Actions</span>
+                      <span className={styles.meetingsThWithIcon}>
+                        <UserRound
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Customer
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Building2
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Business
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CalendarDays
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Meeting
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <CircleDot
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Account
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <Clock3
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Updated
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <MoreVertical
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Actions
+                      </span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pageItems.map((meeting) => {
+                  {pageItems.map((meeting, index) => {
+                    const rowNumber = showingStart + index;
                     const created = accountState(meeting) === "created";
                     const fullName =
                       `${meeting.firstName} ${meeting.lastName}`.trim() ||
                       meeting.email;
                     return (
                       <tr key={meeting.id}>
+                        <td>
+                          <span className={styles.usersDirDateMain}>
+                            {rowNumber}.
+                          </span>
+                        </td>
                         <td>
                           <div className={styles.bizName}>{fullName}</div>
                           <div className={styles.bizMeta}>{meeting.email}</div>
@@ -493,46 +619,15 @@ export function SuperAdminCustomerOnboardingPanel() {
             )}
           </div>
 
-          <div className={styles.usersDirFooter}>
-            <p className={styles.usersDirFooterMeta}>
-              Showing {showingStart}-{showingEnd} of {total} deals
-            </p>
-            <div className={styles.usersDirPager}>
-              <button
-                type="button"
-                className={styles.usersDirPageBtn}
-                disabled={loading || safePage <= 1}
-                aria-label="Previous page"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                <ChevronLeft className="size-4" aria-hidden />
-              </button>
-              {pageNumbers.map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  className={`${styles.usersDirPageBtn} ${
-                    pageNumber === safePage ? styles.usersDirPageBtnActive : ""
-                  }`}
-                  disabled={loading}
-                  onClick={() => setPage(pageNumber)}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button
-                type="button"
-                className={styles.usersDirPageBtn}
-                disabled={loading || safePage >= totalPages}
-                aria-label="Next page"
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-              >
-                <ChevronRight className="size-4" aria-hidden />
-              </button>
-            </div>
-          </div>
+          <OffsetPagination
+            page={safePage}
+            totalPages={totalPages}
+            total={total}
+            limit={SA_TABLE_PAGE_SIZE}
+            loading={loading}
+            onPageChange={setPage}
+            itemLabel="deals"
+          />
         </div>
       </div>
 
