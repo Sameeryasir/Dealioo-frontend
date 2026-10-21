@@ -87,7 +87,6 @@ function SelectPlanPageInner() {
         return;
       }
 
-      // Keep the URL clean — plan comes from the signed-in user on the server.
       if (typeof window !== "undefined" && window.location.search) {
         router.replace("/auth/select-plan");
       }
@@ -175,7 +174,7 @@ function SelectPlanPageInner() {
         presetPlanId={presetPlanId}
         presetBillingCycle={presetBillingCycle}
         autoCheckout={autoCheckout && !sessionConflict}
-        checkoutOnBillingChange={Boolean(presetPlanId)}
+        checkoutOnBillingChange={false}
       />
     </>
   );

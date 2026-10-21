@@ -36,7 +36,10 @@ import {
   type PlanFitAnswers,
   type PlanFitPlanId,
 } from "@/app/lib/plan-fit-questionnaire";
+import { clearSetupUser } from "@/app/lib/setup-user";
+import { logoutSession } from "@/app/services/auth/logout";
 import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 async function confirmUpgradePaymentIfRequired(
@@ -86,6 +89,7 @@ export function SignupSelectPlanPanel({
   autoCheckout = false,
   checkoutOnBillingChange = false,
 }: SignupSelectPlanPanelProps) {
+  const router = useRouter();
   const invalidateMySubscription = useInvalidateMyUserSubscription();
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
@@ -98,6 +102,7 @@ export function SignupSelectPlanPanel({
     presetPlanId?.trim() || "starter",
   );
   const [submitting, setSubmitting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
   const [upgradedPlanName, setUpgradedPlanName] = useState<string | null>(null);
@@ -120,7 +125,20 @@ export function SignupSelectPlanPanel({
     null,
   );
   const restoredPlanFitRef = useRef(false);
-  const autoCheckoutStartedRef = useRef(false);
+
+  const handleLogout = useCallback(async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setErrorMessage(null);
+    try {
+      await logoutSession();
+      clearSetupUser();
+      router.replace("/auth/login");
+    } catch {
+      clearSetupUser();
+      router.replace("/auth/login");
+    }
+  }, [loggingOut, router]);
 
   useEffect(() => {
     if (
@@ -256,7 +274,6 @@ export function SignupSelectPlanPanel({
             : "Could not start checkout. Try again.";
         setErrorMessage(message);
         setSubmitting(false);
-        autoCheckoutStartedRef.current = false;
       }
     },
     [],
@@ -413,121 +430,261 @@ export function SignupSelectPlanPanel({
     }
   }, [billingCycle, mode, selectedPlanId, startCheckout]);
 
-  useEffect(() => {
-    if (!skipPlanPicker) return;
-    if (!billingReady || !planFitReady || loading || !selectedPlanId) return;
-    if (selectedPlanId === "enterprise") return;
-    if (submitting || errorMessage) return;
-    if (autoCheckoutStartedRef.current) return;
-    autoCheckoutStartedRef.current = true;
-    const timer = window.setTimeout(() => {
-      void startCheckout(selectedPlanId, billingCycle);
-    }, 1400);
-    return () => window.clearTimeout(timer);
-  }, [
-    billingCycle,
-    billingReady,
-    errorMessage,
-    loading,
-    planFitReady,
-    selectedPlanId,
-    skipPlanPicker,
-    startCheckout,
-    submitting,
-  ]);
-
   if (loading || (mode === "checkout" && !planFitReady) || !billingReady) {
     return <OnboardingPageLoading />;
   }
 
   if (skipPlanPicker) {
-    const presetPlanName =
-      plans.find((plan) => plan.id === selectedPlanId)?.name ??
-      findPricingPlan(selectedPlanId)?.name ??
-      selectedPlanId;
-    const billingLabel =
-      billingCycle === "monthly" ? "Monthly billing" : "Annual billing";
+    const lockedPlan =
+      plans.find((plan) => plan.id === selectedPlanId) ??
+      findPricingPlan(selectedPlanId) ??
+      null;
+    const presetPlanName = lockedPlan?.name ?? selectedPlanId;
+    const tier = lockedPlan?.[billingCycle];
+    const isAnnual = billingCycle === "annual";
+    const billingLabel = isAnnual ? "Annual" : "Monthly";
+    const billingDetail = isAnnual
+      ? "Billed once per year"
+      : "Billed every month";
+    const featureItems: string[] = lockedPlan?.features
+      ? [...lockedPlan.features]
+      : lockedPlan?.featureGroups
+        ? lockedPlan.featureGroups.flatMap((group) => [...group.items])
+        : [];
+    const featureGroups = lockedPlan?.featureGroups
+      ? [...lockedPlan.featureGroups]
+      : [];
+    const accent = lockedPlan?.color ?? BRAND_COLORS.pink;
+    const planSummary =
+      lockedPlan?.description?.trim() ||
+      lockedPlan?.tagline?.trim() ||
+      null;
 
     return (
-      <div className="auth-select-plan-page">
+      <div className="auth-select-plan-page auth-select-plan-page--locked-paywall relative h-dvh max-h-dvh overflow-hidden bg-[#f4f7fb]">
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% -10%, ${accent}22 0%, transparent 55%),
+              radial-gradient(ellipse 60% 40% at 100% 100%, #1877f214 0%, transparent 50%),
+              linear-gradient(180deg, #eef3f9 0%, #f7f9fc 45%, #ffffff 100%)
+            `,
+          }}
+        />
         <AuthLandingNav
           loginHref="/auth/login"
           signupHref="/auth/signup"
           showGetStarted={false}
           showNavLinks={false}
         />
-        <main className="auth-select-plan-main">
-          <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-10">
-            <div className="w-full rounded-2xl border border-[#e8edf5] bg-white p-6 shadow-sm sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">
-                Subscription required
-              </p>
-              <h1 className="brand-landing-display mt-2 text-2xl text-brand-navy sm:text-[1.75rem]">
-                No subscription yet
-              </h1>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">
-                You don&apos;t have an active Dealioo plan. We&apos;re taking
-                you to secure checkout for the plan you already chose — then you
-                can use the app.
-              </p>
+        <main className="relative z-[1] flex h-[calc(100dvh-3.75rem)] max-h-[calc(100dvh-3.75rem)] items-center justify-center overflow-hidden px-4 py-4 sm:py-5">
+          <div className="mx-auto w-full max-w-lg">
+            <div className="w-full overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_20px_48px_-24px_rgba(15,23,42,0.32)] ring-1 ring-slate-900/5 backdrop-blur-sm">
+              <div className="flex flex-col px-5 py-5 sm:px-6 sm:py-6">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-amber-800 ring-1 ring-amber-200/80">
+                    Subscription required
+                  </span>
+                  {lockedPlan?.badge ? (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-white"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {lockedPlan.badge}
+                    </span>
+                  ) : null}
+                </div>
 
-              <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8faff] px-4 py-3 text-left">
-                <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
-                  Selected plan
+                <h1 className="brand-landing-display mt-2.5 text-[1.35rem] leading-tight text-brand-navy sm:text-[1.5rem]">
+                  Activate your Dealioo plan
+                </h1>
+                <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
+                  Finish checkout for the plan chosen for you to unlock the app.
                 </p>
-                <p className="mt-1 text-base font-bold text-brand-navy">
-                  {presetPlanName}
-                </p>
-                <p className="mt-0.5 text-sm text-slate-600">{billingLabel}</p>
-              </div>
 
-              {selectedPlanId === "enterprise" ? (
-                <p className="mt-5 text-sm text-slate-600">
-                  Enterprise needs a sales handoff. We&apos;ll follow up to
-                  finish setup, or contact support to continue.
-                </p>
-              ) : errorMessage ? (
-                <div className="mt-5 space-y-3">
-                  <div
-                    className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
-                    role="alert"
-                  >
-                    <AlertCircle
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden
-                    />
-                    <span>{errorMessage}</span>
+                <div className="mt-4 overflow-hidden rounded-xl border border-[#e2e8f0] bg-gradient-to-b from-[#f8faff] to-white">
+                  <div className="border-b border-[#e8edf5] px-4 py-3">
+                    <p className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-muted">
+                      Your selected plan
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold tracking-tight text-brand-navy sm:text-xl">
+                          {presetPlanName}
+                        </p>
+                        {planSummary ? (
+                          <p className="mt-0.5 text-xs leading-snug text-slate-600">
+                            {planSummary}
+                          </p>
+                        ) : null}
+                      </div>
+                      {tier ? (
+                        <div className="shrink-0 text-right">
+                          <div className="flex items-baseline justify-end gap-1">
+                            {tier.originalPrice ? (
+                              <span className="text-xs font-medium text-slate-400 line-through">
+                                {tier.originalPrice}
+                              </span>
+                            ) : null}
+                            <span className="text-xl font-bold tracking-tight text-brand-navy">
+                              {tier.price}
+                            </span>
+                            {tier.period ? (
+                              <span className="text-xs font-semibold text-slate-500">
+                                {tier.period}
+                              </span>
+                            ) : null}
+                          </div>
+                          {tier.promo ? (
+                            <p
+                              className="mt-0.5 text-[0.65rem] font-bold"
+                              style={{ color: accent }}
+                            >
+                              {tier.promo}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-px bg-[#e8edf5]">
+                    <div className="bg-white px-4 py-2.5">
+                      <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-brand-muted">
+                        Billing cycle
+                      </p>
+                      <p className="mt-0.5 text-sm font-bold text-brand-navy">
+                        {billingLabel}
+                      </p>
+                      <p className="text-[0.7rem] text-slate-500">
+                        {billingDetail}
+                      </p>
+                    </div>
+                    <div className="bg-white px-4 py-2.5">
+                      <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-brand-muted">
+                        Charge
+                      </p>
+                      <p className="mt-0.5 text-sm font-bold text-brand-navy">
+                        {tier?.subline ??
+                          (isAnnual ? "Billed annually" : "Billed monthly")}
+                      </p>
+                      <p className="truncate text-[0.7rem] capitalize text-slate-500">
+                        {selectedPlanId.replace(/-/g, " ")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {featureGroups.length > 0 || featureItems.length > 0 ? (
+                    <div className="border-t border-[#e8edf5] px-4 py-2.5">
+                      <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-brand-muted">
+                        What&apos;s included
+                      </p>
+                      {featureGroups.length > 0 ? (
+                        <div className="mt-2 space-y-2.5">
+                          {featureGroups.map((group) => (
+                            <div key={group.label}>
+                              <p className="mb-1 text-[0.7rem] font-bold text-brand-navy">
+                                {group.label}
+                              </p>
+                              <ul className="space-y-1">
+                                {group.items.map((feature) => (
+                                  <li
+                                    key={`${group.label}-${feature}`}
+                                    className="flex items-start gap-2 text-[0.78rem] leading-snug text-slate-700"
+                                  >
+                                    <CheckCircle2
+                                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                                      style={{ color: accent }}
+                                      aria-hidden
+                                    />
+                                    <span>{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <ul className="mt-2 space-y-1">
+                          {featureItems.map((feature) => (
+                            <li
+                              key={feature}
+                              className="flex items-start gap-2 text-[0.78rem] leading-snug text-slate-700"
+                            >
+                              <CheckCircle2
+                                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                                style={{ color: accent }}
+                                aria-hidden
+                              />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4">
+                  {selectedPlanId === "enterprise" ? (
+                    <p className="text-sm text-slate-600">
+                      Enterprise needs a sales handoff. Contact support to
+                      continue.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {errorMessage ? (
+                        <div
+                          className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                          role="alert"
+                        >
+                          <AlertCircle
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                            aria-hidden
+                          />
+                          <span className="line-clamp-2">{errorMessage}</span>
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-full bg-[#1877f2] px-5 text-sm font-bold text-white shadow-md shadow-[#1877f2]/30 transition hover:bg-[#0f5ed7] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={submitting || loggingOut}
+                        aria-busy={submitting}
+                        onClick={() => {
+                          setErrorMessage(null);
+                          void startCheckout(selectedPlanId, billingCycle);
+                        }}
+                      >
+                        {submitting ? (
+                          <Loader2
+                            className="h-5 w-5 animate-spin"
+                            aria-hidden
+                          />
+                        ) : errorMessage ? (
+                          "Try checkout again"
+                        ) : (
+                          `Continue to checkout · ${presetPlanName}`
+                        )}
+                      </button>
+                      <p className="text-center text-[0.7rem] text-slate-500">
+                        Secure Stripe · {billingLabel} · {presetPlanName}
+                      </p>
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    className="landing-btn-primary inline-flex h-10 w-full items-center justify-center rounded-full px-5 text-sm font-bold"
-                    onClick={() => {
-                      autoCheckoutStartedRef.current = false;
-                      setErrorMessage(null);
-                      void startCheckout(selectedPlanId, billingCycle);
-                    }}
+                    className="mt-4 w-full text-center text-sm font-semibold text-slate-500 underline-offset-2 transition hover:text-brand-navy hover:underline disabled:opacity-60"
+                    disabled={submitting || loggingOut}
+                    aria-busy={loggingOut}
+                    onClick={() => void handleLogout()}
                   >
-                    Try checkout again
+                    {loggingOut ? "Signing out…" : "Log out"}
                   </button>
                 </div>
-              ) : (
-                <div
-                  className="mt-6 flex flex-col items-center gap-2 text-center"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <Loader2
-                    className="h-7 w-7 animate-spin text-brand-primary"
-                    aria-hidden
-                  />
-                  <p className="text-sm font-semibold text-brand-navy">
-                    Taking you to the checkout page…
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Stay on this screen — Stripe will open next.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </main>
@@ -620,11 +777,11 @@ export function SignupSelectPlanPanel({
         />
       </div>
 
-      <div className="mt-6 flex justify-center sm:mt-8">
+      <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
         <button
           type="button"
           onClick={() => void onContinue()}
-          disabled={submitting || !selectedPlanId}
+          disabled={submitting || loggingOut || !selectedPlanId}
           aria-busy={submitting}
           className="select-plan-continue-btn inline-flex h-11 min-w-[12rem] cursor-pointer touch-manipulation items-center justify-center rounded-full bg-brand-primary px-6 text-sm font-bold text-white shadow-md shadow-brand-primary/20 transition-all hover:bg-brand-primary-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -634,6 +791,17 @@ export function SignupSelectPlanPanel({
             continueLabel
           )}
         </button>
+        {mode === "checkout" ? (
+          <button
+            type="button"
+            className="text-sm font-semibold text-slate-500 underline-offset-2 transition hover:text-brand-navy hover:underline disabled:opacity-60"
+            disabled={submitting || loggingOut}
+            aria-busy={loggingOut}
+            onClick={() => void handleLogout()}
+          >
+            {loggingOut ? "Signing out…" : "Log out"}
+          </button>
+        ) : null}
       </div>
 
       <ConfirmDialog

@@ -36,7 +36,6 @@ function getRoleNameFromAccessToken(): string | null {
 }
 
 export function getStoredUserRoleName(): string | null {
-  // Prefer signed JWT role over cookie/local user (cookie can be tampered).
   const fromToken = getRoleNameFromAccessToken();
   if (fromToken) return fromToken;
 

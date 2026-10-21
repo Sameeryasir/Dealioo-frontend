@@ -9209,6 +9209,24 @@ body:has(.auth-select-plan-page) {
   overflow-y: auto;
 }
 
+html:has(.auth-select-plan-page--locked-paywall),
+body:has(.auth-select-plan-page--locked-paywall) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.auth-select-plan-page--locked-paywall {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.auth-select-plan-page--locked-paywall .brand-landing-nav {
+  position: relative;
+}
+
 .auth-select-plan-main {
   width: 100%;
   max-width: min(96rem, calc(100vw - 1.5rem));
@@ -11039,6 +11057,13 @@ body:has(.auth-select-plan-page) {
     overflow-y: auto;
   }
 
+  html:has(.auth-select-plan-page--locked-paywall),
+  body:has(.auth-select-plan-page--locked-paywall) {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   .auth-select-plan-page {
     position: relative;
     inset: auto;
@@ -11046,6 +11071,13 @@ body:has(.auth-select-plan-page) {
     min-height: 100dvh;
     max-height: none;
     overflow: visible;
+  }
+
+  .auth-select-plan-page--locked-paywall {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .auth-signup-page > .auth-signup-main,
