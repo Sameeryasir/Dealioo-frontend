@@ -3,11 +3,7 @@
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
-import {
-  OVERVIEW_CHART_COLORS,
-  OVERVIEW_MINI_LINE_CHART_MARGIN,
-  overviewAxisInterval,
-} from "@/app/components/campaign/overview/charts/overview-chart-config";
+import { overviewAxisInterval } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { Skeleton } from "@/app/components/skeleton";
 import { BusinessesByRegionCard } from "@/app/components/super-admin/BusinessesByRegionCard";
@@ -244,41 +240,77 @@ function PanelKpiCard({
   );
 }
 
+function useCompactChartDots() {
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const sync = () => setCompact(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return compact;
+}
+
 function PlatformTrendChart({
   data,
   stroke,
+  seriesName,
   money,
   refreshing = false,
 }: {
   data: Array<{ label: string; value: number }>;
   stroke: string;
+  seriesName: string;
   money?: boolean;
   refreshing?: boolean;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = !compactScreen && data.length > 0 && data.length <= 8;
+  const chartHeight = compactScreen ? 220 : 260;
+
   return (
     <div
-      className={`${styles.chartMotion} h-[220px] w-full min-w-0 ${
+      className={`${styles.chartMotion} w-full min-w-0 ${
         refreshing ? styles.chartMotionRefreshing : ""
       }`}
+      style={{ height: chartHeight }}
     >
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
-          <CartesianGrid strokeDasharray="4 6" stroke="#e8edf5" vertical={false} />
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <LineChart
+          data={data}
+          margin={
+            compactScreen
+              ? { top: 4, right: 8, left: 0, bottom: 0 }
+              : { top: 8, right: 12, left: 4, bottom: 4 }
+          }
+        >
+          <CartesianGrid stroke="#eef2f7" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
+            tick={{
+              fill: "#64748b",
+              fontSize: compactScreen ? 10 : 12,
+              fontWeight: 500,
+            }}
             axisLine={false}
             tickLine={false}
             interval={overviewAxisInterval(data.length)}
-            height={34}
-            dy={6}
+            height={compactScreen ? 28 : 36}
+            dy={compactScreen ? 4 : 8}
           />
           <YAxis
-            allowDecimals={false}
-            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+            allowDecimals={Boolean(money)}
+            tick={{
+              fill: "#94a3b8",
+              fontSize: compactScreen ? 10 : 12,
+              fontWeight: 500,
+            }}
             axisLine={false}
             tickLine={false}
-            width={money ? 42 : 36}
+            width={money ? (compactScreen ? 40 : 48) : compactScreen ? 32 : 40}
             tickFormatter={
               money
                 ? (value: number) =>
@@ -294,13 +326,27 @@ function PlatformTrendChart({
           <Line
             type="monotone"
             dataKey="value"
-            name={money ? "Earnings" : "Count"}
+            name={seriesName}
             stroke={stroke}
-            strokeWidth={3}
-            dot={{ r: 3.5, fill: "#ffffff", stroke, strokeWidth: 2.5 }}
-            activeDot={{ r: 6, fill: stroke, stroke: "#ffffff", strokeWidth: 3 }}
+            strokeWidth={compactScreen ? 2.25 : 2.75}
+            dot={
+              showDots
+                ? {
+                    r: 4,
+                    fill: stroke,
+                    stroke: "#ffffff",
+                    strokeWidth: 2,
+                  }
+                : false
+            }
+            activeDot={{
+              r: compactScreen ? 5 : 6,
+              fill: stroke,
+              stroke: "#ffffff",
+              strokeWidth: 2,
+            }}
             isAnimationActive
-            animationDuration={700}
+            animationDuration={750}
             animationEasing="ease-in-out"
           />
         </LineChart>
@@ -475,14 +521,15 @@ export function SuperAdminDashboard() {
                     charts?.planEarnings.reduce((s, r) => s + r.value, 0) ?? 0,
                   )
             }
-            minHeightClass="min-h-[240px]"
+            minHeightClass="min-h-[280px]"
           >
             {blankLoading ? (
               <OverviewChartSkeleton />
             ) : (
               <PlatformTrendChart
                 data={charts?.planEarnings ?? []}
-                stroke={OVERVIEW_CHART_COLORS.pink}
+                stroke="#f87171"
+                seriesName="Plan Earnings"
                 money
                 refreshing={refreshing}
               />
@@ -501,14 +548,15 @@ export function SuperAdminDashboard() {
                     charts?.subscriptions.reduce((s, r) => s + r.value, 0) ?? 0,
                   )
             }
-            minHeightClass="min-h-[240px]"
+            minHeightClass="min-h-[280px]"
           >
             {blankLoading ? (
               <OverviewChartSkeleton />
             ) : (
               <PlatformTrendChart
                 data={charts?.subscriptions ?? []}
-                stroke={OVERVIEW_CHART_COLORS.orange}
+                stroke="#c084fc"
+                seriesName="New Subscriptions"
                 refreshing={refreshing}
               />
             )}
@@ -528,14 +576,15 @@ export function SuperAdminDashboard() {
                     charts?.businesses.reduce((s, r) => s + r.value, 0) ?? 0,
                   )
             }
-            minHeightClass="min-h-[220px]"
+            minHeightClass="min-h-[280px]"
           >
             {blankLoading ? (
               <OverviewChartSkeleton compact />
             ) : (
               <PlatformTrendChart
                 data={charts?.businesses ?? []}
-                stroke={OVERVIEW_CHART_COLORS.blue}
+                stroke="#4ade80"
+                seriesName="New Businesses"
                 refreshing={refreshing}
               />
             )}
