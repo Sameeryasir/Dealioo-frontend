@@ -30,6 +30,8 @@ type ChooseNumberDialogProps = {
   confirmingLabel?: string;
   dismissible?: boolean;
   overlayClassName?: string;
+  /** When false (default), only show numbers already on the account — no Buy tab. */
+  allowBuy?: boolean;
   onClose: () => void;
   onConfirmed: (selected: TwilioPhoneNumberOption) => void | Promise<void>;
 };
@@ -98,11 +100,12 @@ export function ChooseNumberDialog({
   businessId,
   isBusy = false,
   title = "Twilio number",
-  description = "Pick a number you own, or search for one to buy.",
+  description = "Pick a number already on Dealioo's Twilio account.",
   confirmLabel = "Save",
   confirmingLabel = "Saving…",
   dismissible = true,
   overlayClassName = "z-[70]",
+  allowBuy = false,
   onClose,
   onConfirmed,
 }: ChooseNumberDialogProps) {
@@ -199,7 +202,8 @@ export function ChooseNumberDialog({
   }, [open, selectedPhoneSid, numbers]);
 
   useEffect(() => {
-    if (!open || isLoading || accountDefaultsAppliedRef.current) {
+    // Buy-tab prefill search only when buy is enabled.
+    if (!allowBuy || !open || isLoading || accountDefaultsAppliedRef.current) {
       return;
     }
 
@@ -215,7 +219,7 @@ export function ChooseNumberDialog({
     setAreaCode(defaults.areaCode);
     void runNumberSearch(defaults.country, defaults.areaCode);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per open after numbers load
-  }, [open, isLoading, selectedPhoneNumber, selectedPhoneSid, numbers]);
+  }, [allowBuy, open, isLoading, selectedPhoneNumber, selectedPhoneSid, numbers]);
 
   useEffect(() => {
     if (
@@ -243,12 +247,14 @@ export function ChooseNumberDialog({
 
   if (!open || typeof document === "undefined") return null;
 
+  const activeTab: NumberTab = allowBuy ? tab : "owned";
+
   const formLocked =
     isLoading ||
     isBusy ||
     associateMutation.isPending ||
-    purchaseMutation.isPending;
-  const searching = searchMutation.isPending;
+    (allowBuy && purchaseMutation.isPending);
+  const searching = allowBuy && searchMutation.isPending;
   const busy = formLocked || searching;
 
   const selected = numbers.find((n) => n.sid === selectedSid) ?? null;
@@ -258,10 +264,10 @@ export function ChooseNumberDialog({
     (associateMutation.error
       ? getApiErrorMessage(associateMutation.error, "Could not save number.")
       : null) ||
-    (searchMutation.error
+    (allowBuy && searchMutation.error
       ? getApiErrorMessage(searchMutation.error, "Could not search numbers.")
       : null) ||
-    (purchaseMutation.error
+    (allowBuy && purchaseMutation.error
       ? getApiErrorMessage(purchaseMutation.error, "Could not buy number.")
       : null);
 
@@ -317,7 +323,7 @@ export function ChooseNumberDialog({
     >
       <div
         className={`flex max-h-[min(90vh,820px)] w-full flex-col overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white p-5 shadow-xl sm:p-6 ${
-          tab === "buy" ? "max-w-3xl" : "max-w-md"
+          activeTab === "buy" ? "max-w-3xl" : "max-w-md"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -327,10 +333,10 @@ export function ChooseNumberDialog({
               id={titleId}
               className="text-[1.25rem] font-bold tracking-tight text-[#0f172a]"
             >
-              {tab === "buy" ? "Buy a Number" : title}
+              {activeTab === "buy" ? "Buy a Number" : title}
             </h2>
             <p className="mt-1 text-[0.82rem] leading-relaxed text-[#666]">
-              {tab === "buy"
+              {activeTab === "buy"
                 ? "Search by country, then pick a number to buy on your Twilio account."
                 : description}
             </p>
@@ -348,45 +354,49 @@ export function ChooseNumberDialog({
           ) : null}
         </div>
 
-        <div className="mt-4 flex gap-1 rounded-lg bg-[#f4f4f4] p-1">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setTab("owned");
-              setLocalError(null);
-              searchMutation.reset();
-              associateMutation.reset();
-              purchaseMutation.reset();
-            }}
-            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
-              tab === "owned"
-                ? "bg-white text-[#222] shadow-sm"
-                : "text-[#666]"
-            }`}
-          >
-            Yours
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setTab("buy");
-              setLocalError(null);
-              searchMutation.reset();
-              associateMutation.reset();
-              purchaseMutation.reset();
-            }}
-            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
-              tab === "buy" ? "bg-white text-[#222] shadow-sm" : "text-[#666]"
-            }`}
-          >
-            Buy new
-          </button>
-        </div>
+        {allowBuy ? (
+          <div className="mt-4 flex gap-1 rounded-lg bg-[#f4f4f4] p-1">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setTab("owned");
+                setLocalError(null);
+                searchMutation.reset();
+                associateMutation.reset();
+                purchaseMutation.reset();
+              }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
+                activeTab === "owned"
+                  ? "bg-white text-[#222] shadow-sm"
+                  : "text-[#666]"
+              }`}
+            >
+              Yours
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setTab("buy");
+                setLocalError(null);
+                searchMutation.reset();
+                associateMutation.reset();
+                purchaseMutation.reset();
+              }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-[0.8rem] font-semibold ${
+                activeTab === "buy"
+                  ? "bg-white text-[#222] shadow-sm"
+                  : "text-[#666]"
+              }`}
+            >
+              Buy new
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-0.5">
-          {tab === "owned" ? (
+          {activeTab === "owned" ? (
             isLoading ? (
               <div className="flex items-center gap-2 py-6 text-[0.85rem] text-[#666]">
                 <Loader2 className="size-4 animate-spin" />
@@ -394,7 +404,9 @@ export function ChooseNumberDialog({
               </div>
             ) : numbers.length === 0 ? (
               <p className="py-4 text-[0.85rem] text-[#666]">
-                No numbers on this account yet. Use Buy new.
+                {allowBuy
+                  ? "No numbers on this account yet. Use Buy new."
+                  : "No numbers on Dealioo's Twilio account yet. Ask a Super Admin to add one."}
               </p>
             ) : (
               <div className="max-h-[min(50vh,360px)] overflow-auto rounded-xl border border-[#e8e8e8]">
@@ -666,7 +678,7 @@ export function ChooseNumberDialog({
               Cancel
             </button>
           ) : null}
-          {tab === "owned" ? (
+          {activeTab === "owned" ? (
             <button
               type="button"
               onClick={() => void handleConfirmOwned()}

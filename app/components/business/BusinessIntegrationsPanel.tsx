@@ -962,7 +962,7 @@ export function BusinessIntegrationsPanel({
         accentColor="bg-[#F22F46]"
         logo={<TwilioMark className="size-6" />}
         title="Twilio"
-        description="SMS is sent through Dealioo's Twilio account. Choose a phone number for this business."
+        description="SMS is sent through Dealioo's Twilio account. Choose a number already on that account."
         featureToneClass="text-[#F22F46]"
         features={[
           "Dealioo Twilio",
@@ -1205,9 +1205,10 @@ export function BusinessIntegrationsPanel({
         open={twilioDialogOpen}
         businessId={businessId}
         title="Choose a Twilio number"
-        description="Pick a number on Dealioo's Twilio account, or search for one to buy."
+        description="Pick a number already on Dealioo's Twilio account for this business."
         confirmLabel="Save number"
         confirmingLabel="Saving number…"
+        allowBuy={false}
         onClose={() => setTwilioDialogOpen(false)}
         onConfirmed={async (selected) => {
           setTwilioDialogOpen(false);

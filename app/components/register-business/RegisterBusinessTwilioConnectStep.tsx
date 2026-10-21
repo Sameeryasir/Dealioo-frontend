@@ -247,9 +247,10 @@ export default function RegisterBusinessTwilioConnectStep({
         open={numberDialogOpen}
         businessId={businessId}
         title="Choose a Twilio number"
-        description="Pick a number you own, or search for one to buy on your Twilio account."
+        description="Pick a number already on Dealioo's Twilio account, or buy a new one."
         confirmLabel="Save number"
         confirmingLabel="Saving number…"
+        allowBuy
         onClose={() => setNumberDialogOpen(false)}
         onConfirmed={async () => {
           setNumberDialogOpen(false);
