@@ -1,6 +1,7 @@
 "use client";
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
 import { AdminTwilioBuyNumberModal } from "@/app/components/super-admin/AdminTwilioBuyNumberModal";
 import { formatAbsoluteDate } from "@/app/components/super-admin/super-admin-list-helpers";
@@ -10,7 +11,12 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { adminQueryKeys } from "@/app/services/admin/admin-query-keys";
 import { setAdminTwilioWebhook } from "@/app/services/admin/admin-twilio";
 import { getAdminTwilioDashboard } from "@/app/services/admin/get-admin-twilio-dashboard";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   CircleDot,
   ImageIcon,
@@ -110,8 +116,11 @@ function TwilioNumbersTableSkeleton({ rows = 6 }: { rows?: number }) {
   );
 }
 
+const PAGE_SIZE = 10;
+
 export function SuperAdminTwilioPanel() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [buyOpen, setBuyOpen] = useState(false);
   const [buySession, setBuySession] = useState(0);
   const [webhookPhone, setWebhookPhone] = useState<string | null>(null);
@@ -120,10 +129,15 @@ export function SuperAdminTwilioPanel() {
   >({});
 
   const dashboardQuery = useQuery({
-    queryKey: adminQueryKeys.twilioDashboard(),
-    queryFn: getAdminTwilioDashboard,
+    queryKey: adminQueryKeys.twilioDashboard(page, PAGE_SIZE),
+    queryFn: () =>
+      getAdminTwilioDashboard({
+        page,
+        limit: PAGE_SIZE,
+      }),
     enabled: hasAuthSession(),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
   const data = dashboardQuery.data;
@@ -133,6 +147,8 @@ export function SuperAdminTwilioPanel() {
     : null;
   const configured = Boolean(data?.configured);
   const defaultWebhookUrl = data?.defaultWebhookUrl?.trim() || "";
+  const meta = data?.meta;
+  const totalPages = Math.max(1, meta?.totalPages ?? 1);
 
   const serverWebhookUrls = useMemo(() => {
     const map: Record<string, string> = {};
@@ -142,6 +158,18 @@ export function SuperAdminTwilioPanel() {
     }
     return map;
   }, [data?.numbers, defaultWebhookUrl]);
+
+  const refreshFromTwilio = async () => {
+    await queryClient.fetchQuery({
+      queryKey: adminQueryKeys.twilioDashboard(page, PAGE_SIZE),
+      queryFn: () =>
+        getAdminTwilioDashboard({
+          page,
+          limit: PAGE_SIZE,
+          sync: true,
+        }),
+    });
+  };
 
   const webhookMutation = useMutation({
     mutationFn: (input: { phoneNumber: string; smsUrl: string }) =>
@@ -155,7 +183,7 @@ export function SuperAdminTwilioPanel() {
         return next;
       });
       await queryClient.invalidateQueries({
-        queryKey: adminQueryKeys.twilioDashboard(),
+        queryKey: adminQueryKeys.twilioDashboardRoot(),
       });
     },
     onError: (error) => {
@@ -194,7 +222,7 @@ export function SuperAdminTwilioPanel() {
                 type="button"
                 className={styles.refreshBtn}
                 disabled={loading}
-                onClick={() => void dashboardQuery.refetch()}
+                onClick={() => void refreshFromTwilio()}
               >
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -542,6 +570,17 @@ export function SuperAdminTwilioPanel() {
                   </table>
                 )}
               </div>
+              {meta && meta.total > 0 ? (
+                <OffsetPagination
+                  page={page}
+                  totalPages={totalPages}
+                  total={meta.total}
+                  limit={PAGE_SIZE}
+                  loading={loading}
+                  onPageChange={setPage}
+                  itemLabel="numbers"
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -553,8 +592,9 @@ export function SuperAdminTwilioPanel() {
         configured={configured}
         onClose={() => setBuyOpen(false)}
         onPurchased={async () => {
+          setPage(1);
           await queryClient.invalidateQueries({
-            queryKey: adminQueryKeys.twilioDashboard(),
+            queryKey: adminQueryKeys.twilioDashboardRoot(),
           });
         }}
       />
