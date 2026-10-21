@@ -66,10 +66,11 @@ function TwilioOverviewSkeleton() {
     <div className={styles.overviewGrid} aria-busy="true">
       {Array.from({ length: 3 }).map((_, index) => (
         <article key={index} className={styles.overviewCard}>
-          <Skeleton className="size-9 rounded-xl" />
-          <Skeleton className="mt-3 h-3 w-24" />
-          <Skeleton className="mt-2 h-7 w-32" />
-          <Skeleton className="mt-2 h-3 w-40" />
+          <div className={styles.overviewHead}>
+            <Skeleton className="size-7 shrink-0 rounded-md" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <Skeleton className="mt-2 ml-9 h-4 w-28" />
         </article>
       ))}
     </div>
@@ -81,7 +82,7 @@ function TwilioNumbersTableSkeleton({ rows = 6 }: { rows?: number }) {
     <table className={styles.table} aria-busy="true" aria-label="Loading numbers">
       <thead>
         <tr>
-          {Array.from({ length: 6 }).map((_, index) => (
+          {Array.from({ length: 7 }).map((_, index) => (
             <th key={index}>
               <Skeleton className="h-3 w-16" />
             </th>
@@ -91,6 +92,9 @@ function TwilioNumbersTableSkeleton({ rows = 6 }: { rows?: number }) {
       <tbody>
         {Array.from({ length: rows }).map((_, index) => (
           <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-5" />
+            </td>
             <td>
               <Skeleton className="h-4 w-28" />
             </td>
@@ -148,7 +152,10 @@ export function SuperAdminTwilioPanel() {
   const configured = Boolean(data?.configured);
   const defaultWebhookUrl = data?.defaultWebhookUrl?.trim() || "";
   const meta = data?.meta;
+  const total = meta?.total ?? 0;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
+  const numbers = data?.numbers ?? [];
+  const showingStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 
   const serverWebhookUrls = useMemo(() => {
     const map: Record<string, string> = {};
@@ -202,7 +209,7 @@ export function SuperAdminTwilioPanel() {
           <div className={styles.heroRow}>
             <div>
               <div className={styles.brandRow}>
-                <TwilioMark className="h-9 w-9 shrink-0" />
+                <TwilioMark className="h-7 w-7 shrink-0" />
                 <h1 className={styles.title}>Twilio · Dealioo</h1>
               </div>
               <p className={styles.subtitle}>
@@ -263,45 +270,41 @@ export function SuperAdminTwilioPanel() {
           ) : (
             <div className={styles.overviewGrid}>
               <article className={styles.overviewCard}>
-                <div className={styles.overviewIcon} aria-hidden>
-                  <User className="size-4" />
+                <div className={styles.overviewHead}>
+                  <div className={styles.overviewIcon} aria-hidden>
+                    <User className="size-4" />
+                  </div>
+                  <p className={styles.creditsLabel}>Account owner</p>
                 </div>
-                <p className={styles.creditsLabel}>Account owner</p>
                 <p className={styles.overviewValue}>
                   {data?.accountOwnerName || "—"}
-                </p>
-                <p className={styles.creditsHint}>
-                  Friendly name on the Twilio account
                 </p>
               </article>
 
               <article className={styles.overviewCard}>
-                <div className={styles.overviewIcon} aria-hidden>
-                  <TwilioMark className="h-4 w-4" />
+                <div className={styles.overviewHead}>
+                  <div className={styles.overviewIcon} aria-hidden>
+                    <TwilioMark className="h-4 w-4" />
+                  </div>
+                  <p className={styles.creditsLabel}>Credits left</p>
                 </div>
-                <p className={styles.creditsLabel}>Credits left</p>
                 <p className={styles.creditsValue}>
                   {formatCredits(
                     data?.balance?.amount,
                     data?.balance?.currency,
                   )}
                 </p>
-                <p className={styles.creditsHint}>
-                  Current balance on this Twilio account
-                </p>
               </article>
 
               <article className={styles.overviewCard}>
-                <div className={styles.overviewIcon} aria-hidden>
-                  <Phone className="size-4" />
+                <div className={styles.overviewHead}>
+                  <div className={styles.overviewIcon} aria-hidden>
+                    <Phone className="size-4" />
+                  </div>
+                  <p className={styles.creditsLabel}>Phone numbers</p>
                 </div>
-                <p className={styles.creditsLabel}>Phone numbers</p>
                 <p className={styles.creditsValue}>
                   {data?.counts.phoneNumbers ?? 0}
-                </p>
-                <p className={styles.creditsHint}>
-                  {data?.counts.assigned ?? 0} assigned ·{" "}
-                  {data?.counts.unassigned ?? 0} unassigned
                 </p>
               </article>
             </div>
@@ -330,7 +333,7 @@ export function SuperAdminTwilioPanel() {
               <div className={styles.tableWrap}>
                 {loading && !data ? (
                   <TwilioNumbersTableSkeleton />
-                ) : !data?.numbers.length ? (
+                ) : !numbers.length ? (
                   <p className={styles.empty}>
                     No phone numbers on this Twilio account yet.
                   </p>
@@ -338,10 +341,14 @@ export function SuperAdminTwilioPanel() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
+                        <th style={{ width: "3rem" }}>
+                          <span className="sr-only">Row number</span>
+                          #
+                        </th>
                         <th>Phone number</th>
                         <th>Label</th>
                         <th>Status</th>
-                        <th>Capabilities</th>
+                        <th className={styles.capCell}>Capabilities</th>
                         <th>Address req.</th>
                         <th>Webhook URL</th>
                         <th>Webhook</th>
@@ -352,7 +359,7 @@ export function SuperAdminTwilioPanel() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.numbers.map((row) => {
+                      {numbers.map((row, index) => {
                         const saving =
                           webhookPhone === row.phoneNumber &&
                           webhookMutation.isPending;
@@ -361,17 +368,18 @@ export function SuperAdminTwilioPanel() {
                           serverWebhookUrls[row.phoneNumber] ??
                           "";
                         const canSave = Boolean(draftUrl.trim());
+                        const rowNumber = showingStart + index;
                         return (
                           <tr key={row.phoneNumber}>
                             <td>
-                              <div className={styles.userCell}>
-                                <span className={styles.avatar} aria-hidden>
-                                  <Phone className="size-3.5" />
-                                </span>
-                                <div className={styles.cellMain}>
-                                  {row.phoneNumber}
-                                </div>
-                              </div>
+                              <span className={styles.rowNumber}>
+                                {rowNumber}.
+                              </span>
+                            </td>
+                            <td>
+                              <span className={styles.cellMain}>
+                                {row.phoneNumber}
+                              </span>
                             </td>
                             <td>
                               <span className={styles.cellMeta}>
@@ -391,7 +399,7 @@ export function SuperAdminTwilioPanel() {
                                 {row.status || "—"}
                               </span>
                             </td>
-                            <td>
+                            <td className={styles.capCell}>
                               <div
                                 className={styles.capRow}
                                 title="Voice · SMS · MMS · Fax"
@@ -570,15 +578,15 @@ export function SuperAdminTwilioPanel() {
                   </table>
                 )}
               </div>
-              {meta && meta.total > 0 ? (
+              {data ? (
                 <OffsetPagination
                   page={page}
                   totalPages={totalPages}
-                  total={meta.total}
+                  total={total}
                   limit={PAGE_SIZE}
                   loading={loading}
                   onPageChange={setPage}
-                  itemLabel="numbers"
+                  itemLabel="results"
                 />
               ) : null}
             </div>

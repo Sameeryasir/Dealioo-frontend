@@ -146,35 +146,35 @@ function useCountUp(target: number, ready: boolean, durationMs = 900): number {
     const start = () => {
       if (cancelled) return;
 
-      if (!ready) {
-        setDisplay(0);
-        return;
-      }
-
-      const reduceMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduceMotion || target === 0) {
-        setDisplay(target);
-        return;
-      }
-
-      const startedAt = performance.now();
-
-      const tick = (now: number) => {
-        if (cancelled) return;
-        const progress = Math.min(1, (now - startedAt) / durationMs);
-        const eased = 1 - (1 - progress) ** 3;
-        setDisplay(target * eased);
-        if (progress < 1) {
-          frame = requestAnimationFrame(tick);
-        } else {
-          setDisplay(target);
-        }
-      };
-
+    if (!ready) {
       setDisplay(0);
-      frame = requestAnimationFrame(tick);
+      return;
+    }
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || target === 0) {
+      setDisplay(target);
+      return;
+    }
+
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+        if (cancelled) return;
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const eased = 1 - (1 - progress) ** 3;
+      setDisplay(target * eased);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+      }
+    };
+
+    setDisplay(0);
+    frame = requestAnimationFrame(tick);
     };
 
     frame = requestAnimationFrame(start);
@@ -407,16 +407,16 @@ export function SuperAdminDashboard() {
                   {item.label}
                 </button>
               ))}
-            </div>
+              </div>
 
             {period === "month" ? (
-              <ActivityMonthCalendarPicker
-                value={monthFilter}
-                onChange={setMonthFilter}
-                compact
-                showAllMonths={false}
-                monthCount={dashboardMonthCount}
-              />
+                <ActivityMonthCalendarPicker
+                  value={monthFilter}
+                  onChange={setMonthFilter}
+                  compact
+                  showAllMonths={false}
+                  monthCount={dashboardMonthCount}
+                />
             ) : null}
 
             <button
@@ -455,10 +455,10 @@ export function SuperAdminDashboard() {
               kpi={kpis?.mrr ?? { value: 0, changePct: 0, sparkline: [], hint: "" }}
               money
               icon={Wallet}
-              accent="#e1306c"
-              soft="#fdf2f8"
-              ready={Boolean(kpis)}
-            />
+            accent="#e1306c"
+            soft="#fdf2f8"
+            ready={Boolean(kpis)}
+          />
             <PanelKpiCard
               label="Paying customers"
               kpi={
@@ -485,7 +485,7 @@ export function SuperAdminDashboard() {
                 }
               }
               money
-              icon={Wallet}
+            icon={Wallet}
               accent="#1877f2"
               soft="#e8f2ff"
               ready={Boolean(kpis)}
@@ -503,9 +503,9 @@ export function SuperAdminDashboard() {
               icon={Sparkles}
               accent="#f77737"
               soft="#fff7ed"
-              ready={Boolean(kpis)}
-            />
-          </div>
+            ready={Boolean(kpis)}
+          />
+        </div>
         )}
 
         <div className={styles.chartGridTop}>
@@ -526,11 +526,11 @@ export function SuperAdminDashboard() {
             {blankLoading ? (
               <OverviewChartSkeleton />
             ) : (
-              <PlatformTrendChart
+                <PlatformTrendChart
                 data={charts?.planEarnings ?? []}
                 stroke="#f87171"
                 seriesName="Plan Earnings"
-                money
+                  money
                 refreshing={refreshing}
               />
             )}
@@ -553,7 +553,7 @@ export function SuperAdminDashboard() {
             {blankLoading ? (
               <OverviewChartSkeleton />
             ) : (
-              <PlatformTrendChart
+                <PlatformTrendChart
                 data={charts?.subscriptions ?? []}
                 stroke="#c084fc"
                 seriesName="New Subscriptions"

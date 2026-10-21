@@ -14,6 +14,7 @@ import {
   LogOut,
   Phone,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -53,6 +54,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/plans",
     label: "Plans",
     icon: CreditCard,
+    activeMatch: "prefix",
+  },
+  {
+    href: "/admin/subscriptions",
+    label: "Subscriptions",
+    icon: Wallet,
     activeMatch: "prefix",
   },
   {

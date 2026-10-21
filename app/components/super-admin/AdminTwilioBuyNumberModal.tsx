@@ -1,8 +1,3 @@
-/**
- * Modal to search and buy a Twilio number onto Dealioo's platform account.
- * Related: SuperAdminTwilioPanel, admin-twilio.ts
- */
-
 "use client";
 
 import {
@@ -34,9 +29,7 @@ function formatBuyNumberDisplay(phoneNumber: string): string {
   try {
     const parsed = parsePhoneNumber(phoneNumber);
     if (parsed) return parsed.formatInternational();
-  } catch {
-    /* keep raw */
-  }
+  } catch {}
   return phoneNumber;
 }
 
@@ -254,21 +247,15 @@ export function AdminTwilioBuyNumberModal({
                   <tr>
                     <th>Number</th>
                     <th>Type</th>
-                    <th colSpan={4}>
-                      <div className="mb-1">Capabilities</div>
-                      <div className="grid grid-cols-4 gap-1 text-[0.65rem] font-medium text-[#0f172a]">
-                        <span className="flex justify-center">
-                          <Phone className="size-3.5" aria-hidden />
-                        </span>
-                        <span className="flex justify-center">
-                          <MessageSquare className="size-3.5" aria-hidden />
-                        </span>
-                        <span className="flex justify-center">
-                          <ImageIcon className="size-3.5" aria-hidden />
-                        </span>
-                        <span className="flex justify-center">
-                          <Printer className="size-3.5" aria-hidden />
-                        </span>
+                    <th colSpan={4} className={styles.buyCapCell}>
+                      <span className="sr-only">Capabilities</span>
+                      <div
+                        className={`${styles.buyCapIcons} ${styles.buyCapIconsHeader}`}
+                      >
+                        <Phone className="size-3.5" aria-hidden />
+                        <MessageSquare className="size-3.5" aria-hidden />
+                        <ImageIcon className="size-3.5" aria-hidden />
+                        <Printer className="size-3.5" aria-hidden />
                       </div>
                     </th>
                     <th>Address</th>
@@ -299,36 +286,28 @@ export function AdminTwilioBuyNumberModal({
                           ) : null}
                         </td>
                         <td>{option.numberType || "Local"}</td>
-                        <td colSpan={4}>
-                          <div className="grid grid-cols-4 gap-1 text-[#0f172a]">
-                            <span className="flex justify-center">
-                              {caps.voice ? (
-                                <Phone className="size-4" />
-                              ) : (
-                                <span className="size-4" />
-                              )}
-                            </span>
-                            <span className="flex justify-center">
-                              {caps.sms ? (
-                                <MessageSquare className="size-4" />
-                              ) : (
-                                <span className="size-4" />
-                              )}
-                            </span>
-                            <span className="flex justify-center">
-                              {caps.mms ? (
-                                <ImageIcon className="size-4" />
-                              ) : (
-                                <span className="size-4" />
-                              )}
-                            </span>
-                            <span className="flex justify-center">
-                              {caps.fax ? (
-                                <Printer className="size-4" />
-                              ) : (
-                                <span className="size-4" />
-                              )}
-                            </span>
+                        <td colSpan={4} className={styles.buyCapCell}>
+                          <div className={styles.buyCapIcons}>
+                            {caps.voice ? (
+                              <Phone className="size-4" />
+                            ) : (
+                              <span className="size-4" />
+                            )}
+                            {caps.sms ? (
+                              <MessageSquare className="size-4" />
+                            ) : (
+                              <span className="size-4" />
+                            )}
+                            {caps.mms ? (
+                              <ImageIcon className="size-4" />
+                            ) : (
+                              <span className="size-4" />
+                            )}
+                            {caps.fax ? (
+                              <Printer className="size-4" />
+                            ) : (
+                              <span className="size-4" />
+                            )}
                           </div>
                         </td>
                         <td>{option.addressRequirement || "None"}</td>

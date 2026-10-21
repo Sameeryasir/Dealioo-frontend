@@ -1054,9 +1054,6 @@ export function SuperAdminMeetingsPanel() {
     useState<AdminMeetingRequest | null>(null);
   const [outcomeMeeting, setOutcomeMeeting] =
     useState<AdminMeetingRequest | null>(null);
-  const tableScrollRef = useRef<HTMLDivElement | null>(null);
-  const [tableScroll, setTableScroll] = useState({ value: 0, max: 0 });
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(query.trim());
@@ -1129,29 +1126,6 @@ export function SuperAdminMeetingsPanel() {
     (meetingsQuery.isLoading || meetingsQuery.isFetching) &&
     meetings.length === 0;
 
-  const syncTableScroll = () => {
-    const el = tableScrollRef.current;
-    if (!el) return;
-    const max = Math.max(0, el.scrollWidth - el.clientWidth);
-    setTableScroll({ value: el.scrollLeft, max });
-  };
-
-  useEffect(() => {
-    const el = tableScrollRef.current;
-    if (!el) return;
-    syncTableScroll();
-    const onScroll = () => syncTableScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    const observer = new ResizeObserver(() => syncTableScroll());
-    observer.observe(el);
-    if (el.firstElementChild) observer.observe(el.firstElementChild);
-    window.addEventListener("resize", syncTableScroll);
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      observer.disconnect();
-      window.removeEventListener("resize", syncTableScroll);
-    };
-  }, [scope, page, debouncedSearch, meetingsQuery.dataUpdatedAt, meetings.length]);
   const errorMessage = meetingsQuery.error
     ? getApiErrorMessage(
         meetingsQuery.error,
@@ -1435,7 +1409,7 @@ export function SuperAdminMeetingsPanel() {
         </div>
 
         <div className={styles.usersDirTableCard}>
-          <div ref={tableScrollRef} className={styles.usersDirTableWrap}>
+          <div className={styles.usersDirTableWrap}>
             {loading ? (
               <TableSkeleton />
             ) : meetings.length === 0 ? (
@@ -1759,29 +1733,6 @@ export function SuperAdminMeetingsPanel() {
               </table>
             )}
           </div>
-
-          {tableScroll.max > 0 ? (
-            <div className={styles.meetingsScrollSliderWrap}>
-              <label className="sr-only" htmlFor="meetings-table-scroll">
-                Scroll meeting table
-              </label>
-              <input
-                id="meetings-table-scroll"
-                type="range"
-                min={0}
-                max={tableScroll.max}
-                value={tableScroll.value}
-                className={styles.meetingsScrollSlider}
-                aria-label="Scroll meeting table"
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  const el = tableScrollRef.current;
-                  if (el) el.scrollLeft = next;
-                  setTableScroll((prev) => ({ ...prev, value: next }));
-                }}
-              />
-            </div>
-          ) : null}
 
           <OffsetPagination
             page={page}
