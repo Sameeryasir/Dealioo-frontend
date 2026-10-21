@@ -5,6 +5,7 @@ import {
   MapPin,
   Megaphone,
   MessageSquareText,
+  Sparkles,
   TrendingUp,
   User,
 } from "lucide-react";
@@ -13,6 +14,7 @@ export type BookMeetingStepId =
   | "contact"
   | "business"
   | "location"
+  | "plan"
   | "revenue"
   | "marketing"
   | "situation"
@@ -49,6 +51,14 @@ export const BOOK_MEETING_STEP_UI: Record<BookMeetingStepId, BookMeetingStepUi> 
     accent: "located",
     subtitle: "Search, map, and address.",
     icon: MapPin,
+    iconClass: "bg-brand-primary text-white",
+    accentClass: "landing-hero-accent-blue",
+  },
+  plan: {
+    lead: "Which plan are you ",
+    accent: "interested in?",
+    subtitle: "Pick the plan you want to talk about on the call.",
+    icon: Sparkles,
     iconClass: "bg-brand-primary text-white",
     accentClass: "landing-hero-accent-blue",
   },

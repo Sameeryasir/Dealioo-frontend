@@ -458,6 +458,22 @@ function DetailsDrawer({
       icon: CircleDot,
     },
     {
+      label: "Interested plan",
+      value: [
+        meeting.selectedPlanName?.trim() ||
+          meeting.selectedPlanSlug?.trim() ||
+          "",
+        meeting.selectedBillingCycle === "annual"
+          ? "Annually"
+          : meeting.selectedBillingCycle === "monthly"
+            ? "Monthly"
+            : "",
+      ]
+        .filter(Boolean)
+        .join(" · ") || "Not selected",
+      icon: TrendingUp,
+    },
+    {
       label: "Attendance",
       value: attendanceLabel,
       icon: CalendarCheck2,
@@ -544,6 +560,14 @@ function DetailsDrawer({
                 >
                   <Building2 className="size-3" strokeWidth={2.5} aria-hidden />
                   {meeting.businessName?.trim() || "No business"}
+                </span>
+                <span
+                  className={`${styles.usersDirDetailChip} ${styles.usersDirDetailChipMuted}`}
+                >
+                  <TrendingUp className="size-3" strokeWidth={2.5} aria-hidden />
+                  {meeting.selectedPlanName?.trim() ||
+                    meeting.selectedPlanSlug?.trim() ||
+                    "No plan"}
                 </span>
               </div>
             </div>
@@ -1030,6 +1054,8 @@ export function SuperAdminMeetingsPanel() {
     useState<AdminMeetingRequest | null>(null);
   const [outcomeMeeting, setOutcomeMeeting] =
     useState<AdminMeetingRequest | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  const [tableScroll, setTableScroll] = useState({ value: 0, max: 0 });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1102,6 +1128,30 @@ export function SuperAdminMeetingsPanel() {
   const loading =
     (meetingsQuery.isLoading || meetingsQuery.isFetching) &&
     meetings.length === 0;
+
+  const syncTableScroll = () => {
+    const el = tableScrollRef.current;
+    if (!el) return;
+    const max = Math.max(0, el.scrollWidth - el.clientWidth);
+    setTableScroll({ value: el.scrollLeft, max });
+  };
+
+  useEffect(() => {
+    const el = tableScrollRef.current;
+    if (!el) return;
+    syncTableScroll();
+    const onScroll = () => syncTableScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const observer = new ResizeObserver(() => syncTableScroll());
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    window.addEventListener("resize", syncTableScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+      window.removeEventListener("resize", syncTableScroll);
+    };
+  }, [scope, page, debouncedSearch, meetingsQuery.dataUpdatedAt, meetings.length]);
   const errorMessage = meetingsQuery.error
     ? getApiErrorMessage(
         meetingsQuery.error,
@@ -1385,7 +1435,7 @@ export function SuperAdminMeetingsPanel() {
         </div>
 
         <div className={styles.usersDirTableCard}>
-          <div className={styles.usersDirTableWrap}>
+          <div ref={tableScrollRef} className={styles.usersDirTableWrap}>
             {loading ? (
               <TableSkeleton />
             ) : meetings.length === 0 ? (
@@ -1424,6 +1474,16 @@ export function SuperAdminMeetingsPanel() {
                           aria-hidden
                         />
                         Business
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
+                        <TrendingUp
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Plan
                       </span>
                     </th>
                     <th>
@@ -1557,6 +1617,22 @@ export function SuperAdminMeetingsPanel() {
                           </div>
                         </td>
                         <td>
+                          <div className={styles.meetingsBizText}>
+                            <span className={styles.bizName}>
+                              {meeting.selectedPlanName?.trim() ||
+                                meeting.selectedPlanSlug?.trim() ||
+                                "—"}
+                            </span>
+                            {meeting.selectedBillingCycle ? (
+                              <span className={styles.bizMeta}>
+                                {meeting.selectedBillingCycle === "annual"
+                                  ? "Annually"
+                                  : "Monthly"}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td>
                           {formatMeetingDateLabel(meeting.scheduledDate)}
                         </td>
                         <td>
@@ -1683,6 +1759,29 @@ export function SuperAdminMeetingsPanel() {
               </table>
             )}
           </div>
+
+          {tableScroll.max > 0 ? (
+            <div className={styles.meetingsScrollSliderWrap}>
+              <label className="sr-only" htmlFor="meetings-table-scroll">
+                Scroll meeting table
+              </label>
+              <input
+                id="meetings-table-scroll"
+                type="range"
+                min={0}
+                max={tableScroll.max}
+                value={tableScroll.value}
+                className={styles.meetingsScrollSlider}
+                aria-label="Scroll meeting table"
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  const el = tableScrollRef.current;
+                  if (el) el.scrollLeft = next;
+                  setTableScroll((prev) => ({ ...prev, value: next }));
+                }}
+              />
+            </div>
+          ) : null}
 
           <OffsetPagination
             page={page}

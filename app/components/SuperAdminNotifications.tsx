@@ -102,14 +102,7 @@ function notificationIconClass(type: string, eventKey?: string): string {
       ? styles.notifyIconBrandFail
       : styles.notifyIconBrand;
   }
-  if (eventKey?.endsWith("_failed")) return styles.notifyIconRose;
-  if (eventKey === "twilio_connected") return styles.notifyIconOrange;
-  if (eventKey === "meeting_requested") return styles.notifyIconBlue;
-  if (type === "payment" || type === "subscription") return styles.notifyIconRose;
-  if (type === "user") return styles.notifyIconBlue;
-  if (type === "system") return styles.notifyIconOrange;
-  if (type === "campaign") return styles.notifyIconTeal;
-  return styles.notifyIconGreen;
+  return styles.notifyIconLucide;
 }
 
 function formatNotifyTime(iso: string): string {

@@ -13,6 +13,17 @@ function isPaidSubscriptionStatus(status: string | null | undefined): boolean {
   return normalized === "active" || normalized === "trialing";
 }
 
+function isSelectPlanPath(path: string | null | undefined): boolean {
+  return Boolean(path?.startsWith("/auth/select-plan"));
+}
+
+function requiresPaidSubscription(status: OnboardingStatus): boolean {
+  if (status.subscriptionCompleted || status.subscriptionSelected) {
+    return false;
+  }
+  return true;
+}
+
 export function resolvePostLoginPath(status: OnboardingStatus): string {
   if (isSuperAdminUser()) {
     return "/admin";
@@ -22,21 +33,24 @@ export function resolvePostLoginPath(status: OnboardingStatus): string {
     return "/dashboard";
   }
 
-  const fullyIn =
-    status.onboardingCompleted || status.businessCreated;
+  if (requiresPaidSubscription(status)) {
+    return "/auth/select-plan";
+  }
+
+  const fullyIn = status.onboardingCompleted || status.businessCreated;
 
   if (fullyIn) {
     if (
       !status.redirectPath ||
-      status.redirectPath.startsWith("/auth/select-plan") ||
-      status.redirectPath.startsWith("/business/register")
+      status.redirectPath.startsWith("/business/register") ||
+      isSelectPlanPath(status.redirectPath)
     ) {
       return "/dashboard";
     }
     return status.redirectPath;
   }
 
-  return status.redirectPath;
+  return status.redirectPath || "/business/register";
 }
 
 export function resolvePostAuthPath(status: OnboardingStatus): string {
@@ -48,19 +62,16 @@ export function resolvePostAuthPath(status: OnboardingStatus): string {
     return "/dashboard";
   }
 
+  if (requiresPaidSubscription(status)) {
+    return "/auth/select-plan";
+  }
+
   if (status.businessCreated || status.onboardingCompleted) {
     return resolvePostLoginPath(status);
   }
 
-  if (status.redirectPath) {
+  if (status.redirectPath && !isSelectPlanPath(status.redirectPath)) {
     return status.redirectPath;
-  }
-
-  const hasSubscription =
-    status.subscriptionCompleted || status.subscriptionSelected;
-
-  if (!hasSubscription) {
-    return "/auth/select-plan";
   }
 
   if (!status.businessCreated) {
@@ -97,24 +108,14 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
 
   const status = await loadOnboardingStatusWithRetry();
   if (status) {
-    if (
-      status.onboardingCompleted ||
-      status.businessCreated ||
-      status.subscriptionCompleted ||
-      status.subscriptionSelected
-    ) {
-      return resolvePostAuthPath(status);
-    }
+    return resolvePostAuthPath(status);
   }
 
   let businessListKnownEmpty = false;
   try {
     const list = await fetchMyBusinesses({ page: 1, limit: 1 });
     const count = list.meta?.total ?? list.data?.length ?? 0;
-    if (count > 0) {
-      return "/dashboard";
-    }
-    businessListKnownEmpty = true;
+    businessListKnownEmpty = count === 0;
   } catch {
   }
 
@@ -126,11 +127,7 @@ export async function fetchAuthenticatedOnboardingDestination(): Promise<string>
   } catch {
   }
 
-  if (isInvitedTeamUser()) {
-    return "/dashboard";
-  }
-
-  return "/dashboard";
+  return "/auth/select-plan";
 }
 
 export function resolveCompletedStepRedirect(
@@ -141,7 +138,10 @@ export function resolveCompletedStepRedirect(
     return "/dashboard";
   }
 
-  if (step === "plan_selection" && (status.subscriptionCompleted || status.subscriptionSelected)) {
+  if (
+    step === "plan_selection" &&
+    (status.subscriptionCompleted || status.subscriptionSelected)
+  ) {
     return status.businessCreated ? null : "/business/register";
   }
 

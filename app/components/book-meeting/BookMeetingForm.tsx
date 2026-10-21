@@ -15,6 +15,7 @@ import {
   BookMeetingPhoneInput,
   isValidPhoneNumber,
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
+import { BookMeetingPlanStep } from "@/app/components/book-meeting/BookMeetingPlanStep";
 import {
   BOOK_MEETING_STEP_UI,
   type BookMeetingStepId,
@@ -24,19 +25,59 @@ import {
   optionalHttpsWebsiteUrlMessage,
   withAutomaticHttps,
 } from "@/app/lib/website-url";
+import OtpForm from "@/app/components/OtpForm";
 import { easeOut } from "@/app/components/landing/landing-motion";
+import {
+  confirmMeetingEmailOtp,
+  sendMeetingEmailOtp,
+} from "@/app/services/meeting/verify-meeting-email";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, Check, Loader2, Mail, User } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Loader2,
+  Mail,
+  Sparkles,
+  User,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import fieldStyles from "@/app/components/register-business/RegisterBusinessForm.module.css";
 import styles from "./BookMeetingForm.module.css";
 
+function SuccessMetaRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  if (!value.trim()) return null;
+  return (
+    <div className={styles.successMetaRow}>
+      <span className={styles.successMetaIcon} aria-hidden>
+        <Icon className="h-4 w-4" strokeWidth={2} />
+      </span>
+      <div className={styles.successMetaCopy}>
+        <span className={styles.successMetaLabel}>{label}</span>
+        <span className={styles.successMetaValue}>{value}</span>
+      </div>
+    </div>
+  );
+}
+
 export type BookMeetingFormProps = {
   submitting: boolean;
   errorMessage: string | null;
   meetLink?: string | null;
-  onSubmit: (values: MeetingFormValues) => Promise<void>;
+  onSubmit: (
+    values: MeetingFormValues,
+    emailVerificationToken: string,
+  ) => Promise<void>;
 };
 
 const MEETING_DRAFT_KEY = "dealio-book-meeting-draft";
@@ -65,6 +106,11 @@ function readMeetingDraft(): { stepIndex: number; values: MeetingFormValues } | 
         ...DEFAULT_MEETING_FORM_VALUES,
         ...parsed.values,
         meetingDuration: parsed.values.meetingDuration === 15 ? 15 : 30,
+        selectedBillingCycle:
+          parsed.values.selectedBillingCycle === "monthly" ||
+          parsed.values.selectedBillingCycle === "annual"
+            ? parsed.values.selectedBillingCycle
+            : "",
       },
     };
   } catch {
@@ -85,14 +131,32 @@ export default function BookMeetingForm({
   const [stepError, setStepError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [contactPhase, setContactPhase] = useState<"form" | "otp">("form");
+  const [emailVerificationToken, setEmailVerificationToken] = useState<
+    string | null
+  >(null);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [otpBusy, setOtpBusy] = useState(false);
 
   const currentStep = BOOK_MEETING_STEPS[stepIndex];
   const stepUi = BOOK_MEETING_STEP_UI[currentStep.id as BookMeetingStepId];
   const progress = ((stepIndex + 1) / BOOK_MEETING_STEPS.length) * 100;
   const isLastStep = stepIndex >= BOOK_MEETING_STEPS.length - 1;
+  const showingEmailOtp =
+    currentStep.id === "contact" && contactPhase === "otp";
 
   const patchValues = useCallback((patch: Partial<MeetingFormValues>) => {
-    setValues((prev) => ({ ...prev, ...patch }));
+    setValues((prev) => {
+      if (
+        typeof patch.email === "string" &&
+        patch.email.trim().toLowerCase() !== prev.email.trim().toLowerCase()
+      ) {
+        setEmailVerificationToken(null);
+        setVerifiedEmail(null);
+        setContactPhase("form");
+      }
+      return { ...prev, ...patch };
+    });
   }, []);
 
   const setMeetingTimeZone = useCallback((meetingTimeZone: string) => {
@@ -157,6 +221,17 @@ export default function BookMeetingForm({
             postalCode: snapshot.postalCode,
             country: snapshot.country,
           });
+        case "plan":
+          if (
+            snapshot.selectedBillingCycle !== "monthly" &&
+            snapshot.selectedBillingCycle !== "annual"
+          ) {
+            return "Please choose monthly or annually.";
+          }
+          if (!snapshot.selectedPlanSlug.trim() || !snapshot.selectedPlanName.trim()) {
+            return "Please choose a plan.";
+          }
+          return null;
         case "readiness":
           if (!snapshot.meetingDate) return "Please pick a day for the meeting.";
           if (!snapshot.meetingTime) return "Please pick a time for the meeting.";
@@ -175,7 +250,7 @@ export default function BookMeetingForm({
   );
 
   const goNext = useCallback(async () => {
-    if (submitting) return;
+    if (submitting || otpBusy) return;
     const website = withAutomaticHttps(values.website);
     const snapshot = website === values.website ? values : { ...values, website };
     if (website !== values.website) patchValues({ website });
@@ -186,9 +261,37 @@ export default function BookMeetingForm({
     }
     setStepError(null);
 
+    if (currentStep.id === "contact") {
+      const email = snapshot.email.trim().toLowerCase();
+      const alreadyVerified =
+        verifiedEmail === email && Boolean(emailVerificationToken);
+      if (!alreadyVerified) {
+        setOtpBusy(true);
+        try {
+          await sendMeetingEmailOtp(email);
+          setContactPhase("otp");
+        } catch (error) {
+          setStepError(
+            error instanceof Error
+              ? error.message
+              : "Could not send verification code.",
+          );
+        } finally {
+          setOtpBusy(false);
+        }
+        return;
+      }
+    }
+
     if (isLastStep) {
+      if (!emailVerificationToken) {
+        setStepError("Please verify your email before booking.");
+        setStepIndex(0);
+        setContactPhase("form");
+        return;
+      }
       try {
-        await onSubmit(snapshot);
+        await onSubmit(snapshot, emailVerificationToken);
         setCompleted(true);
       } catch {
         return;
@@ -196,22 +299,40 @@ export default function BookMeetingForm({
       return;
     }
     setStepIndex((index) => index + 1);
-  }, [isLastStep, onSubmit, patchValues, submitting, validateStep, values]);
+  }, [
+    currentStep.id,
+    emailVerificationToken,
+    isLastStep,
+    onSubmit,
+    otpBusy,
+    patchValues,
+    submitting,
+    validateStep,
+    values,
+    verifiedEmail,
+  ]);
 
   const goBack = useCallback(() => {
+    if (submitting || otpBusy) return;
+    if (showingEmailOtp) {
+      setContactPhase("form");
+      setStepError(null);
+      return;
+    }
     setStepError(null);
     setStepIndex((index) => Math.max(0, index - 1));
-  }, []);
+  }, [otpBusy, showingEmailOtp, submitting]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      if (showingEmailOtp) return;
       const target = event.target as HTMLElement | null;
       if (target?.tagName === "TEXTAREA") return;
       if (event.key !== "Enter" || event.shiftKey) return;
       event.preventDefault();
       void goNext();
     },
-    [goNext],
+    [goNext, showingEmailOtp],
   );
 
   if (completed) {
@@ -223,42 +344,83 @@ export default function BookMeetingForm({
         <BookMeetingNav onMenuOpenChange={setMobileNavOpen} />
         <div className={styles.pageContent}>
           <div className={styles.successWrap}>
+            <div className={styles.successGlow} aria-hidden />
             <motion.div
               className={styles.successCard}
-              initial={reduced ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: easeOut }}
+              initial={reduced ? false : { opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.42, ease: easeOut }}
             >
+              <div className={styles.successAccent} aria-hidden />
               <div className={styles.successBody}>
-                <div className={styles.successIcon}>
-                  <Check className="h-6 w-6" strokeWidth={2.5} aria-hidden />
-                </div>
+                <motion.div
+                  className={styles.successIcon}
+                  initial={reduced ? false : { scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.08, ease: easeOut }}
+                >
+                  <Check className="h-7 w-7" strokeWidth={2.5} aria-hidden />
+                </motion.div>
+                <p className={styles.successEyebrow}>You&apos;re all set</p>
                 <h1 className={styles.successTitle}>Meeting scheduled</h1>
                 <p className={styles.successCopy}>
-                  Your request is saved for{" "}
-                  <strong>
-                    {formatMeetingDate(values.meetingDate)} at {formatMeetingTime(values.meetingTime)}
-                    {" "}({values.meetingDuration} min
-                    {values.meetingTimeZone
-                      ? `, ${values.meetingTimeZone.replace(/_/g, " ")}`
-                      : ""}
-                    )
-                  </strong>
-                  . This meeting is with <strong>sameeryasir02@gmail.com</strong>. We will follow up at <strong>{values.email}</strong>.
+                  We saved your request. Add it to your calendar and we&apos;ll
+                  follow up by email.
                 </p>
-                {meetLink ? (
-                  <a
-                    href={meetLink}
-                    className={styles.meetLink}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Join with Google Meet
-                  </a>
-                ) : null}
-                <Link href="/" className={styles.nextBtn}>
-                  Back to home
-                </Link>
+
+                <div className={styles.successHero}>
+                  <p className={styles.successHeroDate}>
+                    {formatMeetingDate(values.meetingDate)}
+                  </p>
+                  <p className={styles.successHeroTime}>
+                    {formatMeetingTime(values.meetingTime)}
+                  </p>
+                  <p className={styles.successHeroSub}>
+                    {values.meetingDuration} min
+                    {values.meetingTimeZone
+                      ? ` · ${values.meetingTimeZone.replace(/_/g, " ")}`
+                      : ""}
+                  </p>
+                </div>
+
+                <div className={styles.successMetaGrid}>
+                  <SuccessMetaRow
+                    icon={Sparkles}
+                    label="Plan"
+                    value={[
+                      values.selectedPlanName,
+                      values.selectedBillingCycle === "annual"
+                        ? "Annually"
+                        : values.selectedBillingCycle === "monthly"
+                          ? "Monthly"
+                          : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                  <SuccessMetaRow
+                    icon={Mail}
+                    label="Follow up"
+                    value={values.email}
+                  />
+                </div>
+
+                <div className={styles.successActions}>
+                  {meetLink ? (
+                    <a
+                      href={meetLink}
+                      className={styles.successMeetBtn}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Video className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                      Join with Google Meet
+                    </a>
+                  ) : null}
+                  <Link href="/" className={styles.nextBtn}>
+                    Back to home
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -299,7 +461,7 @@ export default function BookMeetingForm({
               <div className={styles.sheetBody}>
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={currentStep.id}
+                    key={`${currentStep.id}-${contactPhase}`}
                     className={styles.sheetStep}
                     initial={
                       reduced
@@ -327,20 +489,36 @@ export default function BookMeetingForm({
                       <span className={styles.stepBadge}>{currentStep.number}</span>
 
                       <h2 className={styles.question}>
-                        {stepUi.lead}
-                        <span className="landing-hero-accent-blue">{stepUi.accent}</span>
-                        {currentStep.required ? (
-                          <span className={styles.requiredMark} aria-hidden>
-                            *
-                          </span>
-                        ) : null}
+                        {showingEmailOtp ? (
+                          <>
+                            Verify your{" "}
+                            <span className="landing-hero-accent-blue">email</span>
+                            <span className={styles.requiredMark} aria-hidden>
+                              *
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {stepUi.lead}
+                            <span className="landing-hero-accent-blue">{stepUi.accent}</span>
+                            {currentStep.required ? (
+                              <span className={styles.requiredMark} aria-hidden>
+                                *
+                              </span>
+                            ) : null}
+                          </>
+                        )}
                       </h2>
 
-                      {stepUi.subtitle || currentStep.hint ? (
+                      {showingEmailOtp ? (
+                        <p className={styles.hint}>
+                          Enter the 6-digit code we sent to {values.email.trim()}.
+                        </p>
+                      ) : stepUi.subtitle || currentStep.hint ? (
                         <p className={styles.hint}>{stepUi.subtitle ?? currentStep.hint}</p>
                       ) : null}
 
-                      {currentStep.id === "contact" ? (
+                      {currentStep.id === "contact" && contactPhase === "form" ? (
                         <div className={styles.reachGrid}>
                           <label>
                             <span className={fieldStyles.basicsLabel}>
@@ -409,6 +587,26 @@ export default function BookMeetingForm({
                         </div>
                       ) : null}
 
+                      {showingEmailOtp ? (
+                        <OtpForm
+                          embedded
+                          email={values.email.trim()}
+                          onVerifyOtp={async (otp) => {
+                            const email = values.email.trim().toLowerCase();
+                            const result = await confirmMeetingEmailOtp(email, otp);
+                            setEmailVerificationToken(result.emailVerificationToken);
+                            setVerifiedEmail(email);
+                            setContactPhase("form");
+                            setStepError(null);
+                            setStepIndex((index) => index + 1);
+                          }}
+                          onResendOtp={async () => {
+                            await sendMeetingEmailOtp(values.email.trim().toLowerCase());
+                          }}
+                          onBack={goBack}
+                        />
+                      ) : null}
+
                       {currentStep.id === "business" || currentStep.id === "location" ? (
                         <BookMeetingBusinessStep
                           section={currentStep.id === "location" ? "location" : "about"}
@@ -422,6 +620,17 @@ export default function BookMeetingForm({
                           state={values.state}
                           postalCode={values.postalCode}
                           country={values.country}
+                          onChange={(patch) => {
+                            patchValues(patch);
+                            setStepError(null);
+                          }}
+                        />
+                      ) : null}
+
+                      {currentStep.id === "plan" ? (
+                        <BookMeetingPlanStep
+                          selectedPlanSlug={values.selectedPlanSlug}
+                          selectedBillingCycle={values.selectedBillingCycle}
                           onChange={(patch) => {
                             patchValues(patch);
                             setStepError(null);
@@ -458,36 +667,46 @@ export default function BookMeetingForm({
                       )}
                     </div>
 
-                    <div
-                      className={`${styles.actions}${stepIndex > 0 ? ` ${styles.actionsDuo}` : ""}`}
-                      data-book-meeting-actions
-                    >
-                      {stepIndex > 0 ? (
-                        <button type="button" className={styles.back} onClick={goBack} disabled={submitting}>
-                          Back
-                        </button>
-                      ) : (
-                        <span className={styles.actionsSpacer} aria-hidden />
-                      )}
-
-                      <button
-                        type="button"
-                        className={styles.nextBtn}
-                        onClick={() => void goNext()}
-                        disabled={submitting}
+                    {!showingEmailOtp ? (
+                      <div
+                        className={`${styles.actions}${stepIndex > 0 ? ` ${styles.actionsDuo}` : ""}`}
+                        data-book-meeting-actions
                       >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            Submitting…
-                          </>
-                        ) : isLastStep ? (
-                          "Schedule"
+                        {stepIndex > 0 ? (
+                          <button
+                            type="button"
+                            className={styles.back}
+                            onClick={goBack}
+                            disabled={submitting || otpBusy}
+                          >
+                            Back
+                          </button>
                         ) : (
-                          "Next"
+                          <span className={styles.actionsSpacer} aria-hidden />
                         )}
-                      </button>
-                    </div>
+
+                        <button
+                          type="button"
+                          className={styles.nextBtn}
+                          onClick={() => void goNext()}
+                          disabled={submitting || otpBusy}
+                        >
+                          {submitting || otpBusy ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                              {otpBusy ? "Sending code…" : "Submitting…"}
+                            </>
+                          ) : isLastStep ? (
+                            "Schedule"
+                          ) : currentStep.id === "contact" &&
+                            verifiedEmail !== values.email.trim().toLowerCase() ? (
+                            "Verify email"
+                          ) : (
+                            "Next"
+                          )}
+                        </button>
+                      </div>
+                    ) : null}
                   </motion.div>
                 </AnimatePresence>
               </div>

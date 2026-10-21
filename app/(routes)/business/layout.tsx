@@ -1,3 +1,4 @@
+import { OnboardingCompleteGuard } from "@/app/components/OnboardingCompleteGuard";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
 export default function BusinessLayout({
@@ -5,5 +6,9 @@ export default function BusinessLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <ProtectedRoute>{children}</ProtectedRoute>;
+  return (
+    <ProtectedRoute>
+      <OnboardingCompleteGuard>{children}</OnboardingCompleteGuard>
+    </ProtectedRoute>
+  );
 }

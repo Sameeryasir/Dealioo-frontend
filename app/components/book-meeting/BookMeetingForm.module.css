@@ -237,6 +237,64 @@
   color: #202124;
 }
 
+.planChoiceCopy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.planChoiceMeta {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #5f6368;
+}
+
+.planStep {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.planBillingToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: #eef2f8;
+}
+
+.planBillingBtn {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.planBillingBtnSelected {
+  background: #ffffff;
+  color: #07111f;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.planLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  font-size: 0.9375rem;
+  color: #5f6368;
+}
+
 .choiceListMark {
   display: inline-flex;
   flex-shrink: 0;
@@ -1650,80 +1708,240 @@
   min-height: calc(100dvh - var(--book-meeting-nav-height) - env(safe-area-inset-top, 0px) - 4rem);
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 1.75rem 1rem 2.75rem;
+}
+
+.successGlow {
+  pointer-events: none;
+  position: absolute;
+  inset: 18% 10% auto;
+  height: 14rem;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(24, 119, 242, 0.28) 0%,
+    rgba(52, 168, 83, 0.12) 42%,
+    transparent 72%
+  );
+  filter: blur(18px);
 }
 
 .successCard {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 30rem;
+  max-width: 26.5rem;
   overflow: hidden;
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #ffffff;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
   text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.38);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.successAccent {
+  height: 0.28rem;
+  background: linear-gradient(
+    90deg,
+    var(--bm-blue) 0%,
+    #34a853 55%,
+    #60a5fa 100%
+  );
 }
 
 .successBody {
-  padding: 2.25rem 1.75rem 2rem;
+  padding: 1.85rem 1.45rem 1.55rem;
 }
 
 .successIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.75rem;
-  height: 3.75rem;
-  margin-bottom: 1rem;
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
   border-radius: 999px;
-  background: #e8f6ec;
+  background: linear-gradient(180deg, #e9f8ee 0%, #d8f3e1 100%);
   color: #188038;
+  box-shadow:
+    0 0 0 8px rgba(52, 168, 83, 0.08),
+    0 10px 24px rgba(24, 128, 56, 0.16);
+}
+
+.successEyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .successTitle {
   font-family: var(--font-poppins), system-ui, sans-serif;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #202124;
-  margin: 0 0 0.65rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #07111f;
+  margin: 0 0 0.45rem;
 }
 
 .successCopy {
-  margin: 0 0 1.65rem;
-  font-size: 0.9375rem;
-  line-height: 1.65;
-  color: #5f6368;
+  margin: 0 auto 1.35rem;
+  max-width: 20rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  font-weight: 400;
+  color: #64748b;
 }
 
-.meetLink {
+.successHero {
+  margin: 0 0 1.1rem;
+  padding: 1.15rem 1rem 1.05rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+  border: 1px solid #dbe7f8;
+}
+
+.successHeroDate {
+  margin: 0;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.successHeroTime {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: #07111f;
+}
+
+.successHeroSub {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.successMetaGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  margin: 0 0 1.35rem;
+  text-align: left;
+}
+
+.successMetaRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e8edf5;
+}
+
+.successMetaIcon {
   display: inline-flex;
+  align-items: center;
   justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #000000;
+  flex-shrink: 0;
+}
+
+.successMetaCopy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.successMetaLabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.successMetaValue {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #334155;
+  word-break: break-word;
+}
+
+.successActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.successMeetBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
-  margin: -0.65rem 0 1rem;
-  color: #202124;
+  min-height: 3rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #c9daf8;
+  background: #ffffff;
+  color: #1877f2;
   font-size: 0.9375rem;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 0.2rem;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.successMeetBtn:hover {
+  background: #f5f9ff;
+  border-color: #a8c5f5;
 }
 
 .successBody .nextBtn {
   display: inline-flex;
   width: 100%;
   min-width: 0;
-  min-height: 3.25rem;
+  min-height: 3.15rem;
   padding: 0.85rem 2rem;
   font-size: 1rem;
-  border-radius: 0.65rem;
+  border-radius: 0.75rem;
   text-decoration: none;
 }
 
 @media (min-width: 640px) {
+  .successBody {
+    padding: 2.1rem 1.75rem 1.7rem;
+  }
+
+  .successTitle {
+    font-size: 1.85rem;
+  }
+
+  .successHeroTime {
+    font-size: 2.2rem;
+  }
+
   .successBody .nextBtn {
-    min-height: 3.5rem;
+    min-height: 3.35rem;
     padding: 0.95rem 2.25rem;
     font-size: 1.0625rem;
-    border-radius: 0.7rem;
   }
 }
 

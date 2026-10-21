@@ -21,7 +21,10 @@ function getRoleNameFromAccessToken(): string | null {
 
   try {
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "=",
+    );
     const json = atob(padded);
     const payload = JSON.parse(json) as { role?: unknown };
     return typeof payload.role === "string" && payload.role.trim()
@@ -32,40 +35,15 @@ function getRoleNameFromAccessToken(): string | null {
   }
 }
 
-function getRoleNameFromRawStoredUser(): string | null {
-  if (typeof window === "undefined") return null;
-
-  const prefix = "dealioo_user=";
-  let raw = "";
-  for (const part of document.cookie.split(";")) {
-    const trimmed = part.trim();
-    if (!trimmed.startsWith(prefix)) continue;
-    try {
-      raw = decodeURIComponent(trimmed.slice(prefix.length));
-    } catch {
-      raw = trimmed.slice(prefix.length);
-    }
-    break;
-  }
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw) as { role?: { name?: unknown } };
-    const name = parsed?.role?.name;
-    return typeof name === "string" && name.trim() ? name.trim() : null;
-  } catch {
-    return null;
-  }
-}
-
 export function getStoredUserRoleName(): string | null {
+  // Prefer signed JWT role over cookie/local user (cookie can be tampered).
+  const fromToken = getRoleNameFromAccessToken();
+  if (fromToken) return fromToken;
+
   const fromValidatedUser = getSetupUser()?.role?.name?.trim();
   if (fromValidatedUser) return fromValidatedUser;
 
-  const fromRawUser = getRoleNameFromRawStoredUser();
-  if (fromRawUser) return fromRawUser;
-
-  return getRoleNameFromAccessToken();
+  return null;
 }
 
 export function isManagerUser(): boolean {

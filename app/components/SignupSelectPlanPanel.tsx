@@ -73,17 +73,30 @@ async function confirmUpgradePaymentIfRequired(
 
 type SignupSelectPlanPanelProps = {
   mode?: "checkout" | "upgrade";
+  presetPlanId?: string | null;
+  presetBillingCycle?: BillingCycle | null;
+  autoCheckout?: boolean;
+  checkoutOnBillingChange?: boolean;
 };
 
 export function SignupSelectPlanPanel({
   mode = "checkout",
+  presetPlanId = null,
+  presetBillingCycle = null,
+  autoCheckout = false,
+  checkoutOnBillingChange = false,
 }: SignupSelectPlanPanelProps) {
   const invalidateMySubscription = useInvalidateMyUserSubscription();
   const { plans, loading, error: plansError, defaultPlanId } =
     useSubscriptionPlans();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
   const [billingReady, setBillingReady] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState("starter");
+  const hasPresetPlan = Boolean(presetPlanId?.trim());
+  const skipPlanPicker =
+    mode === "checkout" && autoCheckout && hasPresetPlan;
+  const [selectedPlanId, setSelectedPlanId] = useState(
+    presetPlanId?.trim() || "starter",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
@@ -92,11 +105,13 @@ export function SignupSelectPlanPanel({
   const [upgradePreviewLoading, setUpgradePreviewLoading] = useState(false);
   const [upgradePreview, setUpgradePreview] =
     useState<PreviewUpgradeSubscriptionResult | null>(null);
-  const [quizDone, setQuizDone] = useState(mode !== "checkout");
+  const [quizDone, setQuizDone] = useState(mode !== "checkout" || hasPresetPlan);
   const [recommendation, setRecommendation] = useState<PlanFitResult | null>(
     null,
   );
-  const [planFitReady, setPlanFitReady] = useState(mode !== "checkout");
+  const [planFitReady, setPlanFitReady] = useState(
+    mode !== "checkout" || hasPresetPlan,
+  );
   const [quizSubmitting, setQuizSubmitting] = useState(false);
   const [draftAnswers, setDraftAnswers] = useState<Partial<PlanFitAnswers> | null>(
     null,
@@ -105,14 +120,35 @@ export function SignupSelectPlanPanel({
     null,
   );
   const restoredPlanFitRef = useRef(false);
+  const autoCheckoutStartedRef = useRef(false);
 
   useEffect(() => {
-    setBillingCycle(readBillingCyclePreference());
+    if (
+      presetBillingCycle === "monthly" ||
+      presetBillingCycle === "annual"
+    ) {
+      setBillingCycle(presetBillingCycle);
+      persistBillingCyclePreference(
+        presetBillingCycle,
+        presetPlanId?.trim() || undefined,
+      );
+    } else {
+      setBillingCycle(readBillingCyclePreference());
+    }
     setBillingReady(true);
-  }, []);
+  }, [presetBillingCycle, presetPlanId]);
+
+  useEffect(() => {
+    const preset = presetPlanId?.trim();
+    if (!preset) return;
+    setSelectedPlanId(preset);
+    setQuizDone(true);
+    setPlanFitReady(true);
+  }, [presetPlanId]);
 
   useEffect(() => {
     if (mode !== "checkout") return;
+    if (hasPresetPlan) return;
 
     let cancelled = false;
 
@@ -160,15 +196,16 @@ export function SignupSelectPlanPanel({
       cancelled = true;
       window.clearTimeout(maxWait);
     };
-  }, [mode]);
+  }, [hasPresetPlan, mode]);
 
   useEffect(() => {
-    if (!loading && plans.length > 0 && !recommendation) {
+    if (!loading && plans.length > 0 && !recommendation && !hasPresetPlan) {
       setSelectedPlanId(defaultPlanId);
     }
-  }, [defaultPlanId, loading, plans.length, recommendation]);
+  }, [defaultPlanId, hasPresetPlan, loading, plans.length, recommendation]);
 
   useEffect(() => {
+    if (hasPresetPlan) return;
     if (!recommendation || plans.length === 0) return;
     const availableIds = new Set(plans.map((plan) => plan.id));
     if (!availableIds.has(recommendation.planId)) {
@@ -186,19 +223,59 @@ export function SignupSelectPlanPanel({
     setSelectedPlanId((current) =>
       availableIds.has(current) ? current : recommendation.planId,
     );
-  }, [defaultPlanId, plans, recommendation]);
+  }, [defaultPlanId, hasPresetPlan, plans, recommendation]);
 
   useEffect(() => {
     if (!billingReady) return;
     persistBillingCyclePreference(billingCycle, selectedPlanId);
   }, [billingCycle, billingReady, selectedPlanId]);
 
+  const startCheckout = useCallback(
+    async (planSlug: string, cycle: BillingCycle) => {
+      if (!planSlug) return;
+      setErrorMessage(null);
+      setSubmitting(true);
+      try {
+        saveSelectedSignupPlan({
+          planId: planSlug,
+          billing: cycle,
+        });
+        const checkout = await startUserPlanCheckout({
+          planSlug,
+          billingCycle: cycle,
+          checkoutAttemptId:
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        });
+        window.location.assign(checkout.checkoutUrl);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not start checkout. Try again.";
+        setErrorMessage(message);
+        setSubmitting(false);
+        autoCheckoutStartedRef.current = false;
+      }
+    },
+    [],
+  );
+
   const handleBillingChange = useCallback(
     (cycle: BillingCycle) => {
       setBillingCycle(cycle);
       persistBillingCyclePreference(cycle, selectedPlanId);
+      if (
+        mode === "checkout" &&
+        checkoutOnBillingChange &&
+        selectedPlanId &&
+        selectedPlanId !== "enterprise"
+      ) {
+        void startCheckout(selectedPlanId, cycle);
+      }
     },
-    [selectedPlanId],
+    [checkoutOnBillingChange, mode, selectedPlanId, startCheckout],
   );
 
   const handleQuizComplete = useCallback(
@@ -308,25 +385,7 @@ export function SignupSelectPlanPanel({
     setErrorMessage(null);
 
     if (mode === "checkout") {
-      setSubmitting(true);
-      try {
-        saveSelectedSignupPlan({
-          planId: selectedPlanId,
-          billing: billingCycle,
-        });
-        const checkout = await startUserPlanCheckout({
-          planSlug: selectedPlanId,
-          billingCycle,
-        });
-        window.location.assign(checkout.checkoutUrl);
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Could not start checkout. Try again.";
-        setErrorMessage(message);
-        setSubmitting(false);
-      }
+      await startCheckout(selectedPlanId, billingCycle);
       return;
     }
 
@@ -352,10 +411,128 @@ export function SignupSelectPlanPanel({
     } finally {
       setUpgradePreviewLoading(false);
     }
-  }, [billingCycle, mode, selectedPlanId]);
+  }, [billingCycle, mode, selectedPlanId, startCheckout]);
 
-  if (loading || (mode === "checkout" && !planFitReady)) {
+  useEffect(() => {
+    if (!skipPlanPicker) return;
+    if (!billingReady || !planFitReady || loading || !selectedPlanId) return;
+    if (selectedPlanId === "enterprise") return;
+    if (submitting || errorMessage) return;
+    if (autoCheckoutStartedRef.current) return;
+    autoCheckoutStartedRef.current = true;
+    const timer = window.setTimeout(() => {
+      void startCheckout(selectedPlanId, billingCycle);
+    }, 1400);
+    return () => window.clearTimeout(timer);
+  }, [
+    billingCycle,
+    billingReady,
+    errorMessage,
+    loading,
+    planFitReady,
+    selectedPlanId,
+    skipPlanPicker,
+    startCheckout,
+    submitting,
+  ]);
+
+  if (loading || (mode === "checkout" && !planFitReady) || !billingReady) {
     return <OnboardingPageLoading />;
+  }
+
+  if (skipPlanPicker) {
+    const presetPlanName =
+      plans.find((plan) => plan.id === selectedPlanId)?.name ??
+      findPricingPlan(selectedPlanId)?.name ??
+      selectedPlanId;
+    const billingLabel =
+      billingCycle === "monthly" ? "Monthly billing" : "Annual billing";
+
+    return (
+      <div className="auth-select-plan-page">
+        <AuthLandingNav
+          loginHref="/auth/login"
+          signupHref="/auth/signup"
+          showGetStarted={false}
+          showNavLinks={false}
+        />
+        <main className="auth-select-plan-main">
+          <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-10">
+            <div className="w-full rounded-2xl border border-[#e8edf5] bg-white p-6 shadow-sm sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-muted">
+                Subscription required
+              </p>
+              <h1 className="brand-landing-display mt-2 text-2xl text-brand-navy sm:text-[1.75rem]">
+                No subscription yet
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">
+                You don&apos;t have an active Dealioo plan. We&apos;re taking
+                you to secure checkout for the plan you already chose — then you
+                can use the app.
+              </p>
+
+              <div className="mt-5 rounded-xl border border-[#e8edf5] bg-[#f8faff] px-4 py-3 text-left">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                  Selected plan
+                </p>
+                <p className="mt-1 text-base font-bold text-brand-navy">
+                  {presetPlanName}
+                </p>
+                <p className="mt-0.5 text-sm text-slate-600">{billingLabel}</p>
+              </div>
+
+              {selectedPlanId === "enterprise" ? (
+                <p className="mt-5 text-sm text-slate-600">
+                  Enterprise needs a sales handoff. We&apos;ll follow up to
+                  finish setup, or contact support to continue.
+                </p>
+              ) : errorMessage ? (
+                <div className="mt-5 space-y-3">
+                  <div
+                    className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+                    role="alert"
+                  >
+                    <AlertCircle
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden
+                    />
+                    <span>{errorMessage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="landing-btn-primary inline-flex h-10 w-full items-center justify-center rounded-full px-5 text-sm font-bold"
+                    onClick={() => {
+                      autoCheckoutStartedRef.current = false;
+                      setErrorMessage(null);
+                      void startCheckout(selectedPlanId, billingCycle);
+                    }}
+                  >
+                    Try checkout again
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="mt-6 flex flex-col items-center gap-2 text-center"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Loader2
+                    className="h-7 w-7 animate-spin text-brand-primary"
+                    aria-hidden
+                  />
+                  <p className="text-sm font-semibold text-brand-navy">
+                    Taking you to the checkout page…
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Stay on this screen — Stripe will open next.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (mode === "checkout" && !quizDone) {

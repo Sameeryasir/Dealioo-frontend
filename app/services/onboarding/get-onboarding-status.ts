@@ -27,6 +27,9 @@ export type OnboardingStatus = {
   onboardingVersion: string;
   nextStep: OnboardingNextStep;
   redirectPath: string;
+  pendingPlanSlug: string | null;
+  pendingBillingCycle: "monthly" | "annual" | null;
+  forcePlanCheckout: boolean;
   progress: number;
   checklist: OnboardingChecklistItem[];
 };
@@ -44,11 +47,9 @@ function normalizeNextStep(value: unknown): OnboardingNextStep {
 
 function normalizeRedirectPath(
   value: unknown,
-  subscriptionCompleted: boolean,
   businessCreated: boolean,
 ): string {
   if (typeof value !== "string" || !value.trim()) {
-    if (!subscriptionCompleted) return "/auth/select-plan";
     return businessCreated ? "/dashboard" : "/business/register";
   }
 
@@ -130,11 +131,17 @@ function normalizeOnboardingStatus(raw: unknown): OnboardingStatus {
         ? record.onboardingVersion
         : "2026-v1",
     nextStep: normalizeNextStep(record.nextStep),
-    redirectPath: normalizeRedirectPath(
-      record.redirectPath,
-      subscriptionCompleted,
-      businessCreated,
-    ),
+    redirectPath: normalizeRedirectPath(record.redirectPath, businessCreated),
+    pendingPlanSlug:
+      typeof record.pendingPlanSlug === "string" && record.pendingPlanSlug.trim()
+        ? record.pendingPlanSlug.trim().toLowerCase()
+        : null,
+    pendingBillingCycle:
+      record.pendingBillingCycle === "monthly" ||
+      record.pendingBillingCycle === "annual"
+        ? record.pendingBillingCycle
+        : null,
+    forcePlanCheckout: Boolean(record.forcePlanCheckout),
     progress,
     checklist: normalizeChecklist(record.checklist),
   };

@@ -20,6 +20,9 @@ export type MeetingFormValues = {
   currentSituation: string;
   startTimeline: string;
   meetingCommitment: string;
+  selectedPlanSlug: string;
+  selectedPlanName: string;
+  selectedBillingCycle: "monthly" | "annual" | "";
   meetingDate: string;
   meetingTime: string;
   meetingDuration: 15 | 30;
@@ -107,8 +110,15 @@ export const BOOK_MEETING_STEPS = [
     hint: "Search, map, and address, the same way a business is created.",
   },
   {
-    id: "readiness",
+    id: "plan",
     number: 4,
+    title: "Which plan are you interested in?",
+    required: true,
+    hint: "Pick the plan you want to talk about on the call.",
+  },
+  {
+    id: "readiness",
+    number: 5,
     title: "Schedule the meeting",
     required: true,
     hint: "Pick a day and time. We will save your request.",
@@ -137,6 +147,9 @@ export const DEFAULT_MEETING_FORM_VALUES: MeetingFormValues = {
   currentSituation: "",
   startTimeline: "",
   meetingCommitment: "",
+  selectedPlanSlug: "",
+  selectedPlanName: "",
+  selectedBillingCycle: "",
   meetingDate: "",
   meetingTime: "",
   meetingDuration: 30,

@@ -16,6 +16,7 @@ export type UserSubscription = {
 export type SelectUserPlanInput = {
   planSlug: string;
   billingCycle: "monthly" | "annual";
+  checkoutAttemptId?: string;
 };
 
 export type UserSubscriptionCheckout = {

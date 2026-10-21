@@ -240,20 +240,29 @@ export function SuperAdminCustomerOnboardingPanel() {
       setCreateAccountMeeting(null);
 
       if (onboarding.passwordSetupEmailSent) {
+        const setupUrl = onboarding.setPasswordUrl;
         toast.success("Account created. Password setup email sent.", {
           duration: 12_000,
-          description: `We emailed ${onboarding.customerEmail} a link to set their password (same flow as Forgot password).`,
-          action: onboarding.setPasswordUrl
-            ? {
-                label: "Copy setup link",
-                onClick: () => {
-                  void navigator.clipboard.writeText(
-                    onboarding.setPasswordUrl as string,
-                  );
-                  toast.success("Setup link copied.");
-                },
-              }
-            : undefined,
+          description: (
+            <div className="mt-1 flex w-full min-w-0 flex-col gap-2.5">
+              <p className="break-words leading-snug">
+                We emailed {onboarding.customerEmail} a link to set their
+                password (same flow as Forgot password).
+              </p>
+              {setupUrl ? (
+                <button
+                  type="button"
+                  className="self-start rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(setupUrl);
+                    toast.success("Setup link copied.");
+                  }}
+                >
+                  Copy setup link
+                </button>
+              ) : null}
+            </div>
+          ),
         });
       } else if (onboarding.createdNewUser) {
         toast.success("Account created.", {

@@ -11,25 +11,30 @@ export default function BookMeetingPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [meetLink, setMeetLink] = useState<string | null>(null);
 
-  const onSubmit = useCallback(async (values: MeetingFormValues) => {
-    setErrorMessage(null);
-    setSubmitting(true);
-    try {
-      const saved = await submitMeetingRequest(values);
-      setMeetLink(saved.googleMeetLink?.trim() || null);
-      trackProductFormSubmission("book_meeting", {
-        email: values.email,
-        phone: values.phone,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not submit your request.";
-      setErrorMessage(message);
-      throw error;
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
+  const onSubmit = useCallback(
+    async (values: MeetingFormValues, emailVerificationToken: string) => {
+      setErrorMessage(null);
+      setSubmitting(true);
+      try {
+        const saved = await submitMeetingRequest(values, emailVerificationToken);
+        setMeetLink(saved.googleMeetLink?.trim() || null);
+        trackProductFormSubmission("book_meeting", {
+          email: values.email,
+          phone: values.phone,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not submit your request.";
+        setErrorMessage(message);
+        throw error;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
 
   return (
     <BookMeetingForm

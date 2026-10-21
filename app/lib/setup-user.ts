@@ -2,6 +2,8 @@ import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 
 const USER_COOKIE = "dealioo_user";
 const LEGACY_STORAGE_KEY = "user";
+const AUTH_USER_ID_KEY = "dealioo_auth_user_id";
+const AUTH_USER_EMAIL_KEY = "dealioo_auth_user_email";
 const TEN_DAYS_SECONDS = 60 * 60 * 24 * 10;
 
 function assertClient(): boolean {
@@ -87,10 +89,29 @@ function parseStoredUser(raw: string): VerifyOtpUser | null {
   }
 }
 
+export function syncAuthUserBroadcast(userId: number, email: string): void {
+  if (!assertClient()) return;
+  try {
+    window.localStorage.setItem(AUTH_USER_ID_KEY, String(userId));
+    window.localStorage.setItem(AUTH_USER_EMAIL_KEY, email.trim().toLowerCase());
+  } catch {
+  }
+}
+
+export function clearAuthUserBroadcast(): void {
+  if (!assertClient()) return;
+  try {
+    window.localStorage.removeItem(AUTH_USER_ID_KEY);
+    window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+  } catch {
+  }
+}
+
 export function setSetupUser(user: VerifyOtpUser): void {
   if (!assertClient()) return;
   clearLegacyUserStorage();
   writeUserCookie(JSON.stringify(user));
+  syncAuthUserBroadcast(user.id, user.email);
 }
 
 export function mergeSetupUser(partial: Partial<VerifyOtpUser>): void {
@@ -118,4 +139,5 @@ export function clearSetupUser(): void {
   if (!assertClient()) return;
   clearUserCookie();
   clearLegacyUserStorage();
+  clearAuthUserBroadcast();
 }

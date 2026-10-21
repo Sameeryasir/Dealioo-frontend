@@ -16,6 +16,9 @@ export type AdminMeetingRequest = {
   currentSituation: string;
   startTimeline: string;
   meetingCommitment: string;
+  selectedPlanSlug?: string | null;
+  selectedPlanName?: string | null;
+  selectedBillingCycle?: string | null;
   scheduledDate?: string | null;
   scheduledTime?: string | null;
   scheduledDuration?: number | null;

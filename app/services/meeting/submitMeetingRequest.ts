@@ -10,6 +10,7 @@ export type SubmitMeetingRequestResponse = {
 
 export async function submitMeetingRequest(
   values: MeetingFormValues,
+  emailVerificationToken: string,
 ): Promise<SubmitMeetingRequestResponse> {
   try {
     const { meetingDate, meetingTime, meetingDuration, meetingTimeZone, ...answers } = values;
@@ -17,6 +18,14 @@ export async function submitMeetingRequest(
       `${getApiBaseUrl()}/meeting-requests`,
       {
         ...answers,
+        emailVerificationToken,
+        selectedPlanSlug: values.selectedPlanSlug.trim(),
+        selectedPlanName: values.selectedPlanName.trim(),
+        selectedBillingCycle:
+          values.selectedBillingCycle === "monthly" ||
+          values.selectedBillingCycle === "annual"
+            ? values.selectedBillingCycle
+            : "monthly",
         scheduledDate: meetingDate,
         scheduledTime: meetingTime,
         scheduledDuration: meetingDuration,
