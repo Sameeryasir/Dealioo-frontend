@@ -1,13 +1,7 @@
-/**
- * Super Admin Twilio panel.
- * Overview + number detail + webhook edit + buy-number modal.
- * Does not display Account SID, Auth Token, or phone SIDs (webhook URL is editable on purpose).
- * Related: get-admin-twilio-dashboard.ts, admin-twilio.ts, AdminTwilioBuyNumberModal
- */
-
 "use client";
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { Skeleton } from "@/app/components/skeleton";
 import { AdminTwilioBuyNumberModal } from "@/app/components/super-admin/AdminTwilioBuyNumberModal";
 import { formatAbsoluteDate } from "@/app/components/super-admin/super-admin-list-helpers";
 import styles from "@/app/components/super-admin/SuperAdminTwilioPanel.module.css";
@@ -61,12 +55,66 @@ function formatCredits(
   }
 }
 
+function TwilioOverviewSkeleton() {
+  return (
+    <div className={styles.overviewGrid} aria-busy="true">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <article key={index} className={styles.overviewCard}>
+          <Skeleton className="size-9 rounded-xl" />
+          <Skeleton className="mt-3 h-3 w-24" />
+          <Skeleton className="mt-2 h-7 w-32" />
+          <Skeleton className="mt-2 h-3 w-40" />
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function TwilioNumbersTableSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <table className={styles.table} aria-busy="true" aria-label="Loading numbers">
+      <thead>
+        <tr>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <th key={index}>
+              <Skeleton className="h-3 w-16" />
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, index) => (
+          <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-28" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-20" />
+            </td>
+            <td>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-24" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-16" />
+            </td>
+            <td>
+              <Skeleton className="h-8 w-24 rounded-lg" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function SuperAdminTwilioPanel() {
   const queryClient = useQueryClient();
   const [buyOpen, setBuyOpen] = useState(false);
   const [buySession, setBuySession] = useState(0);
   const [webhookPhone, setWebhookPhone] = useState<string | null>(null);
-  // User edits only — server values come from `serverWebhookUrls`.
   const [webhookOverrides, setWebhookOverrides] = useState<
     Record<string, string>
   >({});
@@ -95,14 +143,12 @@ export function SuperAdminTwilioPanel() {
     return map;
   }, [data?.numbers, defaultWebhookUrl]);
 
-  // Save inbound SMS webhook URL for one owned number.
   const webhookMutation = useMutation({
     mutationFn: (input: { phoneNumber: string; smsUrl: string }) =>
       setAdminTwilioWebhook(input),
     onMutate: (input) => setWebhookPhone(input.phoneNumber),
     onSuccess: async (result) => {
       toast.success(`Webhook saved on ${result.phoneNumber}.`);
-      // Drop local override so the refreshed server value is shown.
       setWebhookOverrides((current) => {
         const next = { ...current };
         delete next[result.phoneNumber];
@@ -184,50 +230,54 @@ export function SuperAdminTwilioPanel() {
             </div>
           ) : null}
 
-          <div className={styles.overviewGrid}>
-            <article className={styles.overviewCard}>
-              <div className={styles.overviewIcon} aria-hidden>
-                <User className="size-4" />
-              </div>
-              <p className={styles.creditsLabel}>Account owner</p>
-              <p className={styles.overviewValue}>
-                {loading && !data ? "…" : data?.accountOwnerName || "—"}
-              </p>
-              <p className={styles.creditsHint}>
-                Friendly name on the Twilio account
-              </p>
-            </article>
+          {loading && !data ? (
+            <TwilioOverviewSkeleton />
+          ) : (
+            <div className={styles.overviewGrid}>
+              <article className={styles.overviewCard}>
+                <div className={styles.overviewIcon} aria-hidden>
+                  <User className="size-4" />
+                </div>
+                <p className={styles.creditsLabel}>Account owner</p>
+                <p className={styles.overviewValue}>
+                  {data?.accountOwnerName || "—"}
+                </p>
+                <p className={styles.creditsHint}>
+                  Friendly name on the Twilio account
+                </p>
+              </article>
 
-            <article className={styles.overviewCard}>
-              <div className={styles.overviewIcon} aria-hidden>
-                <TwilioMark className="h-4 w-4" />
-              </div>
-              <p className={styles.creditsLabel}>Credits left</p>
-              <p className={styles.creditsValue}>
-                {formatCredits(
-                  data?.balance?.amount,
-                  data?.balance?.currency,
-                )}
-              </p>
-              <p className={styles.creditsHint}>
-                Current balance on this Twilio account
-              </p>
-            </article>
+              <article className={styles.overviewCard}>
+                <div className={styles.overviewIcon} aria-hidden>
+                  <TwilioMark className="h-4 w-4" />
+                </div>
+                <p className={styles.creditsLabel}>Credits left</p>
+                <p className={styles.creditsValue}>
+                  {formatCredits(
+                    data?.balance?.amount,
+                    data?.balance?.currency,
+                  )}
+                </p>
+                <p className={styles.creditsHint}>
+                  Current balance on this Twilio account
+                </p>
+              </article>
 
-            <article className={styles.overviewCard}>
-              <div className={styles.overviewIcon} aria-hidden>
-                <Phone className="size-4" />
-              </div>
-              <p className={styles.creditsLabel}>Phone numbers</p>
-              <p className={styles.creditsValue}>
-                {data?.counts.phoneNumbers ?? 0}
-              </p>
-              <p className={styles.creditsHint}>
-                {data?.counts.assigned ?? 0} assigned ·{" "}
-                {data?.counts.unassigned ?? 0} unassigned
-              </p>
-            </article>
-          </div>
+              <article className={styles.overviewCard}>
+                <div className={styles.overviewIcon} aria-hidden>
+                  <Phone className="size-4" />
+                </div>
+                <p className={styles.creditsLabel}>Phone numbers</p>
+                <p className={styles.creditsValue}>
+                  {data?.counts.phoneNumbers ?? 0}
+                </p>
+                <p className={styles.creditsHint}>
+                  {data?.counts.assigned ?? 0} assigned ·{" "}
+                  {data?.counts.unassigned ?? 0} unassigned
+                </p>
+              </article>
+            </div>
+          )}
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
@@ -251,9 +301,7 @@ export function SuperAdminTwilioPanel() {
             <div className={styles.card}>
               <div className={styles.tableWrap}>
                 {loading && !data ? (
-                  <div className={styles.loadingBox}>
-                    <Loader2 className="size-6 animate-spin" />
-                  </div>
+                  <TwilioNumbersTableSkeleton />
                 ) : !data?.numbers.length ? (
                   <p className={styles.empty}>
                     No phone numbers on this Twilio account yet.
@@ -446,7 +494,6 @@ export function SuperAdminTwilioPanel() {
                                 }
                                 onClick={() => {
                                   const smsUrl = draftUrl.trim();
-                                  // Mirror server rules before calling the API.
                                   if (!/^https:\/\//i.test(smsUrl)) {
                                     toast.error(
                                       "Webhook URL must start with https://",

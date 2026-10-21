@@ -81,6 +81,23 @@ const TAB_OPTIONS: Array<{ id: BusinessTab; label: string }> = [
   { id: "not_onboarded", label: "In Progress" },
 ];
 
+function BusinessesStatsSkeleton() {
+  return (
+    <div className={styles.usersDirStats} aria-busy="true">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <article key={index} className={styles.usersDirStatCard}>
+          <div className="w-full space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function BusinessesTableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <table
@@ -490,7 +507,7 @@ function AddBusinessModal({
 
         <div className={styles.userControlAddHead}>
           <span className={styles.userControlAddHeroIcon} aria-hidden>
-            <Building2 className="size-6" color="#1877f2" strokeWidth={2.25} />
+            <Building2 className="size-6" color="#000000" strokeWidth={2.25} />
           </span>
           <div>
             <h3 id="sa-add-biz-title" className={styles.userControlTitle}>
@@ -1016,35 +1033,39 @@ export function SuperAdminBusinessesPanel() {
           </div>
         ) : null}
 
-        <div className={styles.usersDirStats}>
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <article key={stat.label} className={styles.usersDirStatCard}>
-                <div>
-                  <p className={styles.usersDirStatLabel}>{stat.label}</p>
-                  <p className={styles.usersDirStatValue}>
-                    {stat.value.toLocaleString()}
-                  </p>
-                  <p
-                    className={`${styles.usersDirStatHint} ${
-                      stat.hintMuted ? styles.usersDirStatHintMuted : ""
-                    }`}
+        {loading && !counts ? (
+          <BusinessesStatsSkeleton />
+        ) : (
+          <div className={styles.usersDirStats}>
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <article key={stat.label} className={styles.usersDirStatCard}>
+                  <div>
+                    <p className={styles.usersDirStatLabel}>{stat.label}</p>
+                    <p className={styles.usersDirStatValue}>
+                      {stat.value.toLocaleString()}
+                    </p>
+                    <p
+                      className={`${styles.usersDirStatHint} ${
+                        stat.hintMuted ? styles.usersDirStatHintMuted : ""
+                      }`}
+                    >
+                      {stat.hint}
+                    </p>
+                  </div>
+                  <span
+                    className={styles.usersDirStatIcon}
+                    style={{ background: stat.iconBg, color: stat.iconColor }}
+                    aria-hidden
                   >
-                    {stat.hint}
-                  </p>
-                </div>
-                <span
-                  className={styles.usersDirStatIcon}
-                  style={{ background: stat.iconBg, color: stat.iconColor }}
-                  aria-hidden
-                >
-                  <Icon className="size-4" strokeWidth={2.25} />
-                </span>
-              </article>
-            );
-          })}
-        </div>
+                    <Icon className="size-4" strokeWidth={2.25} />
+                  </span>
+                </article>
+              );
+            })}
+          </div>
+        )}
 
         <div className={styles.usersDirToolbar}>
           <p className={styles.usersDirFooterMeta}>

@@ -57,7 +57,7 @@ function BusinessesByRegionMapInner({
         </Geographies>
 
         {markers.map((marker) => {
-          const radius = 3.4 + Math.min(4.2, (marker.count / max) * 4.2);
+          const radius = 7.5 + Math.min(8, (marker.count / max) * 8);
           const isHovered = hovered === marker.region;
           return (
             <Marker
@@ -67,34 +67,34 @@ function BusinessesByRegionMapInner({
               onMouseLeave={() => setHovered(null)}
             >
               <circle
-                r={radius + 3.5}
+                r={radius + 7}
                 fill={marker.color}
-                opacity={0.18}
+                opacity={0.2}
                 style={{ pointerEvents: "none" }}
               />
               <circle
                 r={radius}
                 fill={marker.color}
                 stroke="#ffffff"
-                strokeWidth={1.4}
+                strokeWidth={2}
                 style={{ cursor: "default" }}
               />
               {isHovered ? (
-                <g transform={`translate(0, ${-(radius + 14)})`}>
+                <g transform={`translate(0, ${-(radius + 16)})`}>
                   <rect
-                    x={-46}
-                    y={-16}
-                    width={92}
-                    height={22}
-                    rx={6}
+                    x={-50}
+                    y={-17}
+                    width={100}
+                    height={24}
+                    rx={7}
                     fill="#0f172a"
                   />
                   <text
                     textAnchor="middle"
-                    y={-1}
+                    y={0}
                     style={{
                       fontFamily: "inherit",
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: 700,
                       fill: "#ffffff",
                     }}

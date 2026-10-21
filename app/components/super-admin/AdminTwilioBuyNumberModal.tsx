@@ -256,7 +256,7 @@ export function AdminTwilioBuyNumberModal({
                     <th>Type</th>
                     <th colSpan={4}>
                       <div className="mb-1">Capabilities</div>
-                      <div className="grid grid-cols-4 gap-1 text-[0.65rem] font-medium text-[#94a3b8]">
+                      <div className="grid grid-cols-4 gap-1 text-[0.65rem] font-medium text-[#0f172a]">
                         <span className="flex justify-center">
                           <Phone className="size-3.5" aria-hidden />
                         </span>
@@ -287,7 +287,7 @@ export function AdminTwilioBuyNumberModal({
                       <tr
                         key={option.phoneNumber}
                         style={{
-                          background: active ? "#fff5f6" : undefined,
+                          background: active ? "#eff6ff" : undefined,
                         }}
                       >
                         <td>
@@ -300,7 +300,7 @@ export function AdminTwilioBuyNumberModal({
                         </td>
                         <td>{option.numberType || "Local"}</td>
                         <td colSpan={4}>
-                          <div className="grid grid-cols-4 gap-1">
+                          <div className="grid grid-cols-4 gap-1 text-[#0f172a]">
                             <span className="flex justify-center">
                               {caps.voice ? (
                                 <Phone className="size-4" />

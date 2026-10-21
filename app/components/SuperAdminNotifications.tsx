@@ -6,6 +6,7 @@ import {
   GoogleAdsLogo,
   StripeLogo,
 } from "@/app/components/landing/LandingIntegrationLogos";
+import { Skeleton } from "@/app/components/skeleton";
 import { useAdminNotificationsFeed } from "@/app/hooks/use-admin-notifications-feed";
 import type { AdminNotificationItem } from "@/app/services/admin/get-admin-notifications";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,6 +24,23 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+
+function NotificationsListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="flex flex-col gap-3 p-3" aria-busy="true">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div key={index} className="flex items-start gap-3">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3.5 w-48" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type NotifyIconKind = "lucide" | "brand";
 
@@ -299,9 +317,7 @@ export function SuperAdminNotifications({
             </div>
 
             <div ref={listRef} className={styles.drawerList}>
-              {feed.isLoading ? (
-                <p className={styles.drawerEmpty}>Loading notifications…</p>
-              ) : null}
+              {feed.isLoading ? <NotificationsListSkeleton /> : null}
               {!feed.isLoading && feed.items.length === 0 ? (
                 <p className={styles.drawerEmpty}>
                   {tab === "unread"

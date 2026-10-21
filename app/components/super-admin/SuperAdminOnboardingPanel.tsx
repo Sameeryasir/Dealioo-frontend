@@ -2,6 +2,7 @@
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
+import { Skeleton } from "@/app/components/skeleton";
 import { SuperAdminSectionChrome } from "@/app/components/super-admin/SuperAdminSectionChrome";
 import {
   formatAbsoluteDate,
@@ -22,13 +23,70 @@ import {
   CircleOff,
   Crown,
   Hash,
-  Loader2,
   ScanLine,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type OnboardingFilter = "all" | "onboarded" | "not_onboarded";
+
+function OnboardingSetupTableSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <table
+      className={styles.table}
+      aria-busy="true"
+      aria-label="Loading onboarding"
+    >
+      <thead>
+        <tr>
+          <th style={{ width: "3rem" }}>
+            <Skeleton className="h-3 w-4" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-20" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-14" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-12" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-14" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-16" />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, index) => (
+          <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-5" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="mt-1.5 h-3 w-24" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-28" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-16" />
+            </td>
+            <td>
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-20" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 export function SuperAdminOnboardingPanel() {
   const [query, setQuery] = useState("");
@@ -156,9 +214,7 @@ export function SuperAdminOnboardingPanel() {
 
         <div className={styles.tableWrap}>
           {loading && items.length === 0 ? (
-            <div className={styles.loadingBox}>
-              <Loader2 className="size-6 animate-spin" style={{ color: "#1877f2" }} />
-            </div>
+            <OnboardingSetupTableSkeleton />
           ) : items.length === 0 ? (
             <p className={styles.empty}>No customers in this filter.</p>
           ) : (

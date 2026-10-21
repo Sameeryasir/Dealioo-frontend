@@ -408,7 +408,16 @@
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.chartMotion {
+  transition: opacity 220ms ease;
+  opacity: 1;
+}
+
+.chartMotionRefreshing {
+  opacity: 0.55;
 }
 
 .periodPill:hover {
@@ -883,8 +892,8 @@
   overflow: hidden;
   border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: #f1f5f9;
+  color: #000000;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -898,10 +907,10 @@
 }
 
 .bizAvatarPlaceholder {
-  background: #1877f2;
-  border-color: #1877f2;
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(24, 119, 242, 0.28);
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #000000;
+  box-shadow: none;
 }
 
 .bizName {
@@ -944,34 +953,14 @@
   object-fit: cover;
 }
 
-.ownerToneViolet {
-  background: #ede9fe;
-  color: #6d28d9;
-  border-color: #ddd6fe;
-}
-
-.ownerToneGreen {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #bbf7d0;
-}
-
-.ownerToneBlue {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-}
-
-.ownerToneAmber {
-  background: #fef3c7;
-  color: #b45309;
-  border-color: #fde68a;
-}
-
+.ownerToneViolet,
+.ownerToneGreen,
+.ownerToneBlue,
+.ownerToneAmber,
 .ownerToneRose {
-  background: #ffe4e6;
-  color: #be123c;
-  border-color: #fecdd3;
+  background: #f1f5f9;
+  color: #000000;
+  border-color: #e2e8f0;
 }
 
 .planTag {
@@ -1120,9 +1109,9 @@
   height: 2.35rem;
   overflow: hidden;
   border-radius: 999px;
-  border: 1px solid #dbeafe;
-  background: linear-gradient(145deg, #dbeafe, #eff6ff);
-  color: var(--sa-blue);
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #000000;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -1136,10 +1125,10 @@
 }
 
 .userAvatarPlaceholder {
-  background: #1877f2;
-  border-color: #1877f2;
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(24, 119, 242, 0.28);
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #000000;
+  box-shadow: none;
 }
 
 .idChip {
@@ -2767,12 +2756,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--sa-blue-soft);
-  color: var(--sa-blue);
+  background: #f1f5f9;
+  color: #000000;
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
 
 .meetingsCommitPill {
@@ -3076,8 +3065,8 @@
   justify-content: center;
   overflow: hidden;
   border-radius: 999px;
-  background: #e8f2ff;
-  color: #1877f2;
+  background: #f1f5f9;
+  color: #000000;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -3470,10 +3459,10 @@
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-  background: #e8f2ff;
-  color: #1877f2;
+  background: #f1f5f9;
+  color: #000000;
   box-shadow:
-    inset 0 0 0 1px rgba(24, 119, 242, 0.1),
+    inset 0 0 0 1px rgba(15, 23, 42, 0.06),
     0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
@@ -4133,8 +4122,8 @@
   justify-content: center;
   overflow: hidden;
   border-radius: 999px;
-  background: #e8f2ff;
-  color: #1877f2;
+  background: #f1f5f9;
+  color: #000000;
   font-size: 1.15rem;
   font-weight: 750;
   letter-spacing: 0.02em;
@@ -4491,8 +4480,8 @@
 }
 
 .usersDirDetailBusinessLogoPlaceholder {
-  background: #e8f2ff;
-  color: #1877f2;
+  background: #f1f5f9;
+  color: #000000;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.02em;

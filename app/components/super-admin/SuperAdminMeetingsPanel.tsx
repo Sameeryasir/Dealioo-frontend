@@ -77,14 +77,6 @@ const SCOPE_OPTIONS: Array<{ id: MeetingScope; label: string }> = [
   { id: "deal_won", label: "Deal won" },
 ];
 
-const AVATAR_TONES = [
-  { background: "#eff6ff", color: "#1769ff" },
-  { background: "#ecfdf5", color: "#059669" },
-  { background: "#f5f3ff", color: "#7c3aed" },
-  { background: "#fff7ed", color: "#ea580c" },
-  { background: "#fdf2f8", color: "#db2777" },
-] as const;
-
 const SALES_OPTIONS: Array<{ value: MeetingSalesOutcome; label: string }> = [
   { value: "PENDING_DECISION", label: "Pending decision" },
   { value: "DEAL_WON", label: "Deal won" },
@@ -865,21 +857,23 @@ function RowMenu({
                   Open Google Calendar event
                 </a>
               ) : null}
-              <button
-                type="button"
-                role="menuitem"
-                className={styles.meetingMenuItem}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenChange(false);
-                  onRecordAttendance();
-                }}
-              >
-                <span className={styles.meetingMenuIcon}>
-                  <CalendarCheck2 className="size-3.5" aria-hidden />
-                </span>
-                Record or update attendance
-              </button>
+              {!meeting.attendance ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.meetingMenuItem}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenChange(false);
+                    onRecordAttendance();
+                  }}
+                >
+                  <span className={styles.meetingMenuIcon}>
+                    <CalendarCheck2 className="size-3.5" aria-hidden />
+                  </span>
+                  Record attendance
+                </button>
+              ) : null}
               {meeting.attendance === "ATTENDED" ? (
                 <button
                   type="button"
@@ -1174,7 +1168,9 @@ export function SuperAdminMeetingsPanel() {
   const runPrimary = (meeting: AdminMeetingRequest) => {
     const action = primaryActionFor(meeting, scope);
     if (action.kind === "details") setDetailsMeeting(meeting);
-    if (action.kind === "attendance") setAttendanceMeeting(meeting);
+    if (action.kind === "attendance" && !meeting.attendance) {
+      setAttendanceMeeting(meeting);
+    }
     if (action.kind === "outcome") setOutcomeMeeting(meeting);
   };
 
@@ -1508,7 +1504,6 @@ export function SuperAdminMeetingsPanel() {
                     const fullName =
                       `${meeting.firstName} ${meeting.lastName}`.trim() ||
                       "Visitor";
-                    const tone = AVATAR_TONES[index % AVATAR_TONES.length]!;
                     const action = primaryActionFor(meeting, scope);
                     const badge =
                       scope === "upcoming" && !meeting.attendance
@@ -1536,10 +1531,6 @@ export function SuperAdminMeetingsPanel() {
                           <div className={styles.meetingIdentity}>
                             <span
                               className={styles.meetingsAvatar}
-                              style={{
-                                background: tone.background,
-                                color: tone.color,
-                              }}
                               aria-hidden
                             >
                               {initialsFromName(fullName)}
@@ -1675,9 +1666,10 @@ export function SuperAdminMeetingsPanel() {
                                 setMenuMeetingId(open ? meeting.id : null)
                               }
                               onViewDetails={() => setDetailsMeeting(meeting)}
-                              onRecordAttendance={() =>
-                                setAttendanceMeeting(meeting)
-                              }
+                              onRecordAttendance={() => {
+                                if (meeting.attendance) return;
+                                setAttendanceMeeting(meeting);
+                              }}
                               onRecordOutcome={() =>
                                 setOutcomeMeeting(meeting)
                               }
@@ -1711,7 +1703,7 @@ export function SuperAdminMeetingsPanel() {
         />
       ) : null}
 
-      {attendanceMeeting ? (
+      {attendanceMeeting && !attendanceMeeting.attendance ? (
         <AttendanceModal
           meeting={attendanceMeeting}
           busy={outcomeMutation.isPending}

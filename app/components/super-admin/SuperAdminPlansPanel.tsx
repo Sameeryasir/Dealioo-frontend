@@ -2,6 +2,7 @@
 
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
+import { Skeleton } from "@/app/components/skeleton";
 import { initialsFromName } from "@/app/components/super-admin/super-admin-list-helpers";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
@@ -20,7 +21,6 @@ import {
   CreditCard,
   Filter,
   Hash,
-  Loader2,
   Pencil,
   Plus,
   Search,
@@ -60,6 +60,92 @@ const TAB_OPTIONS: Array<{ id: PlanTab; label: string }> = [
   { id: "active", label: "Active" },
   { id: "inactive", label: "Inactive" },
 ];
+
+function PlansStatsSkeleton() {
+  return (
+    <div className={styles.usersDirStats} aria-busy="true">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <article key={index} className={styles.usersDirStatCard}>
+          <div className="w-full space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PlansTableSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <table
+      className={styles.usersDirTable}
+      aria-busy="true"
+      aria-label="Loading plans"
+    >
+      <thead>
+        <tr>
+          <th style={{ width: "3rem" }}>
+            <Skeleton className="h-3 w-4" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-16" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-14" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-20" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-16" />
+          </th>
+          <th>
+            <Skeleton className="h-3 w-14" />
+          </th>
+          <th style={{ width: "3rem" }}>
+            <Skeleton className="h-3 w-4" />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, index) => (
+          <tr key={index}>
+            <td>
+              <Skeleton className="h-4 w-5" />
+            </td>
+            <td>
+              <div className={styles.userCell}>
+                <Skeleton className="size-9 shrink-0 rounded-full" />
+                <div className={styles.userCellText}>
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="mt-1.5 h-3 w-20" />
+                </div>
+              </div>
+            </td>
+            <td>
+              <Skeleton className="h-4 w-16" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-24" />
+            </td>
+            <td>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </td>
+            <td>
+              <Skeleton className="h-4 w-12" />
+            </td>
+            <td>
+              <Skeleton className="size-8 rounded-lg" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 const EMPTY_DRAFT: PlanDraft = {
   slug: "",
@@ -245,7 +331,7 @@ function PlanFormModal({
 
         <div className={styles.userControlAddHead}>
           <span className={styles.userControlAddHeroIcon} aria-hidden>
-            <CreditCard className="size-6" color="#1877f2" strokeWidth={2.25} />
+            <CreditCard className="size-6" color="#000000" strokeWidth={2.25} />
           </span>
           <div>
             <h3 id="sa-plan-form-title" className={styles.userControlTitle}>
@@ -851,35 +937,39 @@ export function SuperAdminPlansPanel() {
           </div>
         ) : null}
 
-        <div className={styles.usersDirStats}>
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <article key={stat.label} className={styles.usersDirStatCard}>
-                <div>
-                  <p className={styles.usersDirStatLabel}>{stat.label}</p>
-                  <p className={styles.usersDirStatValue}>
-                    {stat.value.toLocaleString()}
-                  </p>
-                  <p
-                    className={`${styles.usersDirStatHint} ${
-                      stat.hintMuted ? styles.usersDirStatHintMuted : ""
-                    }`}
+        {loading && items.length === 0 ? (
+          <PlansStatsSkeleton />
+        ) : (
+          <div className={styles.usersDirStats}>
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <article key={stat.label} className={styles.usersDirStatCard}>
+                  <div>
+                    <p className={styles.usersDirStatLabel}>{stat.label}</p>
+                    <p className={styles.usersDirStatValue}>
+                      {stat.value.toLocaleString()}
+                    </p>
+                    <p
+                      className={`${styles.usersDirStatHint} ${
+                        stat.hintMuted ? styles.usersDirStatHintMuted : ""
+                      }`}
+                    >
+                      {stat.hint}
+                    </p>
+                  </div>
+                  <span
+                    className={styles.usersDirStatIcon}
+                    style={{ background: stat.iconBg, color: stat.iconColor }}
+                    aria-hidden
                   >
-                    {stat.hint}
-                  </p>
-                </div>
-                <span
-                  className={styles.usersDirStatIcon}
-                  style={{ background: stat.iconBg, color: stat.iconColor }}
-                  aria-hidden
-                >
-                  <Icon className="size-4" strokeWidth={2.25} />
-                </span>
-              </article>
-            );
-          })}
-        </div>
+                    <Icon className="size-4" strokeWidth={2.25} />
+                  </span>
+                </article>
+              );
+            })}
+          </div>
+        )}
 
         <div className={styles.usersDirToolbar}>
           <p className={styles.usersDirFooterMeta}>
@@ -892,12 +982,7 @@ export function SuperAdminPlansPanel() {
         <div className={styles.usersDirTableCard}>
           <div className={styles.usersDirTableWrap}>
             {loading && items.length === 0 ? (
-              <div className={styles.loadingBox}>
-                <Loader2
-                  className="size-6 animate-spin"
-                  style={{ color: "#1877f2" }}
-                />
-              </div>
+              <PlansTableSkeleton />
             ) : pageItems.length === 0 ? (
               <p className={styles.empty}>No plans found.</p>
             ) : (

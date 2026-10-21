@@ -1,16 +1,12 @@
-/**
- * Twilio-styled Super Admin overview (Paste-like tokens from twilio.com).
- * Scope: credits + number↔business table only.
- */
-
 .twilioShell {
-  --tw-red: #f22f46;
-  --tw-red-hover: #d91f36;
+  --tw-blue: #1877f2;
+  --tw-blue-hover: #1464d0;
   --tw-ink: #121c2d;
   --tw-muted: #606b85;
   --tw-line: #e1e3ea;
   --tw-soft: #f4f4f6;
   --tw-card: #ffffff;
+  --tw-icon: #0f172a;
 
   margin: -0.4rem -0.35rem -1rem;
   width: calc(100% + 0.7rem);
@@ -124,7 +120,7 @@
   min-height: 2.4rem;
   border: 0;
   border-radius: 0.35rem;
-  background: var(--tw-red);
+  background: var(--tw-blue);
   color: #fff;
   font-size: 0.82rem;
   font-weight: 700;
@@ -133,7 +129,7 @@
 }
 
 .refreshBtn:hover:not(:disabled) {
-  background: var(--tw-red-hover);
+  background: var(--tw-blue-hover);
 }
 
 .refreshBtn:disabled {
@@ -176,7 +172,7 @@
 }
 
 .tabActive {
-  background: var(--tw-red);
+  background: var(--tw-blue);
   color: #fff;
 }
 
@@ -225,8 +221,8 @@
 
 .field input:focus {
   outline: none;
-  border-color: var(--tw-red);
-  box-shadow: 0 0 0 3px rgba(242, 47, 70, 0.18);
+  border-color: var(--tw-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.18);
 }
 
 .buyActions {
@@ -266,10 +262,10 @@
   gap: 0.55rem;
   margin: 0 0 0.9rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid #fecdd3;
+  border: 1px solid #bfdbfe;
   border-radius: 0.35rem;
-  background: #fff1f2;
-  color: #9f1239;
+  background: #eff6ff;
+  color: #1e40af;
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -320,8 +316,8 @@
 }
 
 .selectBtnActive {
-  border-color: var(--tw-red);
-  background: var(--tw-red);
+  border-color: var(--tw-blue);
+  background: var(--tw-blue);
   color: #fff;
 }
 
@@ -361,8 +357,8 @@
   height: 2.1rem;
   margin-bottom: 0.75rem;
   border-radius: 0.35rem;
-  background: #ffe8eb;
-  color: var(--tw-red);
+  background: #eef0f4;
+  color: var(--tw-icon);
 }
 
 .overviewValue {
@@ -455,14 +451,14 @@
   height: 2.35rem;
   border: 0;
   border-radius: 0.35rem;
-  background: var(--tw-red);
+  background: var(--tw-blue);
   color: #fff;
   flex-shrink: 0;
   cursor: pointer;
 }
 
 .addNumberBtn:hover:not(:disabled) {
-  background: var(--tw-red-hover);
+  background: var(--tw-blue-hover);
 }
 
 .addNumberBtn:disabled {
@@ -516,8 +512,8 @@
   width: 2.2rem;
   height: 2.2rem;
   border-radius: 0.35rem;
-  background: #ffe8eb;
-  color: var(--tw-red);
+  background: #eef0f4;
+  color: var(--tw-icon);
   flex-shrink: 0;
 }
 
@@ -657,8 +653,8 @@
   width: 2.1rem;
   height: 2.1rem;
   border-radius: 999px;
-  background: #ffe8eb;
-  color: var(--tw-red);
+  background: #eef0f4;
+  color: var(--tw-icon);
   font-size: 0.68rem;
   font-weight: 750;
   flex-shrink: 0;
@@ -694,7 +690,7 @@
 }
 
 .linkBtn {
-  color: var(--tw-red);
+  color: var(--tw-blue);
   font-size: 0.88rem;
   font-weight: 700;
   text-decoration: underline;
@@ -714,7 +710,7 @@
   align-items: center;
   justify-content: center;
   min-height: 10rem;
-  color: var(--tw-red);
+  color: var(--tw-icon);
 }
 
 .capRow {
@@ -724,7 +720,7 @@
 }
 
 .capOn {
-  color: var(--tw-red);
+  color: var(--tw-icon);
 }
 
 .capOff {
@@ -748,8 +744,8 @@
 
 .webhookInput:focus {
   outline: none;
-  border-color: var(--tw-red);
-  box-shadow: 0 0 0 3px rgba(242, 47, 70, 0.16);
+  border-color: var(--tw-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.16);
 }
 
 .webhookInput:disabled {
@@ -765,7 +761,7 @@
   min-height: 2.1rem;
   border: 0;
   border-radius: 0.3rem;
-  background: var(--tw-red);
+  background: var(--tw-blue);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -775,7 +771,7 @@
 }
 
 .webhookBtn:hover:not(:disabled) {
-  background: var(--tw-red-hover);
+  background: var(--tw-blue-hover);
 }
 
 .webhookBtn:disabled {

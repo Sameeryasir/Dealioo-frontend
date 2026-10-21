@@ -1,7 +1,8 @@
 "use client";
 
+import { Skeleton } from "@/app/components/skeleton";
 import type { PlatformDashboardPanel } from "@/app/services/admin/get-platform-dashboard";
-import { ChevronDown, Globe, Loader2 } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -13,9 +14,7 @@ const BusinessesByRegionMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[11rem] w-full items-center justify-center rounded-2xl bg-[#f7f9fc] sm:min-h-[12.5rem]">
-        <Loader2 className="size-5 animate-spin text-[#8B5CF6]" />
-      </div>
+      <Skeleton className="h-full min-h-[11rem] w-full rounded-2xl sm:min-h-[12.5rem]" />
     ),
   },
 );
@@ -184,8 +183,22 @@ export function BusinessesByRegionCard({
       </div>
 
       {loading ? (
-        <div className="flex min-h-[11rem] flex-1 items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-[#8B5CF6]" />
+        <div
+          className="grid min-h-0 flex-1 grid-cols-1 items-center gap-4 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
+          aria-busy="true"
+        >
+          <Skeleton className="min-h-[11rem] w-full rounded-2xl sm:min-h-[12.5rem]" />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex flex-col gap-1.5">
+                <div className="flex justify-between gap-3">
+                  <Skeleton className="h-3.5 w-24" />
+                  <Skeleton className="h-3.5 w-12" />
+                </div>
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : regions.length === 0 ? (
         <div className="flex min-h-[11rem] flex-1 items-center justify-center px-4 text-center text-sm font-medium text-slate-500">

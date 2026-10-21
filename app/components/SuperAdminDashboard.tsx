@@ -9,6 +9,7 @@ import {
   overviewAxisInterval,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
+import { Skeleton } from "@/app/components/skeleton";
 import { BusinessesByRegionCard } from "@/app/components/super-admin/BusinessesByRegionCard";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import {
@@ -47,8 +48,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-const BRAND_BLUE = "#1877f2";
 
 const PERIODS: Array<{ id: PlatformDashboardPeriod; label: string }> = [
   { id: "today", label: "Today" },
@@ -95,6 +94,49 @@ function TrendBadge({ value }: { value: number }) {
       <Icon className="size-3.5" aria-hidden />
       {Math.abs(value).toFixed(1)}%
     </span>
+  );
+}
+
+function OverviewKpiSkeleton() {
+  return (
+    <div className={styles.kpiGridFour} aria-busy="true">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className={styles.kpiCard}>
+          <div className={styles.kpiTop}>
+            <div className="min-w-0 w-full space-y-2">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+            <Skeleton className="size-9 shrink-0 rounded-full" />
+          </div>
+          <Skeleton className="mt-3 h-5 w-16 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OverviewChartSkeleton({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`flex h-full w-full flex-col justify-end gap-3 px-1 py-1 ${
+        compact ? "min-h-[200px]" : "min-h-[220px]"
+      }`}
+      aria-busy="true"
+    >
+      <Skeleton
+        className={`w-full flex-1 rounded-xl ${
+          compact ? "min-h-[160px]" : "min-h-[180px]"
+        }`}
+      />
+      <div className="flex justify-between gap-2">
+        <Skeleton className="h-2.5 w-8" />
+        <Skeleton className="h-2.5 w-8" />
+        <Skeleton className="h-2.5 w-8" />
+        <Skeleton className="h-2.5 w-8" />
+        <Skeleton className="h-2.5 w-8" />
+      </div>
+    </div>
   );
 }
 
@@ -206,13 +248,19 @@ function PlatformTrendChart({
   data,
   stroke,
   money,
+  refreshing = false,
 }: {
   data: Array<{ label: string; value: number }>;
   stroke: string;
   money?: boolean;
+  refreshing?: boolean;
 }) {
   return (
-    <div className="h-[220px] w-full min-w-0">
+    <div
+      className={`${styles.chartMotion} h-[220px] w-full min-w-0 ${
+        refreshing ? styles.chartMotionRefreshing : ""
+      }`}
+    >
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={OVERVIEW_MINI_LINE_CHART_MARGIN}>
           <CartesianGrid strokeDasharray="4 6" stroke="#e8edf5" vertical={false} />
@@ -251,6 +299,9 @@ function PlatformTrendChart({
             strokeWidth={3}
             dot={{ r: 3.5, fill: "#ffffff", stroke, strokeWidth: 2.5 }}
             activeDot={{ r: 6, fill: stroke, stroke: "#ffffff", strokeWidth: 3 }}
+            isAnimationActive
+            animationDuration={700}
+            animationEasing="ease-in-out"
           />
         </LineChart>
       </ResponsiveContainer>
@@ -277,7 +328,8 @@ export function SuperAdminDashboard() {
     timezone: viewerTimeZone,
   });
 
-  const loading = isLoading || isFetching;
+  const refreshing = isFetching && Boolean(panel);
+  const blankLoading = isLoading && !panel;
   const kpis = panel?.kpis;
   const charts = panel?.charts;
   const periodLabel = panel?.label || "This period";
@@ -325,10 +377,10 @@ export function SuperAdminDashboard() {
               type="button"
               className={styles.iconBtn}
               onClick={() => void refetch()}
-              disabled={loading}
+              disabled={isFetching}
               aria-label="Refresh overview"
             >
-              {loading ? (
+              {isFetching ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <RefreshCw className="size-4" />
@@ -348,63 +400,67 @@ export function SuperAdminDashboard() {
           </div>
         ) : null}
 
-        <div className={styles.kpiGridFour}>
-          <PanelKpiCard
-            label="Monthly income"
-            kpi={kpis?.mrr ?? { value: 0, changePct: 0, sparkline: [], hint: "" }}
-            money
-            icon={Wallet}
-            accent="#e1306c"
-            soft="#fdf2f8"
-            ready={Boolean(kpis)}
-          />
-          <PanelKpiCard
-            label="Paying customers"
-            kpi={
-              kpis?.payingSubscriptions ?? {
-                value: 0,
-                changePct: 0,
-                sparkline: [],
-                hint: "",
+        {blankLoading ? (
+          <OverviewKpiSkeleton />
+        ) : (
+          <div className={styles.kpiGridFour}>
+            <PanelKpiCard
+              label="Monthly income"
+              kpi={kpis?.mrr ?? { value: 0, changePct: 0, sparkline: [], hint: "" }}
+              money
+              icon={Wallet}
+              accent="#e1306c"
+              soft="#fdf2f8"
+              ready={Boolean(kpis)}
+            />
+            <PanelKpiCard
+              label="Paying customers"
+              kpi={
+                kpis?.payingSubscriptions ?? {
+                  value: 0,
+                  changePct: 0,
+                  sparkline: [],
+                  hint: "",
+                }
               }
-            }
-            icon={Activity}
-            accent="#833aba"
-            soft="#f3e8ff"
-            ready={Boolean(kpis)}
-          />
-          <PanelKpiCard
-            label="New plan money"
-            kpi={
-              kpis?.planEarnings ?? {
-                value: 0,
-                changePct: 0,
-                sparkline: [],
-                hint: "",
+              icon={Activity}
+              accent="#833aba"
+              soft="#f3e8ff"
+              ready={Boolean(kpis)}
+            />
+            <PanelKpiCard
+              label="New plan money"
+              kpi={
+                kpis?.planEarnings ?? {
+                  value: 0,
+                  changePct: 0,
+                  sparkline: [],
+                  hint: "",
+                }
               }
-            }
-            money
-            icon={Wallet}
-            accent="#1877f2"
-            soft="#e8f2ff"
-            ready={Boolean(kpis)}
-          />
-          <PanelKpiCard
-            label="New plans"
-            kpi={
-              kpis?.newPlans ?? {
-                value: 0,
-                changePct: 0,
-                sparkline: [],
-                hint: "",
+              money
+              icon={Wallet}
+              accent="#1877f2"
+              soft="#e8f2ff"
+              ready={Boolean(kpis)}
+            />
+            <PanelKpiCard
+              label="New plans"
+              kpi={
+                kpis?.newPlans ?? {
+                  value: 0,
+                  changePct: 0,
+                  sparkline: [],
+                  hint: "",
+                }
               }
-            }
-            icon={Sparkles}
-            accent="#f77737"
-            soft="#fff7ed"
-            ready={Boolean(kpis)}
-          />
-        </div>
+              icon={Sparkles}
+              accent="#f77737"
+              soft="#fff7ed"
+              ready={Boolean(kpis)}
+            />
+          </div>
+        )}
 
         <div className={styles.chartGridTop}>
           <OverviewChartShell
@@ -412,18 +468,23 @@ export function SuperAdminDashboard() {
             subtitle={periodLabel}
             accent="pink"
             icon={Wallet}
-            stat={formatMoneyDollars(charts?.planEarnings.reduce((s, r) => s + r.value, 0) ?? 0)}
+            stat={
+              blankLoading
+                ? "—"
+                : formatMoneyDollars(
+                    charts?.planEarnings.reduce((s, r) => s + r.value, 0) ?? 0,
+                  )
+            }
             minHeightClass="min-h-[240px]"
           >
-            {loading && !charts ? (
-              <div className={styles.loadingBox}>
-                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
-              </div>
+            {blankLoading ? (
+              <OverviewChartSkeleton />
             ) : (
               <PlatformTrendChart
                 data={charts?.planEarnings ?? []}
                 stroke={OVERVIEW_CHART_COLORS.pink}
                 money
+                refreshing={refreshing}
               />
             )}
           </OverviewChartShell>
@@ -433,19 +494,22 @@ export function SuperAdminDashboard() {
             subtitle={periodLabel}
             accent="orange"
             icon={Sparkles}
-            stat={String(
-              charts?.subscriptions.reduce((s, r) => s + r.value, 0) ?? 0,
-            )}
+            stat={
+              blankLoading
+                ? "—"
+                : String(
+                    charts?.subscriptions.reduce((s, r) => s + r.value, 0) ?? 0,
+                  )
+            }
             minHeightClass="min-h-[240px]"
           >
-            {loading && !charts ? (
-              <div className={styles.loadingBox}>
-                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
-              </div>
+            {blankLoading ? (
+              <OverviewChartSkeleton />
             ) : (
               <PlatformTrendChart
                 data={charts?.subscriptions ?? []}
                 stroke={OVERVIEW_CHART_COLORS.orange}
+                refreshing={refreshing}
               />
             )}
           </OverviewChartShell>
@@ -457,26 +521,29 @@ export function SuperAdminDashboard() {
             subtitle={periodLabel}
             accent="blue"
             icon={Building2}
-            stat={String(
-              charts?.businesses.reduce((s, r) => s + r.value, 0) ?? 0,
-            )}
+            stat={
+              blankLoading
+                ? "—"
+                : String(
+                    charts?.businesses.reduce((s, r) => s + r.value, 0) ?? 0,
+                  )
+            }
             minHeightClass="min-h-[220px]"
           >
-            {loading && !charts ? (
-              <div className={styles.loadingBox}>
-                <Loader2 className="size-6 animate-spin" style={{ color: BRAND_BLUE }} />
-              </div>
+            {blankLoading ? (
+              <OverviewChartSkeleton compact />
             ) : (
               <PlatformTrendChart
                 data={charts?.businesses ?? []}
                 stroke={OVERVIEW_CHART_COLORS.blue}
+                refreshing={refreshing}
               />
             )}
           </OverviewChartShell>
 
           <BusinessesByRegionCard
             regions={panel?.regions ?? []}
-            loading={loading && !panel}
+            loading={blankLoading}
           />
         </div>
       </div>
