@@ -1,10 +1,26 @@
+/**
+ * What changed: Enterprise palette cards with descriptions, keyword search, drag affordance.
+ * Why: Nontechnical owners need clearer block discovery without changing insert behavior.
+ * Related: mock-data AUTOMATION_BLOCKS, automation-dnd, AutomationBuilderPage onAddBlock.
+ */
+
 "use client";
 
-import { LayoutGrid, Search } from "lucide-react";
+import { GripVertical, LayoutGrid, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { setBlockDragData, setActiveBlockDragKind } from "@/app/components/automation/builder/automation-dnd";
-import { AUTOMATION_BLOCKS, getBlockByKind } from "@/app/components/automation/mock-data";
-import type { BlockSection, WorkflowNodeKind } from "@/app/components/automation/types";
+import {
+  setActiveBlockDragKind,
+  setBlockDragData,
+} from "@/app/components/automation/builder/automation-dnd";
+import { FLOW_SECTION_COLORS } from "@/app/components/automation/builder/flow-step-colors";
+import {
+  AUTOMATION_BLOCKS,
+  getBlockByKind,
+} from "@/app/components/automation/mock-data";
+import type {
+  BlockSection,
+  WorkflowNodeKind,
+} from "@/app/components/automation/types";
 import { toast } from "sonner";
 
 const BRANCH_PLACE_TIP =
@@ -17,9 +33,6 @@ function showBranchPlaceTip() {
   });
 }
 
-const SIDEBAR_NODE_ICON =
-  "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]";
-
 const SECTIONS: { id: BlockSection; label: string }[] = [
   { id: "triggers", label: "Triggers" },
   { id: "actions", label: "Actions" },
@@ -27,42 +40,37 @@ const SECTIONS: { id: BlockSection; label: string }[] = [
   { id: "flow", label: "Flow" },
 ];
 
-const SECTION_ACCENT: Record<
-  BlockSection,
-  { dot: string; chip: string }
-> = {
+const SECTION_ACCENT: Record<BlockSection, { dot: string; chip: string }> = {
   triggers: {
-    dot: "bg-[#1877f2] shadow-[0_0_8px_rgba(24,119,242,0.45)]",
-    chip: "bg-blue-500/10 text-blue-700 ring-blue-500/15",
+    dot: "bg-[#1877f2]",
+    chip: "bg-[#e8f1ff] text-[#1877f2] ring-[#dbeafe]",
   },
   actions: {
-    dot: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.45)]",
+    dot: "bg-violet-500",
     chip: "bg-violet-500/10 text-violet-700 ring-violet-500/15",
   },
   conditions: {
-    dot: "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.45)]",
+    dot: "bg-orange-500",
     chip: "bg-orange-500/10 text-orange-700 ring-orange-500/15",
   },
   flow: {
-    dot: "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.45)]",
+    dot: "bg-sky-500",
     chip: "bg-sky-500/10 text-sky-700 ring-sky-500/15",
   },
 };
 
-function blockBorderClass(tone: ReturnType<typeof getBlockByKind>["tone"]): string {
-  switch (tone) {
-    case "emerald":
-      return "border-emerald-200/90 hover:border-emerald-300/90";
-    case "blue":
-      return "border-blue-200/90 hover:border-blue-300/90";
-    case "violet":
-      return "border-violet-200/90 hover:border-violet-300/90";
-    case "orange":
-      return "border-orange-200/90 hover:border-orange-300/90";
-    case "amber":
-      return "border-amber-200/90 hover:border-amber-300/90";
+/** Match canvas node icon colors by section (not legacy tone alone). */
+function iconClassForBlock(block: ReturnType<typeof getBlockByKind>): string {
+  switch (block.section) {
+    case "actions":
+      return FLOW_SECTION_COLORS.actions.solid;
+    case "conditions":
+      return FLOW_SECTION_COLORS.conditions.solid;
+    case "flow":
+      return FLOW_SECTION_COLORS.flow.solid;
+    case "triggers":
     default:
-      return "border-zinc-200/90 hover:border-zinc-300/90";
+      return FLOW_SECTION_COLORS.triggers.solid;
   }
 }
 
@@ -81,15 +89,22 @@ function BlockChip({
 }) {
   const block = getBlockByKind(blockId);
   const Icon = block.icon;
+  const unavailable = Boolean(block.unavailable);
+  const locked = editLocked || unavailable;
 
   return (
     <button
       type="button"
-      draggable={!editLocked}
+      draggable={!locked}
+      title={
+        unavailable
+          ? block.unavailableReason ?? "Not available"
+          : block.description
+      }
       onDragStart={(e: React.DragEvent<HTMLButtonElement>) => {
-        if (editLocked) {
+        if (locked) {
           e.preventDefault();
-          onEditBlocked?.();
+          if (editLocked) onEditBlocked?.();
           return;
         }
         didDragRef.current = true;
@@ -106,6 +121,13 @@ function BlockChip({
       }}
       onClick={() => {
         if (didDragRef.current) return;
+        if (unavailable) {
+          toast.message(block.label, {
+            description:
+              block.unavailableReason ?? "This block is not available yet.",
+          });
+          return;
+        }
         if (editLocked) {
           onEditBlocked?.();
           return;
@@ -115,28 +137,41 @@ function BlockChip({
         }
         onAddBlock(block.id);
       }}
-      className={`group relative flex w-full items-center gap-2 overflow-hidden rounded-xl border bg-white px-2.5 py-2 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.03] transition-all duration-200 xl:gap-3 xl:rounded-2xl xl:px-3 xl:py-2.5 ${
-        editLocked
-          ? "cursor-not-allowed opacity-60"
-          : "cursor-grab hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)] active:scale-[0.98] active:cursor-grabbing"
-      } ${blockBorderClass(block.tone)}`}
+      className={`group flex w-full items-start gap-2 rounded-xl border bg-white px-2.5 py-2 text-left transition ${
+        locked
+          ? "cursor-not-allowed border-zinc-200/80 opacity-55"
+          : "cursor-grab border-zinc-200/90 hover:border-[#93c5fd] hover:bg-[#f8fbff] hover:shadow-[0_6px_16px_rgba(24,119,242,0.08)] active:cursor-grabbing active:scale-[0.99]"
+      }`}
     >
       <span
-        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-zinc-200/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
-        aria-hidden
-      />
-      <span
-        className={`relative flex size-9 shrink-0 items-center justify-center rounded-xl ring-2 ring-white/90 ${SIDEBAR_NODE_ICON}`}
+        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${iconClassForBlock(block)}`}
       >
-        <span
-          className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-b from-white/30 to-transparent"
+        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-[0.78rem] font-semibold tracking-tight text-zinc-900">
+            {block.label}
+          </span>
+          {unavailable ? (
+            <span className="shrink-0 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-zinc-500">
+              Soon
+            </span>
+          ) : null}
+        </span>
+        {block.description ? (
+          <span className="mt-0.5 line-clamp-2 block text-[0.65rem] leading-snug text-zinc-500">
+            {block.description}
+          </span>
+        ) : null}
+      </span>
+      {!locked ? (
+        <GripVertical
+          className="mt-1 size-3.5 shrink-0 text-zinc-300 transition group-hover:text-zinc-500"
+          strokeWidth={2}
           aria-hidden
         />
-        <Icon className="relative size-4" strokeWidth={2.25} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1 truncate text-xs font-semibold tracking-tight text-zinc-900 xl:text-sm">
-        {block.label}
-      </span>
+      ) : null}
     </button>
   );
 }
@@ -162,45 +197,52 @@ export function BlockSidebar({
       return true;
     });
     if (!q) return palette;
-    return palette.filter((b) => b.label.toLowerCase().includes(q));
+    return palette.filter((b) => {
+      const haystack = [
+        b.label,
+        b.description ?? "",
+        ...(b.keywords ?? []),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
   }, [hideTriggers, query]);
 
   return (
-    <aside className="flex h-full w-full min-w-0 flex-col border-r border-zinc-200/60 bg-white shadow-[4px_0_28px_rgba(0,0,0,0.04)]">
-      <div className="shrink-0 border-b border-zinc-100/90 bg-white px-2.5 py-3 lg:px-3 lg:py-3 xl:px-3.5 xl:py-3.5">
-        <div className="flex items-start gap-2">
-          <span
-            className={`flex size-8 shrink-0 items-center justify-center rounded-lg border border-blue-200/70 shadow-sm ring-1 ring-blue-100/80 xl:size-9 xl:rounded-xl ${SIDEBAR_NODE_ICON}`}
-          >
-            <LayoutGrid className="size-3.5 xl:size-4" strokeWidth={2} aria-hidden />
+    <aside className="flex h-full w-full min-w-0 flex-col border-r border-zinc-200/70 bg-white">
+      <div className="shrink-0 border-b border-zinc-100 px-3 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]">
+            <LayoutGrid className="size-3.5" strokeWidth={2.25} aria-hidden />
           </span>
-          <div className="min-w-0 pt-0.5">
-            <h2 className="text-sm font-bold tracking-tight text-zinc-900 xl:text-[0.95rem]">
+          <div className="min-w-0">
+            <h2 className="m-0 text-[0.85rem] font-bold tracking-tight text-zinc-900">
               Blocks
             </h2>
-            <p className="mt-0.5 hidden text-[0.65rem] leading-relaxed text-zinc-500 xl:block xl:text-xs">
+            <p className="m-0 mt-0.5 text-[0.65rem] leading-snug text-zinc-500">
               Drag onto the canvas or click to add.
             </p>
           </div>
         </div>
-        <div className="relative mt-2.5 xl:mt-3.5">
+        <div className="relative mt-2.5">
           <Search
-            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400"
             aria-hidden
           />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search block…"
-            className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white py-2 pl-9 pr-2.5 text-xs text-zinc-900 shadow-sm ring-1 ring-zinc-950/[0.03] outline-none placeholder:text-zinc-400 transition focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/10 xl:h-11 xl:rounded-xl xl:pl-10 xl:pr-3 xl:text-sm"
+            placeholder="Search blocks…"
+            className="h-9 w-full rounded-lg border border-zinc-200 bg-[#f8fafc] py-2 pl-8 pr-2.5 text-xs text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-[#1877f2] focus:bg-white focus:ring-2 focus:ring-[#1877f2]/15"
           />
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-3 [scrollbar-gutter:stable] xl:px-2.5 xl:py-3.5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 [scrollbar-gutter:stable]">
         {query.trim() && filtered.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-zinc-200/80 bg-zinc-50/60 px-3 py-8 text-center text-xs leading-relaxed text-zinc-500">
-            No blocks match your search.
+          <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-8 text-center text-xs leading-relaxed text-zinc-500">
+            No blocks match “{query.trim()}”.
           </p>
         ) : null}
         {SECTIONS.map((section) => {
@@ -208,20 +250,23 @@ export function BlockSidebar({
           if (blocks.length === 0) return null;
           const accent = SECTION_ACCENT[section.id];
           return (
-            <div key={section.id} className="mb-5 last:mb-2">
-              <p className="mb-2.5 flex items-center gap-2 px-0.5">
+            <div key={section.id} className="mb-4 last:mb-1">
+              <p className="mb-2 flex items-center gap-2 px-0.5">
                 <span
-                  className={`size-2 shrink-0 rounded-full ${accent.dot}`}
+                  className={`size-1.5 shrink-0 rounded-full ${accent.dot}`}
                   aria-hidden
                 />
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] ring-1 ${accent.chip}`}
+                  className={`rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] ring-1 ${accent.chip}`}
                 >
                   {section.label}
                 </span>
-                <span className="h-px min-w-[0.5rem] flex-1 bg-zinc-200/70" aria-hidden />
+                <span
+                  className="h-px min-w-[0.5rem] flex-1 bg-zinc-200/80"
+                  aria-hidden
+                />
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {blocks.map((block) => (
                   <BlockChip
                     key={block.id}

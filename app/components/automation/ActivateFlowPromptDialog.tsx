@@ -11,11 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 export type ActivateFlowPromptDialogProps = {
   open: boolean;
   isLoading?: boolean;
   onStay: () => void;
+  onDiscard: () => void;
   onActivate: () => void;
 };
 
@@ -23,6 +25,7 @@ export function ActivateFlowPromptDialog({
   open,
   isLoading = false,
   onStay,
+  onDiscard,
   onActivate,
 }: ActivateFlowPromptDialogProps) {
   return (
@@ -47,31 +50,43 @@ export function ActivateFlowPromptDialog({
                 Please confirm
               </p>
               <AlertDialogTitle className="mt-1 text-lg font-semibold tracking-tight text-[#07111f]">
-                Activate your flow
+                Unsaved changes
               </AlertDialogTitle>
             </div>
           </div>
           <AlertDialogDescription className="mt-4 text-sm leading-6 text-slate-500">
-            You have unsaved changes. Save your step settings and activate the
-            flow before leaving this page.
+            You have unsaved changes. Activate to save and turn the flow on,
+            discard to leave without saving, or stay and keep editing.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="gap-2 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:px-7">
-          <AlertDialogCancel
-            disabled={isLoading}
-            onClick={onStay}
-            className="h-10 rounded-xl"
-          >
-            Stay here
-          </AlertDialogCancel>
+        <AlertDialogFooter className="flex-col gap-2 border-t border-[#eef2f7] bg-[#fafbfc] px-6 py-4 sm:flex-col sm:px-7">
           <AlertDialogAction
             disabled={isLoading}
             onClick={onActivate}
-            className="h-10 rounded-xl bg-[#07111f] px-5 text-white hover:bg-black"
+            className="h-10 w-full rounded-xl bg-[#07111f] text-white hover:bg-black"
           >
             {isLoading ? "Activating…" : "Activate flow"}
           </AlertDialogAction>
+          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel
+              disabled={isLoading}
+              autoFocus
+              onClick={onStay}
+              className="h-10 rounded-xl sm:min-w-[7rem]"
+            >
+              Stay here
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              onClick={onDiscard}
+              className="h-10 rounded-xl sm:min-w-[7rem]"
+            >
+              Discard changes
+            </Button>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -5,6 +5,7 @@ import { BusinessSetupPopover } from "@/app/components/business/BusinessSetupPop
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { getBusinessSetup } from "@/app/lib/business-setup";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
+import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { BusinessProfileImage } from "@/app/components/business/BusinessProfileImage";
 import { businessQueryKeys } from "@/app/services/business/business-query-keys";
@@ -85,24 +86,34 @@ export default function BusinessDashboardCard({
     typeof id === "number" && id >= 1 ? id : null;
   const { access, role: membershipRole, isFetched } =
     useBusinessMembershipPermissions(businessId);
+  // Setup guide is for business users only — never for platform Super Admin.
+  const isSuperAdmin = isSuperAdminUser();
   const setup = getBusinessSetup(business);
   const progress = setup.progressPercent;
   const isReady = setup.isComplete;
-  const statusLabel = isReady
-    ? "Ready"
-    : progress >= 50
-      ? "In progress"
-      : "Needs setup";
-  const statusClass = isReady
+  const statusLabel = isSuperAdmin
+    ? "Business"
+    : isReady
+      ? "Ready"
+      : progress >= 50
+        ? "In progress"
+        : "Needs setup";
+  const statusClass = isSuperAdmin
     ? "org-biz-card-status--ready"
-    : progress >= 50
-      ? "org-biz-card-status--active"
-      : "org-biz-card-status--needs-setup";
+    : isReady
+      ? "org-biz-card-status--ready"
+      : progress >= 50
+        ? "org-biz-card-status--active"
+        : "org-biz-card-status--needs-setup";
 
   const isBusinessOwner =
     business.isOwner === true ||
     access === "owner" ||
     access === "super_admin";
+  const canManageSetup =
+    !isSuperAdmin &&
+    (business.isOwner === true || access === "owner");
+  const showBusinessSetup = !isSuperAdmin;
   const invitedRoleLabel = (() => {
     if (!isFetched || isBusinessOwner || access !== "member") return null;
     const role = membershipRole?.trim();
@@ -324,104 +335,108 @@ export default function BusinessDashboardCard({
           </div>
 
           <div className="org-biz-card-content">
-            <div className="org-biz-card-bento">
-              <BusinessSetupPopover
-                setup={setup}
-                canManageSetup={isBusinessOwner}
-              >
-                <span className="org-biz-card-bento-eyebrow">
-                  <Settings className="size-3" strokeWidth={2.5} aria-hidden />
-                  Business setup
-                </span>
-                <div className="org-biz-card-progress-row">
-                  <div
-                    className="org-biz-card-progress-ring"
-                    data-complete={ringComplete ? "true" : undefined}
-                    data-ready={ringReady ? "true" : undefined}
-                    aria-label={`${displayProgress}% complete`}
-                  >
-                    <svg
-                      viewBox={`0 0 ${ringView} ${ringView}`}
-                      className="org-biz-card-progress-svg"
-                      aria-hidden
-                    >
-                      <defs>
-                        <linearGradient
-                          id={`org-biz-progress-grad-${businessId ?? "x"}`}
-                          x1="0%"
-                          y1="0%"
-                          x2="100%"
-                          y2="100%"
-                        >
-                          <stop offset="0%" stopColor="#1877f2" />
-                          <stop offset="55%" stopColor="#833aba" />
-                          <stop offset="100%" stopColor="#ea5a8f" />
-                        </linearGradient>
-                      </defs>
-                      <circle
-                        className="org-biz-card-progress-ring-track"
-                        cx={ringCenter}
-                        cy={ringCenter}
-                        r={circleRadius}
-                        fill="none"
-                        strokeWidth={circleStroke}
-                        strokeLinecap="round"
-                      />
-                      <circle
-                        className="org-biz-card-progress-ring-fill"
-                        cx={ringCenter}
-                        cy={ringCenter}
-                        r={circleRadius}
-                        fill="none"
-                        stroke={`url(#org-biz-progress-grad-${businessId ?? "x"})`}
-                        strokeWidth={circleStroke}
-                        strokeDasharray={circleCircumference}
-                        strokeDashoffset={circleOffset}
-                        strokeLinecap="round"
-                        transform={`rotate(-90 ${ringCenter} ${ringCenter})`}
-                      />
-                    </svg>
-                    <span className="org-biz-card-setup-pct" aria-hidden>
-                      {displayProgress}%
-                    </span>
-                  </div>
-                  <div className="org-biz-card-progress-copy">
-                    <p className="org-biz-card-setup-status">{setupStatusText}</p>
-                    {isBusinessOwner && setup.nextRecommendedStep ? (
-                      <button
-                        type="button"
-                        data-setup-next
-                        className="org-biz-card-setup-next-btn"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          router.push(setup.nextRecommendedStep!.href);
-                        }}
-                      >
-                        Next: {setup.nextRecommendedStep.ctaLabel}
-                      </button>
-                    ) : null}
+            <div
+              className={`org-biz-card-bento${showBusinessSetup ? "" : " org-biz-card-bento--no-setup"}`}
+            >
+              {showBusinessSetup ? (
+                <BusinessSetupPopover
+                  setup={setup}
+                  canManageSetup={canManageSetup}
+                >
+                  <span className="org-biz-card-bento-eyebrow">
+                    <Settings className="size-3" strokeWidth={2.5} aria-hidden />
+                    Business setup
+                  </span>
+                  <div className="org-biz-card-progress-row">
                     <div
-                      className="org-biz-card-setup-segments"
-                      aria-hidden
+                      className="org-biz-card-progress-ring"
+                      data-complete={ringComplete ? "true" : undefined}
+                      data-ready={ringReady ? "true" : undefined}
+                      aria-label={`${displayProgress}% complete`}
                     >
-                      {Array.from({ length: setup.totalCount }).map(
-                        (_, index) => (
-                          <span
-                            key={index}
-                            className="org-biz-card-setup-segment"
-                            data-done={
-                              index < setup.completedCount
-                                ? "true"
-                                : undefined
-                            }
-                          />
-                        ),
-                      )}
+                      <svg
+                        viewBox={`0 0 ${ringView} ${ringView}`}
+                        className="org-biz-card-progress-svg"
+                        aria-hidden
+                      >
+                        <defs>
+                          <linearGradient
+                            id={`org-biz-progress-grad-${businessId ?? "x"}`}
+                            x1="0%"
+                            y1="0%"
+                            x2="100%"
+                            y2="100%"
+                          >
+                            <stop offset="0%" stopColor="#1877f2" />
+                            <stop offset="55%" stopColor="#833aba" />
+                            <stop offset="100%" stopColor="#ea5a8f" />
+                          </linearGradient>
+                        </defs>
+                        <circle
+                          className="org-biz-card-progress-ring-track"
+                          cx={ringCenter}
+                          cy={ringCenter}
+                          r={circleRadius}
+                          fill="none"
+                          strokeWidth={circleStroke}
+                          strokeLinecap="round"
+                        />
+                        <circle
+                          className="org-biz-card-progress-ring-fill"
+                          cx={ringCenter}
+                          cy={ringCenter}
+                          r={circleRadius}
+                          fill="none"
+                          stroke={`url(#org-biz-progress-grad-${businessId ?? "x"})`}
+                          strokeWidth={circleStroke}
+                          strokeDasharray={circleCircumference}
+                          strokeDashoffset={circleOffset}
+                          strokeLinecap="round"
+                          transform={`rotate(-90 ${ringCenter} ${ringCenter})`}
+                        />
+                      </svg>
+                      <span className="org-biz-card-setup-pct" aria-hidden>
+                        {displayProgress}%
+                      </span>
+                    </div>
+                    <div className="org-biz-card-progress-copy">
+                      <p className="org-biz-card-setup-status">{setupStatusText}</p>
+                      {canManageSetup && setup.nextRecommendedStep ? (
+                        <button
+                          type="button"
+                          data-setup-next
+                          className="org-biz-card-setup-next-btn"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            router.push(setup.nextRecommendedStep!.href);
+                          }}
+                        >
+                          Next: {setup.nextRecommendedStep.ctaLabel}
+                        </button>
+                      ) : null}
+                      <div
+                        className="org-biz-card-setup-segments"
+                        aria-hidden
+                      >
+                        {Array.from({ length: setup.totalCount }).map(
+                          (_, index) => (
+                            <span
+                              key={index}
+                              className="org-biz-card-setup-segment"
+                              data-done={
+                                index < setup.completedCount
+                                  ? "true"
+                                  : undefined
+                              }
+                            />
+                          ),
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </BusinessSetupPopover>
+                </BusinessSetupPopover>
+              ) : null}
 
               <Link
                 href={dashboardHref}

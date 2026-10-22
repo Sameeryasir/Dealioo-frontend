@@ -1473,29 +1473,30 @@ export function BuilderCanvas({
             <FlowLoadingPlaceholder />
           ) : nodes.length === 0 ? (
             <motion.div
-              className={`max-w-sm rounded-3xl border-2 border-dashed px-8 py-16 text-center shadow-[0_8px_32px_rgba(0,0,0,0.06)] ring-1 transition-all duration-300 ${
+              className={`max-w-sm rounded-2xl border-2 border-dashed px-7 py-12 text-center shadow-[0_8px_28px_rgba(15,23,42,0.05)] ring-1 transition-all duration-300 ${
                 canvasDragOver
-                  ? "border-violet-400/80 bg-violet-50/90 ring-violet-200/60"
-                  : "border-zinc-300/70 bg-white/85 ring-zinc-950/[0.03] backdrop-blur-sm"
+                  ? "border-[#93c5fd] bg-[#f0f7ff] ring-[#dbeafe]"
+                  : "border-zinc-300/80 bg-white/90 ring-zinc-950/[0.03]"
               }`}
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: automationEase }}
             >
               <div
-                className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border transition-colors ${
+                className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-xl border transition-colors ${
                   canvasDragOver
-                    ? "border-violet-200 bg-violet-100 text-violet-600"
-                    : "border-zinc-200/90 bg-zinc-50 text-zinc-400"
+                    ? "border-[#bfdbfe] bg-[#e8f1ff] text-[#1877f2]"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-400"
                 }`}
               >
-                <LayoutTemplate className="size-7" strokeWidth={1.5} aria-hidden />
+                <LayoutTemplate className="size-6" strokeWidth={1.75} aria-hidden />
               </div>
-              <p className="text-sm font-semibold tracking-tight text-zinc-800">
-                Drag a block here
+              <p className="text-sm font-bold tracking-tight text-zinc-900">
+                Start your automation
               </p>
-              <p className="mx-auto mt-2 max-w-[16rem] text-xs leading-relaxed text-zinc-500">
-                Or click a block in the sidebar to add your first step.
+              <p className="mx-auto mt-2 max-w-[17rem] text-xs leading-relaxed text-zinc-500">
+                Choose a trigger from the left panel to begin the customer
+                journey, or drag a block onto the canvas.
               </p>
             </motion.div>
           ) : (

@@ -12,13 +12,14 @@ import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFl
 import { AutomationBuilderGuideModal } from "@/app/components/automation/AutomationBuilderGuideModal";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
+import { UnsavedStepChangesDialog } from "@/app/components/automation/UnsavedStepChangesDialog";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
 import { normalizePaymentReminderWorkflowNodes } from "@/app/components/automation/builder/bundled-actions";
 import { NodeSettingsPanel } from "@/app/components/automation/builder/NodeSettingsPanel";
 import { automationEase } from "@/app/lib/motion";
-import { AUTOMATION_BLOCKS } from "@/app/components/automation/mock-data";
+import { AUTOMATION_BLOCKS, getBlockByKind } from "@/app/components/automation/mock-data";
 import type {
   AutomationListItem,
   AutomationStatus,
@@ -220,6 +221,8 @@ export function AutomationBuilderPage({
   const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
     null,
   );
+  const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
+  const [stepPromptOpen, setStepPromptOpen] = useState(false);
   const [topbarCenterHost, setTopbarCenterHost] = useState<HTMLElement | null>(
     null,
   );
@@ -424,10 +427,7 @@ export function AutomationBuilderPage({
   const hasUnsavedBuilderChanges = isFlowDirty || hasUnsavedStepSettings;
 
   const shouldBlockFlowNavigation =
-    tab === "builder" &&
-    hasUnsavedBuilderChanges &&
-    !automationPublished &&
-    automationActive;
+    tab === "builder" && hasUnsavedBuilderChanges;
 
   const applyBuilderTab = useCallback(
     (next: BuilderTab) => {
@@ -710,6 +710,80 @@ export function AutomationBuilderPage({
     setNavPromptOpen(false);
   }, []);
 
+  const applySelectNode = useCallback(
+    (id: string | null) => {
+      setSelectedId(id);
+      if (id == null) {
+        setActiveBranchTarget(null);
+        return;
+      }
+      const selected = nodes.find((node) => node.id === id);
+      if (!selected) {
+        setActiveBranchTarget(null);
+        return;
+      }
+      const placement = getNodeBranchPlacement(selected);
+      if (placement) {
+        setActiveBranchTarget(placement);
+        return;
+      }
+      if (isParallelSplitWorkflowNode(selected)) {
+        setActiveBranchTarget(resolveClickAddBranchTarget(nodes, id, null));
+        return;
+      }
+      setActiveBranchTarget(null);
+    },
+    [nodes],
+  );
+
+  const requestSelectNode = useCallback(
+    (id: string | null) => {
+      if (id === selectedId) {
+        applySelectNode(id);
+        return;
+      }
+      if (hasUnsavedStepSettings && selectedId != null) {
+        setPendingSelectId(id);
+        setStepPromptOpen(true);
+        return;
+      }
+      applySelectNode(id);
+    },
+    [applySelectNode, hasUnsavedStepSettings, selectedId],
+  );
+
+  const closeStepPrompt = useCallback(() => {
+    setPendingSelectId(null);
+    setStepPromptOpen(false);
+  }, []);
+
+  const handleStepDiscard = useCallback(() => {
+    setHasUnsavedStepSettings(false);
+    const nextId = pendingSelectId;
+    setPendingSelectId(null);
+    setStepPromptOpen(false);
+    applySelectNode(nextId);
+  }, [applySelectNode, pendingSelectId]);
+
+  const handleStepActivate = useCallback(async () => {
+    const ok = await handleActivate();
+    if (!ok) return;
+    const nextId = pendingSelectId;
+    setPendingSelectId(null);
+    setStepPromptOpen(false);
+    if (nextId != null) {
+      applySelectNode(nextId);
+    }
+  }, [applySelectNode, handleActivate, pendingSelectId]);
+
+  const handleNavDiscard = useCallback(() => {
+    setIsFlowDirty(false);
+    setHasUnsavedStepSettings(false);
+    setStepPromptOpen(false);
+    setPendingSelectId(null);
+    completePendingNavigation();
+  }, [completePendingNavigation]);
+
   const onAddBlock = useCallback(
     async (
       blockId: WorkflowNodeKind,
@@ -719,6 +793,13 @@ export function AutomationBuilderPage({
     ) => {
       if (!guardEdit()) {
         return;
+      }
+
+      if (hasUnsavedStepSettings && settingsSaveRef.current) {
+        const stepSaved = await settingsSaveRef.current();
+        if (!stepSaved) {
+          return;
+        }
       }
 
       const block = AUTOMATION_BLOCKS.find((b) => b.id === blockId);
@@ -923,6 +1004,7 @@ export function AutomationBuilderPage({
       activeBranchTarget,
       connections,
       guardEdit,
+      hasUnsavedStepSettings,
       nodes,
       selectedId,
     ],
@@ -1414,11 +1496,12 @@ export function AutomationBuilderPage({
     tab === "builder" && (automationActive || hasUnsavedStepSettings) ? (
       <div className="shrink-0 space-y-2 border-b border-zinc-200/60 bg-white/80 px-3 py-2 sm:px-4 sm:py-2.5">
         {automationActive ? (
-          <div className="flex items-start gap-2 rounded-xl border border-blue-200/90 bg-blue-50/90 px-3 py-2 text-xs leading-relaxed text-blue-950 sm:text-sm">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-blue-700" aria-hidden />
+          <div className="flex items-start gap-2 rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-3 py-2 text-xs leading-relaxed text-emerald-950 sm:text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-emerald-700" aria-hidden />
             <p>
-              This automation is live. Deactivate it before editing steps or email
-              copy.
+              This automation is <span className="font-semibold">live</span>.
+              Editing is locked — click <span className="font-semibold">Deactivate</span>{" "}
+              in the top bar before changing steps or message copy.
             </p>
           </div>
         ) : null}
@@ -1426,7 +1509,7 @@ export function AutomationBuilderPage({
           <div className="flex items-start gap-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950 sm:text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
             <p>
-              Unsaved email changes — guests still get the old text until you click{" "}
+              Unsaved step changes — guests still get the old settings until you click{" "}
               <span className="font-semibold">Save changes</span> in the settings panel.
               Activate saves your edits automatically.
             </p>
@@ -1438,7 +1521,9 @@ export function AutomationBuilderPage({
   const topbarCenterPortal =
     topbarCenterHost != null
       ? createPortal(
-          <AutomationBuilderTabBar tab={tab} onTabChange={setBuilderTab} />,
+          <div className="flex min-w-0 items-center justify-center gap-3 sm:gap-4">
+            <AutomationBuilderTabBar tab={tab} onTabChange={setBuilderTab} />
+          </div>,
           topbarCenterHost,
         )
       : null;
@@ -1555,24 +1640,7 @@ export function AutomationBuilderPage({
                 invalidStepIds={invalidStepIds}
                 activeBranchTarget={activeBranchTarget}
                 onSelect={(id) => {
-                  setSelectedId(id);
-                  const selected = nodes.find((node) => node.id === id);
-                  if (!selected) {
-                    setActiveBranchTarget(null);
-                    return;
-                  }
-                  const placement = getNodeBranchPlacement(selected);
-                  if (placement) {
-                    setActiveBranchTarget(placement);
-                    return;
-                  }
-                  if (isParallelSplitWorkflowNode(selected)) {
-                    setActiveBranchTarget(
-                      resolveClickAddBranchTarget(nodes, id, null),
-                    );
-                    return;
-                  }
-                  setActiveBranchTarget(null);
+                  requestSelectNode(id);
                 }}
                 onActiveBranchChange={setActiveBranchTarget}
                 editLocked={automationActive}
@@ -1664,10 +1732,23 @@ export function AutomationBuilderPage({
       </AnimatePresence>
 
       <ActivateFlowPromptDialog
-        open={navPromptOpen && !automationPublished}
+        open={navPromptOpen}
         isLoading={activating}
         onStay={closeNavPrompt}
+        onDiscard={handleNavDiscard}
         onActivate={() => void handleDialogActivate()}
+      />
+      <UnsavedStepChangesDialog
+        open={stepPromptOpen}
+        stepLabel={
+          selectedNode
+            ? getBlockByKind(selectedNode.kind).label
+            : undefined
+        }
+        isLoading={activating}
+        onKeepEditing={closeStepPrompt}
+        onDiscard={handleStepDiscard}
+        onActivate={() => void handleStepActivate()}
       />
       <DeactivateToEditDialog
         open={deactivatePromptOpen}

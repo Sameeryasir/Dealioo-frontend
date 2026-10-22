@@ -76,8 +76,8 @@ function cardShellClass(
   invalid = false,
 ): string {
   const base = selected
-    ? `ring-2 ring-offset-2 ring-offset-[#ececee] ${ringClass} shadow-lg`
-    : "shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)]";
+    ? `ring-2 ring-offset-2 ring-offset-[#f0f0f2] ${ringClass} shadow-[0_10px_28px_rgba(24,119,242,0.12)]`
+    : "shadow-[0_4px_18px_rgba(15,23,42,0.05)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]";
 
   return invalid ? `${base} ${FLOW_STEP_INVALID_BLINK}` : base;
 }
@@ -98,16 +98,18 @@ export function FlowStepHeader({
   subtitleClass?: string;
 }) {
   return (
-    <div className={`flex items-center gap-2.5 border-b px-5 py-4 ${barClass}`}>
+    <div className={`flex items-center gap-2.5 border-b px-4 py-3 ${barClass}`}>
       <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${iconClass}`}
+        className={`flex size-7 shrink-0 items-center justify-center rounded-lg shadow-sm ${iconClass}`}
       >
-        <Icon className="size-4 text-white" strokeWidth={2.25} aria-hidden />
+        <Icon className="size-3.5 text-white" strokeWidth={2.25} aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-bold tracking-tight">{title}</p>
+        <p className="text-[0.72rem] font-bold tracking-tight">{title}</p>
         {subtitle ? (
-          <p className={`text-[0.625rem] ${subtitleClass}`}>{subtitle}</p>
+          <p className={`mt-0.5 text-[0.6rem] leading-snug ${subtitleClass}`}>
+            {subtitle}
+          </p>
         ) : null}
       </div>
     </div>
@@ -204,8 +206,8 @@ export function FlowTriggerCard({
           subtitleClass={FLOW_TRIGGER.headerSub}
         />
       </div>
-      <div className="bg-white px-5 py-5 sm:px-6 sm:py-6">
-        <p className={`text-sm font-medium leading-relaxed ${FLOW_TRIGGER.body}`}>
+      <div className="bg-white px-4 py-3.5 sm:px-5 sm:py-4">
+        <p className={`text-[0.8rem] font-medium leading-relaxed ${FLOW_TRIGGER.body}`}>
           {triggerDisplayBody(node)}
         </p>
       </div>
@@ -244,8 +246,8 @@ export function FlowWaitCard({
         barClass={FLOW_WAIT.header}
         subtitleClass={FLOW_WAIT.headerSub}
       />
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <p className={`text-sm font-bold tracking-tight ${FLOW_WAIT.body}`}>
+      <div className="px-4 py-3.5 sm:px-5 sm:py-4">
+        <p className={`text-[0.85rem] font-bold tracking-tight ${FLOW_WAIT.body}`}>
           {formatWaitSummary(node.config)}
         </p>
       </div>
@@ -285,7 +287,7 @@ export function FlowFilterCard({
         barClass={FLOW_FILTER.header}
         subtitleClass={FLOW_FILTER.headerSub}
       />
-      <div className="flex flex-wrap items-center gap-2.5 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3.5 sm:px-5 sm:py-4">
         {conditions.map((condition, index) => (
           <span key={`${condition.label}-${index}`} className="contents">
             {index > 0 ? (
@@ -754,7 +756,7 @@ export function FlowActionsBlock({
     <div
       className={`overflow-hidden rounded-2xl border bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all ${
         groupSelected
-          ? `border-blue-300 ring-2 ${FLOW_ACTIONS.ring}`
+          ? `border-violet-300 ring-2 ${FLOW_ACTIONS.ring}`
           : FLOW_ACTIONS.border
       }`}
     >
@@ -1061,33 +1063,28 @@ export function FlowParallelSplitCard({
     ? node.config.branches.length
     : 0;
 
+  const shellClass = invalid
+    ? cardShellClass(!!selected, FLOW_WAIT.ring, true)
+    : selected
+      ? cardShellClass(true, FLOW_WAIT.ring)
+      : pressing
+        ? "scale-[0.99]"
+        : "";
+
   return (
     <div
-      className={`w-full max-w-sm overflow-hidden rounded-2xl border border-blue-200/80 bg-white transition-all ${
-        invalid ? FLOW_STEP_INVALID_BLINK : ""
-      } ${
-        selected
-          ? "ring-2 ring-[#1877f2]/50 shadow-[0_8px_30px_rgba(24,119,242,0.18)]"
-          : pressing
-            ? "scale-[0.99]"
-            : "shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
-      }`}
+      className={`w-full max-w-sm overflow-hidden rounded-2xl border ${FLOW_WAIT.border} bg-white transition-all ${shellClass}`}
     >
-      <div className="flex items-center gap-2.5 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-white px-5 py-4">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-[#1877f2] text-white shadow-sm">
-          <GitBranch className="size-4" strokeWidth={2.25} aria-hidden />
-        </span>
-        <div>
-          <p className="text-xs font-bold tracking-tight text-blue-950">
-            Branch
-          </p>
-          <p className="text-[0.625rem] text-blue-700/80">
-            Runs each path independently
-          </p>
-        </div>
-      </div>
-      <div className="px-5 py-4 sm:px-6">
-        <p className="text-sm font-semibold text-zinc-800">
+      <FlowStepHeader
+        icon={GitBranch}
+        title="Branch"
+        subtitle="Runs each path independently"
+        iconClass={FLOW_WAIT.icon}
+        barClass={FLOW_WAIT.header}
+        subtitleClass={FLOW_WAIT.headerSub}
+      />
+      <div className="px-4 py-3.5 sm:px-5 sm:py-4">
+        <p className={`text-sm font-semibold ${FLOW_WAIT.body}`}>
           {branchCount > 0
             ? `${branchCount} path${branchCount === 1 ? "" : "s"}`
             : "Split into paths"}

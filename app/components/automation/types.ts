@@ -43,6 +43,13 @@ export type BlockDefinition = {
   section: BlockSection;
   icon: LucideIcon;
   tone: "emerald" | "blue" | "violet" | "orange" | "zinc" | "amber";
+  /** Short help text shown in the block palette. */
+  description?: string;
+  /** Extra search terms (name + description are always searchable). */
+  keywords?: string[];
+  /** When true, palette shows unavailable styling and blocks insert. */
+  unavailable?: boolean;
+  unavailableReason?: string;
 };
 
 export type WorkflowNode = {

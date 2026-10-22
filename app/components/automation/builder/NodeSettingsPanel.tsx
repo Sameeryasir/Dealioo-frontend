@@ -36,6 +36,7 @@ import {
   parseParallelBranchesFromConfig,
   slugifyBranchId,
 } from "@/app/components/automation/builder/workflow-branch-context";
+import { settingsSectionChrome } from "@/app/components/automation/builder/flow-step-colors";
 import { getBlockByKind } from "@/app/components/automation/mock-data";
 import {
   blockSectionLabel,
@@ -47,9 +48,6 @@ import { isTriggerBlockKind } from "@/app/services/automation/node-api";
 
 const SETTINGS_PRIMARY_BUTTON =
   "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#1877f2] px-4 py-3 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(24,119,242,0.28)] transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:opacity-60";
-
-const SETTINGS_NODE_ICON =
-  "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]";
 
 const EMAIL_TEMPLATES = [
   "Payment reminder",
@@ -637,22 +635,30 @@ export function NodeSettingsPanel({
 }) {
   const block = node ? getBlockByKind(node.kind) : null;
   const Icon = block?.icon;
+  const panelChrome = settingsSectionChrome(block?.section ?? "triggers");
+  const PanelIcon = Icon ?? Settings;
 
   return (
     <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden border-l border-zinc-200/60 bg-white">
       <motion.div className="relative border-b border-zinc-100 px-4 py-4">
         <div className="flex items-start gap-2.5">
           <span
-            className={`flex size-9 shrink-0 items-center justify-center rounded-xl border border-blue-200/70 shadow-sm ring-1 ring-blue-100/80 ${SETTINGS_NODE_ICON}`}
+            className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+              node && block
+                ? panelChrome.icon
+                : "bg-[#1877f2] text-white shadow-[0_4px_14px_rgba(24,119,242,0.35)]"
+            }`}
           >
-            <Settings className="size-4" strokeWidth={2} aria-hidden />
+            <PanelIcon className="size-4" strokeWidth={2} aria-hidden />
           </span>
           <div className="min-w-0 pt-0.5">
             <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-              Settings
+              {node && block ? block.label : "Settings"}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-zinc-500">
-              {node ? "Configure the selected step." : "Select a step on the canvas."}
+              {node
+                ? "Configure the selected step."
+                : "Select a step to configure it."}
             </p>
           </div>
         </div>
@@ -668,13 +674,16 @@ export function NodeSettingsPanel({
             transition={{ duration: 0.22, ease: automationEase }}
             className="relative flex flex-1 flex-col items-center justify-center px-5 py-8 text-center"
           >
-            <div className="w-full max-w-[15rem] rounded-2xl border-2 border-dashed border-zinc-200/90 bg-white/70 px-5 py-8 shadow-sm ring-1 ring-zinc-950/[0.03] backdrop-blur-sm">
-              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 ring-1 ring-zinc-200/80">
+            <div className="w-full max-w-[15rem] rounded-2xl border-2 border-dashed border-zinc-200 bg-[#fbfcfe] px-5 py-8 shadow-sm">
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1877f2] ring-1 ring-[#dbeafe]">
                 <MousePointerClick className="size-5" strokeWidth={2} aria-hidden />
               </div>
-              <p className="text-sm font-semibold text-zinc-800">No step selected</p>
+              <p className="text-sm font-bold text-zinc-900">
+                Select a step to configure it
+              </p>
               <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-                Click a workflow step to edit delay, messages, or schedule settings.
+                Click a card on the canvas to edit waits, messages, conditions,
+                or schedules.
               </p>
             </div>
           </motion.div>
@@ -739,6 +748,7 @@ function NodeSettingsForm({
   deleting: boolean;
 }) {
   const config = node.config;
+  const chrome = settingsSectionChrome(blockSection);
   const prepaidBundled = isPrepaidFirstEmailNode(node);
   const returnOfferEmail = isReturnOfferEmailNode(node);
   const bundledEmailIndex = prepaidBundled
@@ -1162,18 +1172,20 @@ function NodeSettingsForm({
     >
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-8 [scrollbar-gutter:stable]">
       <motion.div
-        className="mb-8 flex items-center gap-3 rounded-2xl border border-zinc-200/70 border-l-[3px] border-l-[#1877f2] bg-zinc-50/40 px-4 py-3.5"
+        className={`mb-8 flex items-center gap-3 rounded-2xl border border-zinc-200/70 border-l-[3px] bg-zinc-50/40 px-4 py-3.5 ${chrome.accentBorder}`}
         layout
       >
         {Icon ? (
           <span
-            className={`relative flex size-10 shrink-0 items-center justify-center rounded-xl ${SETTINGS_NODE_ICON}`}
+            className={`relative flex size-10 shrink-0 items-center justify-center rounded-xl ${chrome.icon}`}
           >
             <Icon className="relative size-[1.125rem]" strokeWidth={2.15} aria-hidden />
           </span>
         ) : null}
         <div className="min-w-0">
-          <span className="inline-flex rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-[#0f5ed7] ring-1 ring-[#1877f2]/15">
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ring-1 ${chrome.chip}`}
+          >
             {blockSectionLabel(blockSection)}
           </span>
           <p className="mt-1 truncate text-[0.9375rem] font-semibold tracking-tight text-zinc-900">

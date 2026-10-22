@@ -427,7 +427,7 @@ export function AutomationListPage({
             syncAutomationQueryCache(queryClient, created);
 
             if (template) {
-              openBuilderAfterCreate(String(created.id), true, true);
+              openBuilderAfterCreate(String(created.id), true, false);
               void applyAutomationTemplate(created.id, template)
                 .then((withGraph) => {
                   syncAutomationQueryCache(queryClient, withGraph);

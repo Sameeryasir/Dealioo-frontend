@@ -4956,6 +4956,11 @@ body {
     box-shadow: none;
   }
 
+  /* Super Admin: hide business setup tile — location fills the row. */
+  .org-biz-card-bento--no-setup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   @media (min-width: 768px) {
     .org-biz-card-bento {
       width: calc(100% + 1.25rem);
