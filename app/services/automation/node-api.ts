@@ -62,12 +62,26 @@ export function isTriggerBlockKind(kind: WorkflowNodeKind): boolean {
   return TRIGGER_BLOCK_KINDS.has(kind);
 }
 
+const REVIEWS_DEFAULT_CONFIG: Record<string, unknown> = {
+  action: "ask_review",
+  workflowKind: "ask_review",
+  channel: "email",
+  reviewUrl: "",
+  subject: "How was your experience?",
+  message:
+    "Hi [First Name] — thanks for your purchase. If you have a moment, we’d love your quick feedback on this campaign.",
+  ctaLabel: "Give Feedback",
+};
+
 export function defaultConfigForBlockKind(
   kind: WorkflowNodeKind,
   options?: { nestUnderBranchId?: string | null },
 ): Record<string, unknown> {
   if (kind === "parallel_split") {
     return defaultParallelSplitConfig(options?.nestUnderBranchId ?? null);
+  }
+  if (kind === "reviews") {
+    return { ...REVIEWS_DEFAULT_CONFIG };
   }
   return TRIGGER_DEFAULT_CONFIG_BY_KIND[kind] ?? {};
 }

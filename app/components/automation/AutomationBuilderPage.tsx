@@ -8,18 +8,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ActivateFlowPromptDialog } from "@/app/components/automation/ActivateFlowPromptDialog";
 import { AutomationBuilderGuideModal } from "@/app/components/automation/AutomationBuilderGuideModal";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";
-import { UnsavedStepChangesDialog } from "@/app/components/automation/UnsavedStepChangesDialog";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import { BlockSidebar } from "@/app/components/automation/builder/BlockSidebar";
 import { BuilderCanvas } from "@/app/components/automation/builder/BuilderCanvas";
 import { normalizePaymentReminderWorkflowNodes } from "@/app/components/automation/builder/bundled-actions";
 import { NodeSettingsPanel } from "@/app/components/automation/builder/NodeSettingsPanel";
 import { automationEase } from "@/app/lib/motion";
-import { AUTOMATION_BLOCKS, getBlockByKind } from "@/app/components/automation/mock-data";
+import { AUTOMATION_BLOCKS } from "@/app/components/automation/mock-data";
 import type {
   AutomationListItem,
   AutomationStatus,
@@ -73,7 +71,6 @@ import {
   isTriggerBlockKind,
   updateAutomationNode,
 } from "@/app/services/automation/node-api";
-import { useFlowNavigationGuard } from "@/app/hooks/use-flow-navigation-guard";
 import { isPositiveInt, parseRoutePositiveInt } from "@/app/lib/numbers";
 import { validatePaymentReminderSchedule } from "@/app/components/automation/payment-reminder-schedule-validation";
 import { validateWorkflowForActivation } from "@/app/components/automation/builder/workflow-activation-validation";
@@ -162,10 +159,6 @@ async function syncDesiredAutomationConnections(
 
 type BuilderTab = AutomationBuilderTab;
 
-type PendingFlowNavigation =
-  | { kind: "href"; href: string }
-  | { kind: "tab"; tab: BuilderTab };
-
 export function AutomationBuilderPage({
   businessId,
   automationId,
@@ -209,7 +202,6 @@ export function AutomationBuilderPage({
     null,
   );
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
-  const [navPromptOpen, setNavPromptOpen] = useState(false);
   const [deactivatePromptOpen, setDeactivatePromptOpen] = useState(false);
   const [pathDeletePending, setPathDeletePending] = useState<{
     branchTarget: WorkflowBranchTarget | null;
@@ -218,11 +210,6 @@ export function AutomationBuilderPage({
     isContinueSection: boolean;
   } | null>(null);
   const [pathDeleting, setPathDeleting] = useState(false);
-  const [pendingNav, setPendingNav] = useState<PendingFlowNavigation | null>(
-    null,
-  );
-  const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
-  const [stepPromptOpen, setStepPromptOpen] = useState(false);
   const [topbarCenterHost, setTopbarCenterHost] = useState<HTMLElement | null>(
     null,
   );
@@ -424,12 +411,7 @@ export function AutomationBuilderPage({
     return "This flow runs automatically.";
   }, [nodes]);
 
-  const hasUnsavedBuilderChanges = isFlowDirty || hasUnsavedStepSettings;
-
-  const shouldBlockFlowNavigation =
-    tab === "builder" && hasUnsavedBuilderChanges;
-
-  const applyBuilderTab = useCallback(
+  const setBuilderTab = useCallback(
     (next: BuilderTab) => {
       setTab(next);
       startTabTransition(() => {
@@ -443,46 +425,6 @@ export function AutomationBuilderPage({
     },
     [funnelId, pathname, router, searchParams],
   );
-
-  const setBuilderTab = useCallback(
-    (next: BuilderTab) => {
-      if (tab === "builder" && next !== "builder" && shouldBlockFlowNavigation) {
-        setPendingNav({ kind: "tab", tab: next });
-        setNavPromptOpen(true);
-        return;
-      }
-      applyBuilderTab(next);
-    },
-    [applyBuilderTab, shouldBlockFlowNavigation, tab],
-  );
-
-  const completePendingNavigation = useCallback(() => {
-    if (pendingNav == null) return;
-
-    if (pendingNav.kind === "href") {
-      router.push(pendingNav.href);
-    } else {
-      applyBuilderTab(pendingNav.tab);
-    }
-
-    setPendingNav(null);
-    setNavPromptOpen(false);
-  }, [applyBuilderTab, pendingNav, router]);
-
-  useFlowNavigationGuard(
-    shouldBlockFlowNavigation,
-    useCallback((href: string) => {
-      setPendingNav({ kind: "href", href });
-      setNavPromptOpen(true);
-    }, []),
-  );
-
-  useEffect(() => {
-    if (automationPublished && navPromptOpen) {
-      setNavPromptOpen(false);
-      setPendingNav(null);
-    }
-  }, [automationPublished, navPromptOpen]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -682,8 +624,6 @@ export function AutomationBuilderPage({
       }
       setStatus("draft");
       setAutomationPublished(false);
-      setNavPromptOpen(false);
-      setPendingNav(null);
       await refetchAutomation();
       toast.success("Automation deactivated.");
     } catch (err) {
@@ -697,18 +637,6 @@ export function AutomationBuilderPage({
     await handleDeactivate();
     setDeactivatePromptOpen(false);
   }, [handleDeactivate]);
-
-  const handleDialogActivate = useCallback(async () => {
-    const ok = await handleActivate();
-    if (ok) {
-      completePendingNavigation();
-    }
-  }, [completePendingNavigation, handleActivate]);
-
-  const closeNavPrompt = useCallback(() => {
-    setPendingNav(null);
-    setNavPromptOpen(false);
-  }, []);
 
   const applySelectNode = useCallback(
     (id: string | null) => {
@@ -737,52 +665,22 @@ export function AutomationBuilderPage({
   );
 
   const requestSelectNode = useCallback(
-    (id: string | null) => {
+    async (id: string | null) => {
       if (id === selectedId) {
         applySelectNode(id);
         return;
       }
-      if (hasUnsavedStepSettings && selectedId != null) {
-        setPendingSelectId(id);
-        setStepPromptOpen(true);
-        return;
+      // Save open step edits first, then switch — no discard path.
+      if (hasUnsavedStepSettings && settingsSaveRef.current) {
+        const stepSaved = await settingsSaveRef.current();
+        if (!stepSaved) {
+          return;
+        }
       }
       applySelectNode(id);
     },
     [applySelectNode, hasUnsavedStepSettings, selectedId],
   );
-
-  const closeStepPrompt = useCallback(() => {
-    setPendingSelectId(null);
-    setStepPromptOpen(false);
-  }, []);
-
-  const handleStepDiscard = useCallback(() => {
-    setHasUnsavedStepSettings(false);
-    const nextId = pendingSelectId;
-    setPendingSelectId(null);
-    setStepPromptOpen(false);
-    applySelectNode(nextId);
-  }, [applySelectNode, pendingSelectId]);
-
-  const handleStepActivate = useCallback(async () => {
-    const ok = await handleActivate();
-    if (!ok) return;
-    const nextId = pendingSelectId;
-    setPendingSelectId(null);
-    setStepPromptOpen(false);
-    if (nextId != null) {
-      applySelectNode(nextId);
-    }
-  }, [applySelectNode, handleActivate, pendingSelectId]);
-
-  const handleNavDiscard = useCallback(() => {
-    setIsFlowDirty(false);
-    setHasUnsavedStepSettings(false);
-    setStepPromptOpen(false);
-    setPendingSelectId(null);
-    completePendingNavigation();
-  }, [completePendingNavigation]);
 
   const onAddBlock = useCallback(
     async (
@@ -1640,7 +1538,7 @@ export function AutomationBuilderPage({
                 invalidStepIds={invalidStepIds}
                 activeBranchTarget={activeBranchTarget}
                 onSelect={(id) => {
-                  requestSelectNode(id);
+                  void requestSelectNode(id);
                 }}
                 onActiveBranchChange={setActiveBranchTarget}
                 editLocked={automationActive}
@@ -1731,25 +1629,6 @@ export function AutomationBuilderPage({
       )}
       </AnimatePresence>
 
-      <ActivateFlowPromptDialog
-        open={navPromptOpen}
-        isLoading={activating}
-        onStay={closeNavPrompt}
-        onDiscard={handleNavDiscard}
-        onActivate={() => void handleDialogActivate()}
-      />
-      <UnsavedStepChangesDialog
-        open={stepPromptOpen}
-        stepLabel={
-          selectedNode
-            ? getBlockByKind(selectedNode.kind).label
-            : undefined
-        }
-        isLoading={activating}
-        onKeepEditing={closeStepPrompt}
-        onDiscard={handleStepDiscard}
-        onActivate={() => void handleStepActivate()}
-      />
       <DeactivateToEditDialog
         open={deactivatePromptOpen}
         isLoading={activating}

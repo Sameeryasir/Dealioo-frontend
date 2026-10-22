@@ -507,6 +507,8 @@ function actionMeta(node: WorkflowNode): { label: string; icon: LucideIcon } {
     case "send_sms":
     case "send_whatsapp":
       return { label: "Send Text", icon: MessageSquare };
+    case "reviews":
+      return { label: "Ask for Review", icon: Star };
     case "create_coupon":
       if (isReturnOfferEmailNode(node)) {
         return { label: "Send Email", icon: MessageSquare };
@@ -588,6 +590,36 @@ function FlowActionStepBody({ node }: { node: WorkflowNode }) {
             {linkLabel}
           </span>
         ) : null}
+      </div>
+    );
+  }
+
+  if (node.kind === "reviews") {
+    const previewMessage = getSmsMessage(config);
+    const parts = splitSmsPreviewParts(previewMessage);
+    const cta =
+      getSmsLinkLabel(config)?.trim() ||
+      String(config.ctaLabel ?? "").trim() ||
+      "Give Feedback";
+    return (
+      <div className="space-y-2.5 text-left">
+        <p className="whitespace-pre-wrap text-left text-xs leading-relaxed text-zinc-700">
+          {parts.map((part, index) =>
+            isSmsMergeTag(part) ? (
+              <span
+                key={`${part}-${index}`}
+                className="mx-0.5 inline rounded-md bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-800"
+              >
+                {part}
+              </span>
+            ) : (
+              <span key={`${part}-${index}`}>{part}</span>
+            ),
+          )}
+        </p>
+        <span className="inline-flex items-center rounded-lg bg-[#1877f2] px-2.5 py-1 text-[0.65rem] font-semibold text-white shadow-sm">
+          {cta}
+        </span>
       </div>
     );
   }
