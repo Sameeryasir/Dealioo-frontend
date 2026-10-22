@@ -7,14 +7,14 @@ import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
   Building2,
-  CalendarDays,
+  CalendarCheck2,
   ClipboardList,
-  CreditCard,
   LayoutDashboard,
   LogOut,
   Phone,
+  Repeat,
+  Tags,
   Users,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -53,13 +53,13 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/admin/plans",
     label: "Plans",
-    icon: CreditCard,
+    icon: Tags,
     activeMatch: "prefix",
   },
   {
     href: "/admin/subscriptions",
     label: "Subscriptions",
-    icon: Wallet,
+    icon: Repeat,
     activeMatch: "prefix",
   },
   {
@@ -71,7 +71,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/admin/meeting-requests",
     label: "Meeting requests",
-    icon: CalendarDays,
+    icon: CalendarCheck2,
     activeMatch: "prefix",
   },
   {
