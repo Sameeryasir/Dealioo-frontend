@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export function EditorPageItem({
@@ -10,6 +10,7 @@ export function EditorPageItem({
   icon: Icon,
   iconWrapClass,
   selected,
+  stepNumber,
   onSelect,
   onPreview,
   compact = false,
@@ -28,30 +29,33 @@ export function EditorPageItem({
   compact?: boolean;
   isLast?: boolean;
 }) {
+  const stepLabel =
+    stepNumber != null ? String(stepNumber).padStart(2, "0") : null;
+
   return (
-    <div className={`relative flex gap-2.5 ${compact ? "pb-2" : "pb-2.5"}`}>
-      <div className="relative flex w-3.5 shrink-0 flex-col items-center">
+    <div className={`relative flex gap-3 ${compact ? "pb-2.5" : "pb-3"}`}>
+      <div className="relative flex w-4 shrink-0 flex-col items-center">
         <span
-          className={`relative z-[1] mt-3.5 size-2.5 rounded-full ${
+          className={`relative z-[1] mt-4 size-2.5 rounded-full transition ${
             selected
-              ? "bg-[#1877f2] shadow-[0_0_0_3px_rgba(24,119,242,0.16)]"
-              : "border-2 border-[#cbd5e1] bg-white"
+              ? "bg-[#1877f2] shadow-[0_0_0_4px_rgba(24,119,242,0.18)]"
+              : "border-2 border-slate-300 bg-white"
           }`}
           aria-hidden
         />
         {!isLast ? (
           <span
-            className="absolute top-6 bottom-0 w-px bg-[#e2e8f0]"
+            className="absolute top-7 bottom-0 w-px bg-gradient-to-b from-slate-300 to-slate-200"
             aria-hidden
           />
         ) : null}
       </div>
 
       <div
-        className={`group relative min-w-0 flex-1 overflow-hidden rounded-[0.85rem] border transition duration-150 ${
+        className={`group relative min-w-0 flex-1 overflow-hidden rounded-2xl border transition duration-200 ${
           selected
-            ? "border-[#dbeafe] bg-white shadow-[0_6px_16px_rgba(24,119,242,0.08)]"
-            : "border-[#e8edf5] bg-white hover:border-[#dbeafe]"
+            ? "border-[#bfdbfe] bg-gradient-to-br from-[#f4f8ff] to-white shadow-[0_10px_24px_rgba(24,119,242,0.1)]"
+            : "border-slate-200/90 bg-white hover:-translate-y-px hover:border-[#bfdbfe] hover:shadow-[0_8px_18px_rgba(15,23,42,0.06)]"
         }`}
       >
         {selected ? (
@@ -65,46 +69,53 @@ export function EditorPageItem({
           type="button"
           onClick={onSelect}
           title={`${title} — ${subtitle}`}
-          className="flex w-full items-center gap-2 px-2.5 py-2 text-left"
+          aria-current={selected ? "page" : undefined}
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
         >
           <span
-            className={`flex size-8 shrink-0 items-center justify-center rounded-[0.6rem] ${iconWrapClass}`}
+            className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconWrapClass}`}
           >
-            <Icon className="size-3.5" strokeWidth={2.15} aria-hidden />
+            <Icon className="size-4" strokeWidth={2.15} aria-hidden />
           </span>
 
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.8rem] font-extrabold leading-tight text-[#0e182b]">
-              {title}
+            <span className="flex items-center gap-1.5">
+              {stepLabel ? (
+                <span
+                  className={`shrink-0 text-[0.62rem] font-bold tabular-nums tracking-[0.08em] ${
+                    selected ? "text-[#1877f2]" : "text-slate-400"
+                  }`}
+                >
+                  {stepLabel}
+                </span>
+              ) : null}
+              <span
+                className={`truncate text-[0.84rem] leading-tight ${
+                  selected
+                    ? "font-bold text-[#0e182b]"
+                    : "font-semibold text-[#0e182b]"
+                }`}
+              >
+                {title}
+              </span>
             </span>
-            <span className="mt-0.5 block truncate text-[0.68rem] font-semibold text-slate-500">
-              {subtitle}
-            </span>
-            <span className="mt-0.5 block truncate text-[0.62rem] font-medium text-slate-400">
-              {description}
+            <span className="mt-0.5 block truncate text-[0.68rem] font-medium text-slate-500">
+              {compact ? subtitle : description}
             </span>
           </span>
-
-          {!selected ? (
-            <ChevronRight
-              className="size-3.5 shrink-0 text-slate-300 transition group-hover:text-[#1877f2]"
-              aria-hidden
-            />
-          ) : null}
         </button>
 
         {selected && onPreview ? (
-          <div className="border-t border-[#eef2f7] px-2.5 pb-2 pt-1.5">
+          <div className="border-t border-[#e8edf5]/90 px-3 pb-2.5 pt-2">
             <button
               type="button"
               aria-label={`Preview ${title}`}
               title="Preview live page"
               onClick={onPreview}
-              className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-[#bfdbfe] bg-[#f4f8ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#1877f2] transition hover:bg-[#e8f1ff]"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#bfdbfe] bg-white px-2.5 py-1.5 text-[0.7rem] font-semibold text-[#1877f2] transition hover:bg-[#e8f1ff]"
             >
-              <Eye className="size-3" strokeWidth={2.15} aria-hidden />
-              Preview
-              <ChevronRight className="size-3" aria-hidden />
+              <Eye className="size-3.5" strokeWidth={2.15} aria-hidden />
+              Preview this step
             </button>
           </div>
         ) : null}

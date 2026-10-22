@@ -154,7 +154,6 @@ export function CrmTemplateEditor({
   } = useUndoRedo<TemplatePagesState>(funnelLoader.pages);
 
   const [activeId, setActiveId] = useState<TemplatePageId>(initialPageId);
-  const [settingsOpen, setSettingsOpen] = useState(true);
   const [saveStatus, setSaveStatus] = useState<EditorSaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -180,7 +179,6 @@ export function CrmTemplateEditor({
     (sectionId: LandingContentSectionId) => {
       setEditorSelection({ kind: "landing-section", sectionId });
       setContentFocus(landingSectionToContentFocus(sectionId));
-      setSettingsOpen(true);
     },
     [],
   );
@@ -580,7 +578,6 @@ export function CrmTemplateEditor({
   const beginEditSession = useCallback(
     (id: TemplatePageId, sourcePages: TemplatePagesState) => {
       setActiveId(id);
-      setSettingsOpen(true);
       setSaveStatus("idle");
       setSaveError(null);
       setIsDirty(false);
@@ -596,26 +593,26 @@ export function CrmTemplateEditor({
   const openEditorForPage = useCallback(
     (id: TemplatePageId) => {
       if (isPostpaid && id === "payment") return;
-      if (settingsOpen && isDirty && id !== activeId) {
+      if (isDirty && id !== activeId) {
         setPendingNavId(id);
         return;
       }
       beginEditSession(id, pages);
     },
-    [settingsOpen, isDirty, activeId, pages, beginEditSession, isPostpaid],
+    [isDirty, activeId, pages, beginEditSession, isPostpaid],
   );
 
   const requestSwitchActive = useCallback(
     (id: TemplatePageId) => {
       if (isPostpaid && id === "payment") return;
       if (id === activeId) return;
-      if (settingsOpen && isDirty) {
+      if (isDirty) {
         setPendingNavId(id);
         return;
       }
       setActiveId(id);
     },
-    [activeId, settingsOpen, isDirty, isPostpaid],
+    [activeId, isDirty, isPostpaid],
   );
 
   const handlePreview = useCallback(() => {
@@ -786,7 +783,6 @@ export function CrmTemplateEditor({
         }
         settingsPanel={
           <SettingsPanel
-            open={settingsOpen}
             page={activePage}
             onChange={patchPage}
             onBrowseTemplates={() => setTemplateGalleryOpen(true)}

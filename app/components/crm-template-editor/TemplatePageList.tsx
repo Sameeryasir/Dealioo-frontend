@@ -41,7 +41,10 @@ export function TemplatePageList({
   const steps = FUNNEL_STEP_META.filter((step) => pageOrder.includes(step.id));
 
   return (
-    <nav className="w-full [&_button]:cursor-pointer">
+    <nav className="w-full [&_button]:cursor-pointer" aria-label="Funnel flow">
+      <p className="mb-3 px-0.5 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-slate-400">
+        Funnel flow
+      </p>
       <ul className="m-0 list-none p-0">
         {steps.map((step, index) => (
           <li key={step.id} className={compact ? "min-w-0 shrink-0" : ""}>
@@ -52,6 +55,7 @@ export function TemplatePageList({
               icon={step.icon}
               iconWrapClass={step.iconWrapClass}
               selected={activeId === step.id}
+              stepNumber={index + 1}
               onSelect={() => onSelect(step.id)}
               onPreview={
                 onPreviewPage ? () => onPreviewPage(step.id) : undefined

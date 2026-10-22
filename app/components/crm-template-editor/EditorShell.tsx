@@ -33,7 +33,7 @@ export function EditorShell({
   workspaceToolbar?: ReactNode;
   leftSidebar?: ReactNode;
   canvas: ReactNode;
-  settingsPanel: ReactNode;
+  settingsPanel?: ReactNode;
   assistantPanel?: ReactNode;
   assistantLauncher?: ReactNode;
   embedded?: boolean;
@@ -69,28 +69,32 @@ export function EditorShell({
         <div className={editorNavbarSlotClass}>{navbar}</div>
       ) : null}
       <div className={canvasClass}>{canvas}</div>
-      <div className={`${settingsClass} relative`}>
-        <div
-          className={
-            hasAssistant
-              ? "pointer-events-none invisible h-full min-h-0 min-w-0"
-              : "h-full min-h-0 min-w-0"
-          }
-          aria-hidden={hasAssistant}
-        >
-          {settingsPanel}
+      {settingsPanel != null || hasAssistant || assistantLauncher ? (
+        <div className={`${settingsClass} relative`}>
+          {settingsPanel != null ? (
+            <div
+              className={
+                hasAssistant
+                  ? "pointer-events-none invisible h-full min-h-0 min-w-0"
+                  : "h-full min-h-0 min-w-0"
+              }
+              aria-hidden={hasAssistant}
+            >
+              {settingsPanel}
+            </div>
+          ) : null}
+          {hasAssistant ? (
+            <div className="absolute inset-0 z-30 flex min-h-0 min-w-0 flex-col overflow-hidden bg-white [&>aside]:h-full [&>aside]:min-h-0 [&>aside]:min-w-0 [&>aside]:w-full">
+              {assistantPanel}
+            </div>
+          ) : null}
+          {!hasAssistant && assistantLauncher ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+              <div className="pointer-events-auto">{assistantLauncher}</div>
+            </div>
+          ) : null}
         </div>
-        {hasAssistant ? (
-          <div className="absolute inset-0 z-30 flex min-h-0 min-w-0 flex-col overflow-hidden bg-white [&>aside]:h-full [&>aside]:min-h-0 [&>aside]:min-w-0 [&>aside]:w-full">
-            {assistantPanel}
-          </div>
-        ) : null}
-        {!hasAssistant && assistantLauncher ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
-            <div className="pointer-events-auto">{assistantLauncher}</div>
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 

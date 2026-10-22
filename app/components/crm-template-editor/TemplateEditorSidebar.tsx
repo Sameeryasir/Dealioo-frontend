@@ -20,16 +20,12 @@ import {
   GripVertical,
   Image as ImageIcon,
   LayoutTemplate,
-  Mail,
   MousePointerClick,
   Palette,
-  Phone,
   Search,
   Trash2,
   Upload,
-  User,
   UserPlus,
-  UserRound,
   ZoomIn,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -59,20 +55,14 @@ import {
   editorFieldLabelPlainClass,
   editorSidebarBodyStrongClass,
   editorSidebarBodyTextClass,
-  editorSidebarCaptionClass,
-  editorSidebarFormFieldIconOffClass,
-  editorSidebarFormFieldIconOnClass,
-  editorSidebarFormFieldRowClass,
   editorSidebarMediaFrameClass,
-  editorSidebarPickerRowClass,
-  editorSidebarPickerRowSelectedClass,
   editorSidebarPrimaryButtonClass,
   editorSidebarRootClass,
   editorSidebarSecondaryButtonClass,
   editorSidebarUploadButtonClass,
 } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import { formDesignUsesSplitLayout } from "@/app/components/crm-template-editor/form-design-registry";
-import { FormDesignSwatch } from "@/app/components/crm-template-editor/form-designs/FormDesignSwatch";
+import { FormDesignPickerCard } from "@/app/components/crm-template-editor/form-designs/FormDesignPickerCard";
 import { CheckoutTemplatePickerOption } from "@/app/components/crm-template-editor/CheckoutTemplatePickerOption";
 import { HeroDesignPickerOption } from "@/app/components/crm-template-editor/hero-designs/HeroDesignPickerOption";
 import { getHeroDesignStyle, normalizeHeroDesign } from "@/app/components/crm-template-editor/hero-designs/registry";
@@ -81,12 +71,10 @@ import {
   landingSectionOrder,
 } from "@/app/components/crm-template-editor/landing-sections";
 import { SortableSectionList } from "@/app/components/crm-template-editor/SortableSectionList";
-import { isSignupFormFieldRemovable } from "@/app/lib/funnel-signup-validation";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import { uploadCampaignImage } from "@/app/services/campaign/upload-campaign-image";
 import {
   FORM_DESIGN_OPTIONS,
-  FORM_FIELD_OPTIONS,
   HERO_DESIGN_OPTIONS,
 } from "@/app/components/crm-template-editor/template-data";
 import {
@@ -97,7 +85,6 @@ import {
 } from "@/app/components/crm-template-editor/template-image";
 import type {
   FormDesign,
-  FormFieldId,
   HeroDesign,
   LandingTemplatePage,
   PaymentTemplatePage,
@@ -114,13 +101,6 @@ type SectionId =
   | "form"
   | "checkout-templates"
   | "style";
-
-const FORM_FIELD_ICONS: Record<FormFieldId, LucideIcon> = {
-  firstName: User,
-  lastName: UserRound,
-  email: Mail,
-  phone: Phone,
-};
 
 const SECTION_ICONS: Partial<Record<SectionId, LucideIcon>> = {
   templates: LayoutTemplate,
@@ -752,19 +732,6 @@ export function TemplateEditorSidebar({
     } finally {
       setImageUploading(false);
     }
-  };
-
-  const toggleFormField = (fieldId: FormFieldId) => {
-    if (!signup) return;
-    const set = new Set(signup.formFieldIds);
-    if (set.has(fieldId)) {
-      if (!isSignupFormFieldRemovable(fieldId)) return;
-      if (set.size <= 1) return;
-      set.delete(fieldId);
-    } else {
-      set.add(fieldId);
-    }
-    onChange({ formFieldIds: Array.from(set) });
   };
 
   const accordionVariant = stackedLayout ? "stack" : "card";
@@ -1403,41 +1370,22 @@ export function TemplateEditorSidebar({
               onToggle={toggle}
               variant={accordionVariant}
             >
-              <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
-                <div className="grid grid-cols-1 gap-2.5">
+              <div className="max-h-[28rem] overflow-y-auto overscroll-y-contain pr-0.5">
+                <div className="grid grid-cols-2 gap-2">
                   {FORM_DESIGN_OPTIONS.filter(
                     (opt) => !formDesignUsesSplitLayout(opt.value),
-                  ).map((opt) => {
-                    const on = payment.formDesign === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          onChange({ formDesign: opt.value as FormDesign })
-                        }
-                        className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
-                          on
-                            ? editorSidebarPickerRowSelectedClass
-                            : editorSidebarPickerRowClass
-                        }`}
-                      >
-                        <FormDesignSwatch design={opt.value} selected={on} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-bold tracking-tight">
-                            {opt.label}
-                          </span>
-                          <span
-                            className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                              on ? "text-slate-600" : "text-zinc-500"
-                            }`}
-                          >
-                            {opt.description}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
+                  ).map((opt) => (
+                    <FormDesignPickerCard
+                      key={opt.value}
+                      design={opt.value}
+                      label={opt.label}
+                      description={opt.description}
+                      selected={payment.formDesign === opt.value}
+                      onSelect={() =>
+                        onChange({ formDesign: opt.value as FormDesign })
+                      }
+                    />
+                  ))}
                 </div>
               </div>
             </AccordionSection>
@@ -1703,92 +1651,27 @@ export function TemplateEditorSidebar({
             <AccordionSection
               id="form"
               title="Form design"
-              hint="Fields & form layout"
+              hint="Choose how the signup form looks"
               open={isOpen("form")}
               onToggle={toggle}
               variant={accordionVariant}
             >
-              <div>
-                <p className={editorSidebarCaptionClass}>Form fields</p>
-                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                  {FORM_FIELD_OPTIONS.map((f) => {
-                    const on = signup.formFieldIds.includes(f.id);
-                    const Icon = FORM_FIELD_ICONS[f.id];
-                    const lockedOn = on && !isSignupFormFieldRemovable(f.id);
-                    return (
-                      <button
-                        key={f.id}
-                        type="button"
-                        aria-pressed={on}
-                        disabled={lockedOn}
-                        onClick={() => toggleFormField(f.id)}
-                        title={
-                          lockedOn
-                            ? `${f.label} is required for leads`
-                            : on
-                              ? `Included, click to remove (${f.label})`
-                              : `Not included, click to add (${f.label})`
-                        }
-                        className={`${editorSidebarFormFieldRowClass} disabled:cursor-not-allowed disabled:opacity-80`}
-                      >
-                        <span
-                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-sm ring-1 ring-black/5 transition-[border-color,background-color,color] duration-200 ${
-                            on
-                              ? editorSidebarFormFieldIconOnClass
-                              : editorSidebarFormFieldIconOffClass
-                          }`}
-                          aria-hidden
-                        >
-                          <Icon className="size-4 shrink-0" strokeWidth={2} />
-                        </span>
-                        <span
-                          className={`text-xs font-semibold ${on ? "text-zinc-900" : "text-zinc-500"}`}
-                        >
-                          {f.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="pt-2">
-                <p className={editorSidebarCaptionClass}>Design preset</p>
-                <div className="max-h-72 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-96">
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {FORM_DESIGN_OPTIONS.filter(
-                      (opt) => !formDesignUsesSplitLayout(opt.value),
-                    ).map((opt) => {
-                      const on = signup.formDesign === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() =>
-                            onChange({ formDesign: opt.value as FormDesign })
-                          }
-                          className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left transition duration-200 ${
-                            on
-                              ? editorSidebarPickerRowSelectedClass
-                              : editorSidebarPickerRowClass
-                          }`}
-                        >
-                          <FormDesignSwatch design={opt.value} selected={on} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-bold tracking-tight">
-                              {opt.label}
-                            </span>
-                            <span
-                              className={`mt-1 block text-[0.65rem] font-normal leading-snug ${
-                                on ? "text-slate-600" : "text-zinc-500"
-                              }`}
-                            >
-                              {opt.description}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="max-h-[28rem] overflow-y-auto overscroll-y-contain pr-0.5">
+                <div className="grid grid-cols-2 gap-2">
+                  {FORM_DESIGN_OPTIONS.filter(
+                    (opt) => !formDesignUsesSplitLayout(opt.value),
+                  ).map((opt) => (
+                    <FormDesignPickerCard
+                      key={opt.value}
+                      design={opt.value}
+                      label={opt.label}
+                      description={opt.description}
+                      selected={signup.formDesign === opt.value}
+                      onSelect={() =>
+                        onChange({ formDesign: opt.value as FormDesign })
+                      }
+                    />
+                  ))}
                 </div>
               </div>
             </AccordionSection>

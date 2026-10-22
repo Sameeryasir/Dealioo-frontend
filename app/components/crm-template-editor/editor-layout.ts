@@ -1,17 +1,17 @@
 export const editorWorkspaceColsEmbeddedClass =
-  "lg:grid-cols-[auto_minmax(0,1fr)_17.5rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_auto]";
 
 export const editorWorkspaceColsEmbeddedAiOpenClass =
-  "lg:grid-cols-[auto_minmax(0,1fr)_22rem] xl:grid-cols-[auto_minmax(0,1fr)_24rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_auto]";
 
 export const editorWorkspaceColsEmbeddedWithAssistantClass =
   "lg:grid-cols-[auto_minmax(0,1fr)_15rem_18rem] xl:grid-cols-[auto_minmax(0,1fr)_16rem_19rem]";
 
 export const editorWorkspaceColsClass =
-  "lg:grid-cols-[auto_minmax(0,1fr)_14.25rem] xl:grid-cols-[auto_minmax(0,1fr)_15.5rem] 2xl:grid-cols-[auto_minmax(0,1fr)_16.5rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_auto]";
 
 export const editorWorkspaceColsAiOpenClass =
-  "lg:grid-cols-[auto_minmax(0,1fr)_20rem] xl:grid-cols-[auto_minmax(0,1fr)_22rem] 2xl:grid-cols-[auto_minmax(0,1fr)_24rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_auto]";
 
 export const editorWorkspaceColsWithAssistantClass =
   "lg:grid-cols-[auto_minmax(0,1fr)_13rem_16rem] xl:grid-cols-[auto_minmax(0,1fr)_14rem_17rem] 2xl:grid-cols-[auto_minmax(0,1fr)_15rem_18rem]";
@@ -88,7 +88,7 @@ export const editorSettingsSlotClass =
   "order-4 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-3 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 
 export const editorSettingsSlotEmbeddedClass =
-  "order-4 z-[2] flex h-full min-h-0 w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-2 [&>aside]:h-full [&>aside]:min-h-0";
+  "order-4 z-[2] flex h-full min-h-0 w-fit max-w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-2 [&>aside]:h-full [&>aside]:min-h-0";
 export const editorAssistantSlotClass =
   "order-5 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-4 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 
