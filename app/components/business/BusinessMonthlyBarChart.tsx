@@ -20,6 +20,10 @@ import {
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyMetricBarPoint } from "@/app/components/business/business-activity-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 
 export function BusinessMonthlyBarChart({
   title,
@@ -44,6 +48,8 @@ export function BusinessMonthlyBarChart({
   months?: number;
   caption?: string;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const total = data.reduce(
     (sum, row) => sum + Number(row[dataKey] ?? 0),
     0,
@@ -89,12 +95,16 @@ export function BusinessMonthlyBarChart({
               stroke={barFill}
               strokeWidth={3}
               {...OVERVIEW_LINE_ANIMATION}
-              dot={{
-                r: 3.5,
-                fill: "#ffffff",
-                stroke: barFill,
-                strokeWidth: 2.5,
-              }}
+              dot={
+                showDots
+                  ? {
+                      r: 3.5,
+                      fill: "#ffffff",
+                      stroke: barFill,
+                      strokeWidth: 2.5,
+                    }
+                  : false
+              }
               activeDot={{
                 r: 6,
                 fill: barFill,

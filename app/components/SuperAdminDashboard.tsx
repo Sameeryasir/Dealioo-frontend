@@ -14,6 +14,10 @@ import {
 } from "@/app/lib/activity-month-filter";
 import { getUserTimeZone } from "@/app/lib/datetime";
 import { getSetupUser } from "@/app/lib/setup-user";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 import { usePlatformDashboardQuery } from "@/app/hooks/use-platform-dashboard-query";
 import {
   type PlatformDashboardKpi,
@@ -240,20 +244,6 @@ function PanelKpiCard({
   );
 }
 
-function useCompactChartDots() {
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 900px)");
-    const sync = () => setCompact(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return compact;
-}
-
 function PlatformTrendChart({
   data,
   stroke,
@@ -268,7 +258,7 @@ function PlatformTrendChart({
   refreshing?: boolean;
 }) {
   const compactScreen = useCompactChartDots();
-  const showDots = !compactScreen && data.length > 0 && data.length <= 8;
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const chartHeight = compactScreen ? 220 : 260;
 
   return (

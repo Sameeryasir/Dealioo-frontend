@@ -21,6 +21,10 @@ import {
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyCheckInsPoint } from "@/app/components/business/business-activity-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 
 export function CheckInsBarChart({
   data,
@@ -39,6 +43,8 @@ export function CheckInsBarChart({
   peakDayLabel?: string | null;
   peakDayValue?: number | null;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const checkInTotal = data.reduce((sum, row) => sum + row.checkIns, 0);
   const hasChannelSplit =
     typeof scannedCount === "number" && typeof inStoreCount === "number";
@@ -88,12 +94,16 @@ export function CheckInsBarChart({
               stroke={OVERVIEW_CHART_COLORS.blue}
               strokeWidth={3}
               {...OVERVIEW_LINE_ANIMATION}
-              dot={{
-                r: 3.5,
-                fill: "#ffffff",
-                stroke: OVERVIEW_CHART_COLORS.blue,
-                strokeWidth: 2.5,
-              }}
+              dot={
+                showDots
+                  ? {
+                      r: 3.5,
+                      fill: "#ffffff",
+                      stroke: OVERVIEW_CHART_COLORS.blue,
+                      strokeWidth: 2.5,
+                    }
+                  : false
+              }
               activeDot={{
                 r: 6,
                 fill: OVERVIEW_CHART_COLORS.blue,

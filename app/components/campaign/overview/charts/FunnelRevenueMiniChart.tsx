@@ -25,6 +25,10 @@ import {
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 import { formatCents } from "@/app/lib/money";
 
 function formatAxisDollars(value: number, currency: string): string {
@@ -51,6 +55,8 @@ export function FunnelRevenueMiniChart({
   currency?: string | null;
   caption?: string;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const strokeColor = OVERVIEW_CHART_COLORS.orange;
   const gradient = useLineChartGradient(strokeColor);
   const currencyCode = currency?.trim() || "usd";
@@ -122,12 +128,16 @@ export function FunnelRevenueMiniChart({
                   stroke={strokeColor}
                   strokeWidth={3}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3.5,
-                    fill: "#ffffff",
-                    stroke: strokeColor,
-                    strokeWidth: 2.5,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3.5,
+                          fill: "#ffffff",
+                          stroke: strokeColor,
+                          strokeWidth: 2.5,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 6,
                     fill: strokeColor,

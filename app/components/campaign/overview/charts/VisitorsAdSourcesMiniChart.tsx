@@ -21,6 +21,10 @@ import {
   overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 
 export type VisitorsAdSourceChartPoint = {
   month: string;
@@ -104,6 +108,8 @@ export function VisitorsAdSourcesMiniChart({
     }>;
   };
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const formatLegend = formatTotal ?? ((value: number) => value.toLocaleString());
   const audienceByMonth = new Map(
     (audience?.data ?? []).map((row) => [row.month, row]),
@@ -243,14 +249,18 @@ export function VisitorsAdSourcesMiniChart({
                   }
                   strokeWidth={3}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3.5,
-                    fill: "#ffffff",
-                    stroke: singleSeriesLabel
-                      ? singleSeriesColor
-                      : OVERVIEW_AD_SOURCE_COLORS.meta,
-                    strokeWidth: 2.5,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3.5,
+                          fill: "#ffffff",
+                          stroke: singleSeriesLabel
+                            ? singleSeriesColor
+                            : OVERVIEW_AD_SOURCE_COLORS.meta,
+                          strokeWidth: 2.5,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 6,
                     fill: singleSeriesLabel
@@ -272,12 +282,16 @@ export function VisitorsAdSourcesMiniChart({
                   strokeLinejoin="round"
                   strokeOpacity={0.92}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3,
-                    fill: "#ffffff",
-                    stroke: OVERVIEW_AD_SOURCE_COLORS.google,
-                    strokeWidth: 2,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3,
+                          fill: "#ffffff",
+                          stroke: OVERVIEW_AD_SOURCE_COLORS.google,
+                          strokeWidth: 2,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 5.5,
                     fill: OVERVIEW_AD_SOURCE_COLORS.google,
@@ -294,12 +308,16 @@ export function VisitorsAdSourcesMiniChart({
                   stroke={VISITOR_AUDIENCE_COLORS.newVisitors}
                   strokeWidth={2.5}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3,
-                    fill: "#ffffff",
-                    stroke: VISITOR_AUDIENCE_COLORS.newVisitors,
-                    strokeWidth: 2,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3,
+                          fill: "#ffffff",
+                          stroke: VISITOR_AUDIENCE_COLORS.newVisitors,
+                          strokeWidth: 2,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 5.5,
                     fill: VISITOR_AUDIENCE_COLORS.newVisitors,
@@ -316,12 +334,16 @@ export function VisitorsAdSourcesMiniChart({
                   stroke={VISITOR_AUDIENCE_COLORS.repeatVisitors}
                   strokeWidth={2.5}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3,
-                    fill: "#ffffff",
-                    stroke: VISITOR_AUDIENCE_COLORS.repeatVisitors,
-                    strokeWidth: 2,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3,
+                          fill: "#ffffff",
+                          stroke: VISITOR_AUDIENCE_COLORS.repeatVisitors,
+                          strokeWidth: 2,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 5.5,
                     fill: VISITOR_AUDIENCE_COLORS.repeatVisitors,
@@ -338,12 +360,16 @@ export function VisitorsAdSourcesMiniChart({
                   stroke={OVERVIEW_AD_SOURCE_COLORS.inStore}
                   strokeWidth={3}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3.5,
-                    fill: "#ffffff",
-                    stroke: OVERVIEW_AD_SOURCE_COLORS.inStore,
-                    strokeWidth: 2.5,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3.5,
+                          fill: "#ffffff",
+                          stroke: OVERVIEW_AD_SOURCE_COLORS.inStore,
+                          strokeWidth: 2.5,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 6,
                     fill: OVERVIEW_AD_SOURCE_COLORS.inStore,

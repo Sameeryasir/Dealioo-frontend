@@ -35,6 +35,7 @@ import {
   Copy,
   Download,
   Mail,
+  MessageSquare,
   Search,
   Star,
   UserRound,
@@ -557,6 +558,13 @@ function ReviewMobileCard({
           {review.guestEmail}
         </p>
       ) : null}
+      {review.comment?.trim() ? (
+        <p className="m-0 mt-2 text-[0.82rem] leading-relaxed text-slate-700">
+          {review.comment.trim()}
+        </p>
+      ) : (
+        <p className="m-0 mt-2 text-[0.8rem] text-slate-400">No comment</p>
+      )}
     </article>
   );
 }
@@ -571,7 +579,7 @@ function ReviewsTableSection({
   return (
     <div>
       <div className="table-h-scroll hidden md:block">
-        <table className="w-full min-w-[40rem] border-collapse">
+        <table className="w-full min-w-[52rem] border-collapse">
           <thead>
             <motion.tr
               variants={tableHeaderReveal}
@@ -610,6 +618,14 @@ function ReviewsTableSection({
                   labelClassName={TABLE_HEAD_LABEL_CLASS}
                 />
               </th>
+              <th className={`${thClass} min-w-[14rem]`}>
+                <TableColumnHeader
+                  icon={MessageSquare}
+                  label="Comment"
+                  iconClassName={TABLE_HEAD_ICON_CLASS}
+                  labelClassName={TABLE_HEAD_LABEL_CLASS}
+                />
+              </th>
               <th className={thClass}>
                 <TableColumnHeader
                   icon={Calendar}
@@ -629,6 +645,7 @@ function ReviewsTableSection({
               const name = review.guestName || review.guestEmail || "Guest";
               const email = review.guestEmail?.trim() || "";
               const initials = guestInitials(name);
+              const comment = review.comment?.trim() || "";
 
               return (
                 <motion.tr
@@ -676,6 +693,18 @@ function ReviewsTableSection({
                         {review.rating}.0
                       </span>
                     </div>
+                  </td>
+                  <td className={`${tdClass} max-w-[18rem]`}>
+                    {comment ? (
+                      <p
+                        className="m-0 line-clamp-2 text-sm font-normal leading-snug text-slate-700"
+                        title={comment}
+                      >
+                        {comment}
+                      </p>
+                    ) : (
+                      <span className="text-slate-300">No comment</span>
+                    )}
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-slate-600">

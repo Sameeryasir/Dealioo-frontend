@@ -24,6 +24,10 @@ import {
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 
 function strokeToAccent(
   color: string,
@@ -49,6 +53,8 @@ export function AnalyticsMetricMiniChart({
   strokeColor: string;
   caption?: string;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const gradient = useLineChartGradient(strokeColor);
   const hasData = total > 0 || data.some((row) => Number(row.value) > 0);
 
@@ -110,12 +116,16 @@ export function AnalyticsMetricMiniChart({
                   stroke={strokeColor}
                   strokeWidth={3}
                   {...OVERVIEW_LINE_ANIMATION}
-                  dot={{
-                    r: 3.5,
-                    fill: "#ffffff",
-                    stroke: strokeColor,
-                    strokeWidth: 2.5,
-                  }}
+                  dot={
+                    showDots
+                      ? {
+                          r: 3.5,
+                          fill: "#ffffff",
+                          stroke: strokeColor,
+                          strokeWidth: 2.5,
+                        }
+                      : false
+                  }
                   activeDot={{
                     r: 6,
                     fill: strokeColor,

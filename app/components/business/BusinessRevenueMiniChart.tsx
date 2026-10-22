@@ -19,6 +19,10 @@ import {
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import type { MonthlyRevenuePoint } from "@/app/components/business/business-activity-chart-config";
+import {
+  shouldShowOverviewChartDots,
+  useCompactChartDots,
+} from "@/app/hooks/use-compact-chart-dots";
 import { formatCents } from "@/app/lib/money";
 
 const MIN_VISIBLE_RATIO = 0.06;
@@ -80,6 +84,8 @@ export function BusinessRevenueMiniChart({
   peakDayLabel?: string | null;
   peakDayCents?: number | null;
 }) {
+  const compactScreen = useCompactChartDots();
+  const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const strokeColor = OVERVIEW_CHART_COLORS.pink;
   const showSplit =
     typeof offerSalesCents === "number" && typeof extraItemsCents === "number";
@@ -145,12 +151,16 @@ export function BusinessRevenueMiniChart({
               stroke={strokeColor}
               strokeWidth={3}
               {...OVERVIEW_LINE_ANIMATION}
-              dot={{
-                r: 3.5,
-                fill: "#ffffff",
-                stroke: strokeColor,
-                strokeWidth: 2.5,
-              }}
+              dot={
+                showDots
+                  ? {
+                      r: 3.5,
+                      fill: "#ffffff",
+                      stroke: strokeColor,
+                      strokeWidth: 2.5,
+                    }
+                  : false
+              }
               activeDot={{
                 r: 6,
                 fill: strokeColor,
