@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { CanvasWorkspace } from "@/app/components/crm-template-editor/CanvasWorkspace";
+import {
+  CanvasWorkspace,
+  type CanvasWorkspaceHandle,
+} from "@/app/components/crm-template-editor/CanvasWorkspace";
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
 import { EditorLeftSidebar } from "@/app/components/crm-template-editor/EditorLeftSidebar";
 import { EditorShell } from "@/app/components/crm-template-editor/EditorShell";
@@ -13,6 +17,13 @@ import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPane
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
 import { FunnelTrackingLinkDialog } from "@/app/components/campaign/FunnelTrackingLinkDialog";
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
+import {
+  landingSectionToContentFocus,
+  type EditorContentFocus,
+  type EditorSelection,
+} from "@/app/components/crm-template-editor/editor-selection";
+import type { LandingContentSectionId } from "@/app/components/crm-template-editor/landing-sections";
+import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
 import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
@@ -110,6 +121,7 @@ export function CrmTemplateEditor({
   interactivePreview = false,
   embedded = false,
 }: CrmTemplateEditorProps) {
+  const router = useRouter();
   const { subscription } = useMyUserSubscription();
   const showAiAssistant = isGrowthAiSubscription(subscription);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -138,6 +150,7 @@ export function CrmTemplateEditor({
     undo,
     redo,
     canUndo,
+    canRedo,
   } = useUndoRedo<TemplatePagesState>(funnelLoader.pages);
 
   const [activeId, setActiveId] = useState<TemplatePageId>(initialPageId);
@@ -150,7 +163,32 @@ export function CrmTemplateEditor({
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [trackingCopyDone, setTrackingCopyDone] = useState(false);
   const [trackingPortalReady, setTrackingPortalReady] = useState(false);
+  const [canvasZoom, setCanvasZoom] = useState(0.85);
+  const [editorSelection, setEditorSelection] = useState<EditorSelection>({
+    kind: "page",
+  });
+  const [contentFocus, setContentFocus] = useState<EditorContentFocus>(null);
+  const canvasViewportRef = useRef<CanvasWorkspaceHandle | null>(null);
   const editSnapshotRef = useRef<TemplatePagesState | null>(null);
+
+  const selectedSectionId =
+    editorSelection.kind === "landing-section"
+      ? editorSelection.sectionId
+      : null;
+
+  const handleSelectLandingSection = useCallback(
+    (sectionId: LandingContentSectionId) => {
+      setEditorSelection({ kind: "landing-section", sectionId });
+      setContentFocus(landingSectionToContentFocus(sectionId));
+      setSettingsOpen(true);
+    },
+    [],
+  );
+
+  const handleBackToOverview = useCallback(() => {
+    if (businessId == null || campaignId == null) return;
+    router.push(campaignDashboardHref(businessId, campaignId, "overview"));
+  }, [businessId, campaignId, router]);
 
   const activePage = pages[activeId];
 
@@ -546,6 +584,8 @@ export function CrmTemplateEditor({
       setSaveStatus("idle");
       setSaveError(null);
       setIsDirty(false);
+      setEditorSelection({ kind: "page" });
+      setContentFocus(null);
       editSnapshotRef.current = JSON.parse(
         JSON.stringify(sourcePages),
       ) as TemplatePagesState;
@@ -664,27 +704,46 @@ export function CrmTemplateEditor({
     [commitPages],
   );
 
+  const toolbarSharedProps = {
+    campaignName: campaignName ?? "Campaign",
+    pageLabel: activePage.label,
+    saveStatus: displaySaveStatus,
+    isDirty,
+    onSave: () => void handleSave(),
+    onPublish: () => void handleSetPublished(true),
+    onUnpublish: () => void handleSetPublished(false),
+    published,
+    onPreview: previewRouteId != null ? handlePreview : undefined,
+    onTrackingLink: handleOpenTrackingLink,
+    isSaving: saveStatus === "saving",
+    saveError,
+    onUndo: undo,
+    onRedo: redo,
+    canUndo,
+    canRedo,
+    zoomPercent: Math.round(canvasZoom * 100),
+    onZoomIn: () => canvasViewportRef.current?.zoomIn(),
+    onZoomOut: () => canvasViewportRef.current?.zoomOut(),
+    onZoomFit: () => canvasViewportRef.current?.fitToViewport(),
+    onBack:
+      embedded && businessId != null && campaignId != null
+        ? handleBackToOverview
+        : undefined,
+  };
+
   return (
     <>
       <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <EditorShell
         embedded={embedded}
+        workspaceToolbar={
+          embedded ? (
+            <TopNavigation {...toolbarSharedProps} embedded showPreview />
+          ) : undefined
+        }
         navbar={
           embedded ? undefined : (
-            <TopNavigation
-              campaignName={campaignName ?? "Campaign"}
-              pageLabel={activePage.label}
-              saveStatus={displaySaveStatus}
-              isDirty={isDirty}
-              onSave={() => void handleSave()}
-              onPublish={() => void handleSetPublished(true)}
-              onUnpublish={() => void handleSetPublished(false)}
-              published={published}
-              onPreview={previewRouteId != null ? handlePreview : undefined}
-              onTrackingLink={handleOpenTrackingLink}
-              isSaving={saveStatus === "saving"}
-              saveError={saveError}
-            />
+            <TopNavigation {...toolbarSharedProps} />
           )
         }
         leftSidebar={
@@ -703,6 +762,10 @@ export function CrmTemplateEditor({
             isLoading={isLoadingFunnel}
             loadError={loadError}
             embedded={embedded}
+            zoom={canvasZoom}
+            onZoomChange={setCanvasZoom}
+            hideZoomChrome={embedded}
+            viewportRef={canvasViewportRef}
           >
             <TemplatePreview
               page={activePage}
@@ -715,6 +778,9 @@ export function CrmTemplateEditor({
               campaignPricing={campaignPricing}
               skipPaymentStep={isPostpaid}
               campaignType={campaignType ?? null}
+              editorSelectEnabled={activeId === "landing"}
+              selectedSectionId={selectedSectionId}
+              onSelectSection={handleSelectLandingSection}
             />
           </CanvasWorkspace>
         }
@@ -725,25 +791,14 @@ export function CrmTemplateEditor({
             onChange={patchPage}
             onBrowseTemplates={() => setTemplateGalleryOpen(true)}
             embedded={embedded}
-            toolbar={
-              embedded ? (
-                <TopNavigation
-                  campaignName={campaignName ?? "Campaign"}
-                  pageLabel={activePage.label}
-                  saveStatus={displaySaveStatus}
-                  isDirty={isDirty}
-                  onSave={() => void handleSave()}
-                  onPublish={() => void handleSetPublished(true)}
-                  onUnpublish={() => void handleSetPublished(false)}
-                  published={published}
-                  onTrackingLink={handleOpenTrackingLink}
-                  isSaving={saveStatus === "saving"}
-                  saveError={saveError}
-                  embedded
-                  docked
-                  showPreview={false}
-                />
-              ) : undefined
+            contentFocus={contentFocus}
+            onContentFocusChange={setContentFocus}
+            forceOpenSection={
+              editorSelection.kind === "media"
+                ? "media"
+                : editorSelection.kind === "landing-section"
+                  ? "content"
+                  : null
             }
           />
         }

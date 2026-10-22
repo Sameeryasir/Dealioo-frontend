@@ -16,10 +16,12 @@ import {
   editorShellGridWrapEmbeddedClass,
   editorSidebarSlotClass,
   editorSidebarSlotEmbeddedClass,
+  editorWorkspaceToolbarSlotEmbeddedClass,
 } from "@/app/components/crm-template-editor/editor-layout";
 
 export function EditorShell({
   navbar,
+  workspaceToolbar,
   leftSidebar,
   canvas,
   settingsPanel,
@@ -28,6 +30,7 @@ export function EditorShell({
   embedded = false,
 }: {
   navbar?: ReactNode;
+  workspaceToolbar?: ReactNode;
   leftSidebar?: ReactNode;
   canvas: ReactNode;
   settingsPanel: ReactNode;
@@ -56,6 +59,11 @@ export function EditorShell({
 
   const grid = (
     <div className={gridClass}>
+      {embedded && workspaceToolbar ? (
+        <div className={editorWorkspaceToolbarSlotEmbeddedClass}>
+          {workspaceToolbar}
+        </div>
+      ) : null}
       {leftSidebar ? <div className={sidebarClass}>{leftSidebar}</div> : null}
       {!embedded && navbar ? (
         <div className={editorNavbarSlotClass}>{navbar}</div>

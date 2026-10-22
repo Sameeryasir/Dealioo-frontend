@@ -1,5 +1,13 @@
 "use client";
-import { type ChangeEvent, useCallback, useEffect, useId, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlignLeft,
@@ -395,6 +403,10 @@ const accordionChevronTransition = {
   ease: accordionEase,
 } as const;
 
+const AllowedSectionsContext = createContext<ReadonlyArray<SectionId> | null>(
+  null,
+);
+
 function AccordionSection({
   id,
   title,
@@ -414,6 +426,11 @@ function AccordionSection({
   variant?: "card" | "stack";
   orderClassName?: string;
 }) {
+  const allowedSections = useContext(AllowedSectionsContext);
+  if (allowedSections != null && !allowedSections.includes(id)) {
+    return null;
+  }
+
   const Icon = SECTION_ICONS[id] ?? FileText;
   const tone = SECTION_TONES[id];
   const subtitle = hint ?? SECTION_HINTS[id];
@@ -646,32 +663,65 @@ export function TemplateEditorSidebar({
   onBrowseTemplates,
   stackedLayout = false,
   stackFillHeight = false,
+  allowedSections = null,
+  contentFocus: contentFocusProp,
+  onContentFocusChange,
+  forceOpenSection = null,
 }: {
   page: TemplatePage;
   onChange: (patch: TemplatePagePatch) => void;
   onBrowseTemplates?: () => void;
   stackedLayout?: boolean;
   stackFillHeight?: boolean;
+  allowedSections?: ReadonlyArray<SectionId> | null;
+  contentFocus?: ContentFocus;
+  onContentFocusChange?: (focus: ContentFocus) => void;
+  forceOpenSection?: SectionId | null;
 }) {
   const mediaFileId = useId();
-  const [openSection, setOpenSection] = useState<SectionId | null>(null);
-  const [contentFocus, setContentFocus] = useState<ContentFocus>(null);
+  const [openSectionInternal, setOpenSectionInternal] =
+    useState<SectionId | null>(null);
+  const [contentFocusInternal, setContentFocusInternal] =
+    useState<ContentFocus>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const heroImageSrc = resolveUploadImageUrl(page.imageUrl);
 
+  const contentFocus =
+    contentFocusProp !== undefined ? contentFocusProp : contentFocusInternal;
+  const setContentFocus = (focus: ContentFocus) => {
+    onContentFocusChange?.(focus);
+    if (contentFocusProp === undefined) setContentFocusInternal(focus);
+  };
+
+  const openSection = forceOpenSection ?? openSectionInternal;
+  const setOpenSection = (next: SectionId | null) => {
+    if (forceOpenSection != null) return;
+    setOpenSectionInternal(next);
+  };
+
   useEffect(() => {
-    setOpenSection(null);
-    setContentFocus(null);
-  }, [page.id]);
+    if (forceOpenSection != null) return;
+    setOpenSectionInternal(null);
+    if (contentFocusProp === undefined) setContentFocusInternal(null);
+    else onContentFocusChange?.(null);
+  }, [page.id, allowedSections, forceOpenSection, contentFocusProp, onContentFocusChange]);
+
+  useEffect(() => {
+    if (forceOpenSection != null) {
+      setOpenSectionInternal(forceOpenSection);
+    }
+  }, [forceOpenSection]);
 
   const toggle = useCallback((id: SectionId) => {
-    setOpenSection((prev) => (prev === id ? null : id));
+    setOpenSectionInternal((prev) => (prev === id ? null : id));
   }, []);
 
   useEffect(() => {
-    if (openSection !== "content") setContentFocus(null);
-  }, [openSection]);
+    if (openSection !== "content" && contentFocusProp === undefined) {
+      setContentFocusInternal(null);
+    }
+  }, [openSection, contentFocusProp]);
 
   const isOpen = useCallback(
     (id: SectionId) => openSection === id,
@@ -753,6 +803,7 @@ export function TemplateEditorSidebar({
   );
 
   return (
+    <AllowedSectionsContext.Provider value={allowedSections}>
     <div
       className={
         stackedLayout && stackFillHeight
@@ -1744,5 +1795,6 @@ export function TemplateEditorSidebar({
           </>
         ) : null}
     </div>
+    </AllowedSectionsContext.Provider>
   );
 }

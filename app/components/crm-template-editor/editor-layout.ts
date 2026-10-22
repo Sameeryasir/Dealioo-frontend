@@ -1,20 +1,20 @@
 export const editorWorkspaceColsEmbeddedClass =
-  "lg:grid-cols-[17.5rem_minmax(0,1fr)_17.5rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_17.5rem]";
 
 export const editorWorkspaceColsEmbeddedAiOpenClass =
-  "lg:grid-cols-[16rem_minmax(0,1fr)_22rem] xl:grid-cols-[16.5rem_minmax(0,1fr)_24rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_22rem] xl:grid-cols-[auto_minmax(0,1fr)_24rem]";
 
 export const editorWorkspaceColsEmbeddedWithAssistantClass =
-  "lg:grid-cols-[15rem_minmax(0,1fr)_15rem_18rem] xl:grid-cols-[16rem_minmax(0,1fr)_16rem_19rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_15rem_18rem] xl:grid-cols-[auto_minmax(0,1fr)_16rem_19rem]";
 
 export const editorWorkspaceColsClass =
-  "lg:grid-cols-[10.25rem_minmax(0,1fr)_14.25rem] xl:grid-cols-[11rem_minmax(0,1fr)_15.5rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_16.5rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_14.25rem] xl:grid-cols-[auto_minmax(0,1fr)_15.5rem] 2xl:grid-cols-[auto_minmax(0,1fr)_16.5rem]";
 
 export const editorWorkspaceColsAiOpenClass =
-  "lg:grid-cols-[10.25rem_minmax(0,1fr)_20rem] xl:grid-cols-[11rem_minmax(0,1fr)_22rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_24rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_20rem] xl:grid-cols-[auto_minmax(0,1fr)_22rem] 2xl:grid-cols-[auto_minmax(0,1fr)_24rem]";
 
 export const editorWorkspaceColsWithAssistantClass =
-  "lg:grid-cols-[10.25rem_minmax(0,1fr)_13rem_16rem] xl:grid-cols-[11rem_minmax(0,1fr)_14rem_17rem] 2xl:grid-cols-[11.5rem_minmax(0,1fr)_15rem_18rem]";
+  "lg:grid-cols-[auto_minmax(0,1fr)_13rem_16rem] xl:grid-cols-[auto_minmax(0,1fr)_14rem_17rem] 2xl:grid-cols-[auto_minmax(0,1fr)_15rem_18rem]";
 
 export const editorFunnelRailWidthClass = "w-full max-w-full";
 
@@ -25,16 +25,19 @@ export const editorShellGridWrapEmbeddedClass =
   "crm-editor-embedded-grid-wrap flex min-h-0 w-full flex-1 overflow-hidden";
 
 export const editorShellGridEmbeddedClass = [
-  "crm-editor-embedded-grid grid h-full w-full grid-cols-1",
+  "crm-editor-embedded-grid grid h-full w-full grid-cols-1 grid-rows-[auto_minmax(0,1fr)]",
   editorWorkspaceColsEmbeddedClass,
   "lg:items-stretch",
 ].join(" ");
 
 export const editorShellGridEmbeddedAiOpenClass = [
-  "crm-editor-embedded-grid grid h-full w-full grid-cols-1",
+  "crm-editor-embedded-grid grid h-full w-full grid-cols-1 grid-rows-[auto_minmax(0,1fr)]",
   editorWorkspaceColsEmbeddedAiOpenClass,
   "lg:items-stretch",
 ].join(" ");
+
+export const editorWorkspaceToolbarSlotEmbeddedClass =
+  "order-1 col-span-full flex min-h-0 w-full shrink-0 flex-col border-b border-[#e8edf5] bg-white";
 
 export const editorShellGridEmbeddedWithAssistantClass = [
   "crm-editor-embedded-grid grid h-full w-full grid-cols-1",
@@ -67,7 +70,7 @@ export const editorSidebarSlotClass =
   "order-2 flex min-h-0 h-full flex-col lg:order-none lg:col-start-1 lg:row-span-2 lg:row-start-1";
 
 export const editorSidebarSlotEmbeddedClass =
-  "order-2 z-[2] flex h-full min-h-0 w-full flex-col self-stretch border-r border-[#e8edf5] bg-white max-lg:border-b max-lg:border-[#e8edf5] lg:order-none lg:col-start-1 lg:row-start-1";
+  "order-2 z-[2] flex h-full min-h-0 w-fit max-w-full flex-col self-stretch border-r border-[#e8edf5] bg-white max-lg:border-b max-lg:border-[#e8edf5] lg:order-none lg:col-start-1 lg:row-start-2";
 
 export const editorNavbarSlotClass =
   "order-1 min-h-0 w-full shrink-0 lg:order-none lg:col-span-2 lg:col-start-2 lg:row-start-1";
@@ -79,14 +82,13 @@ export const editorCanvasSlotClass =
   "order-3 flex min-h-0 h-full min-w-0 flex-col overflow-hidden lg:order-none lg:col-start-2 lg:row-start-2";
 
 export const editorCanvasSlotEmbeddedClass =
-  "order-3 flex h-full min-h-0 w-full min-w-0 flex-col self-stretch overflow-hidden lg:order-none lg:col-start-2 lg:row-start-1";
+  "order-3 flex h-full min-h-0 w-full min-w-0 flex-col self-stretch overflow-hidden lg:order-none lg:col-start-2 lg:row-start-2";
 
 export const editorSettingsSlotClass =
   "order-4 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-3 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 
 export const editorSettingsSlotEmbeddedClass =
-  "order-4 z-[2] flex h-full min-h-0 w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-1 [&>aside]:h-full [&>aside]:min-h-0";
-
+  "order-4 z-[2] flex h-full min-h-0 w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-2 [&>aside]:h-full [&>aside]:min-h-0";
 export const editorAssistantSlotClass =
   "order-5 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-4 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 

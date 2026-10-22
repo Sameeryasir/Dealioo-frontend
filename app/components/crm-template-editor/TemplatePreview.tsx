@@ -13,6 +13,7 @@ import { ConfirmationPagePreview } from "@/app/components/crm-template-editor/Co
 import { PaymentPagePreview } from "@/app/components/crm-template-editor/PaymentPagePreview";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type { CampaignPricing } from "@/app/lib/campaign-price";
+import type { LandingContentSectionId } from "@/app/components/crm-template-editor/landing-sections";
 import type {
   LandingTemplatePage,
   SignUpTemplatePage,
@@ -84,6 +85,9 @@ export function TemplatePreview({
   googleAdsSignupConversionLabel = null,
   googleAdsLeadConversionLabel = null,
   googleAdsBusinessId = null,
+  editorSelectEnabled = false,
+  selectedSectionId = null,
+  onSelectSection,
 }: {
   page: TemplatePage;
   landingPage: TemplatePage;
@@ -108,6 +112,9 @@ export function TemplatePreview({
   googleAdsSignupConversionLabel?: string | null;
   googleAdsLeadConversionLabel?: string | null;
   googleAdsBusinessId?: number | null;
+  editorSelectEnabled?: boolean;
+  selectedSectionId?: LandingContentSectionId | null;
+  onSelectSection?: (sectionId: LandingContentSectionId) => void;
 }) {
   const resolvedCheckoutBusinessId =
     checkoutBusinessId ?? checkoutRestaurantId;
@@ -513,6 +520,9 @@ export function TemplatePreview({
             showTopHero={showTopHero}
             onButtonClick={previewButtonClick}
             fillViewport={fillFrame}
+            editorSelectEnabled={editorSelectEnabled}
+            selectedSectionId={selectedSectionId}
+            onSelectSection={onSelectSection}
           />
         </div>
       </div>

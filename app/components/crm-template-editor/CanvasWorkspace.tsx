@@ -3,6 +3,7 @@
 import { Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import {
+  type MutableRefObject,
   type ReactNode,
   type WheelEvent,
   useCallback,
@@ -18,23 +19,23 @@ import {
   previewPhoneFrameClass,
   previewPhoneFrameEmbeddedClass,
 } from "@/app/components/crm-template-editor/editor-layout";
+import {
+  EDITOR_PREVIEW_DEVICE_WIDTH,
+  EDITOR_ZOOM_MAX,
+  EDITOR_ZOOM_MIN,
+  EDITOR_ZOOM_STEP,
+  clampEditorZoom,
+  type EditorPreviewDevice,
+} from "@/app/components/crm-template-editor/editor-viewport";
 
-const PREVIEW_DESIGN_WIDTH = 420;
 const PREVIEW_FALLBACK_HEIGHT = 760;
-const ZOOM_MIN = 0.35;
-const ZOOM_MAX = 1.5;
-const ZOOM_STEP = 0.1;
 const CANVAS_PAD_X = 40;
 const CANVAS_PAD_Y = 56;
 
-function clampZoom(value: number): number {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 100) / 100));
-}
-
-function useNativePreviewSize(contentKey: string) {
+function useNativePreviewSize(contentKey: string, designWidth: number) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({
-    width: PREVIEW_DESIGN_WIDTH,
+    width: designWidth,
     height: PREVIEW_FALLBACK_HEIGHT,
   });
 
@@ -43,10 +44,10 @@ function useNativePreviewSize(contentKey: string) {
     if (!el) return;
     const height = Math.max(el.offsetHeight, el.scrollHeight, 360);
     setSize({
-      width: PREVIEW_DESIGN_WIDTH,
+      width: designWidth,
       height,
     });
-  }, []);
+  }, [designWidth]);
 
   useLayoutEffect(() => {
     measure();
@@ -65,53 +66,103 @@ function useNativePreviewSize(contentKey: string) {
   return { contentRef, size };
 }
 
+export type CanvasWorkspaceHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fitToViewport: () => void;
+  resetZoom: () => void;
+  zoomPercent: number;
+};
+
 export function CanvasWorkspace({
   isLoading,
   loadError,
   children,
   embedded = false,
+  previewDevice = "mobile",
+  zoom: zoomProp,
+  onZoomChange,
+  hideZoomChrome = false,
+  viewportRef,
 }: {
   isLoading?: boolean;
   loadError?: string | null;
   children: ReactNode;
   embedded?: boolean;
+  previewDevice?: EditorPreviewDevice;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
+  hideZoomChrome?: boolean;
+  viewportRef?: MutableRefObject<CanvasWorkspaceHandle | null>;
 }) {
   const frameClass = embedded
     ? previewPhoneFrameEmbeddedClass
     : previewPhoneFrameClass;
 
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const contentKey = isLoading ? "loading" : "ready";
-  const { contentRef, size: nativeSize } = useNativePreviewSize(contentKey);
+  const designWidth = EDITOR_PREVIEW_DEVICE_WIDTH[previewDevice];
+  const viewportElRef = useRef<HTMLDivElement | null>(null);
+  const contentKey = `${isLoading ? "loading" : "ready"}-${previewDevice}`;
+  const { contentRef, size: nativeSize } = useNativePreviewSize(
+    contentKey,
+    designWidth,
+  );
 
-  const [zoom, setZoom] = useState(0.85);
+  const [zoomInternal, setZoomInternal] = useState(0.85);
   const [didInitialFit, setDidInitialFit] = useState(false);
+  const zoom = zoomProp ?? zoomInternal;
+  const setZoom = useCallback(
+    (next: number | ((current: number) => number)) => {
+      const resolved =
+        typeof next === "function" ? next(zoomProp ?? zoomInternal) : next;
+      const clamped = clampEditorZoom(resolved);
+      if (onZoomChange) onZoomChange(clamped);
+      else setZoomInternal(clamped);
+    },
+    [onZoomChange, zoomInternal, zoomProp],
+  );
 
   const zoomPercent = useMemo(() => Math.round(zoom * 100), [zoom]);
 
   const fitToViewport = useCallback(() => {
-    const viewport = viewportRef.current;
+    const viewport = viewportElRef.current;
     if (!viewport) return;
     const availW = Math.max(viewport.clientWidth - CANVAS_PAD_X * 2, 160);
     const availH = Math.max(viewport.clientHeight - CANVAS_PAD_Y * 2, 160);
     const pageH = Math.max(nativeSize.height, 360);
-    const next = Math.min(
-      availW / PREVIEW_DESIGN_WIDTH,
-      availH / pageH,
-      1,
-    );
-    setZoom(clampZoom(Math.max(next, 0.45)));
-  }, [nativeSize.height]);
+    const next = Math.min(availW / designWidth, availH / pageH, 1);
+    setZoom(clampEditorZoom(Math.max(next, 0.45)));
+  }, [nativeSize.height, designWidth, setZoom]);
 
   const zoomOut = useCallback(() => {
-    setZoom((current) => clampZoom(current - ZOOM_STEP));
-  }, []);
+    setZoom((current) => clampEditorZoom(current - EDITOR_ZOOM_STEP));
+  }, [setZoom]);
   const zoomIn = useCallback(() => {
-    setZoom((current) => clampZoom(current + ZOOM_STEP));
-  }, []);
+    setZoom((current) => clampEditorZoom(current + EDITOR_ZOOM_STEP));
+  }, [setZoom]);
   const resetZoom = useCallback(() => {
     setZoom(1);
-  }, []);
+  }, [setZoom]);
+
+  useEffect(() => {
+    if (!viewportRef) return;
+    viewportRef.current = {
+      zoomIn,
+      zoomOut,
+      fitToViewport,
+      resetZoom,
+      zoomPercent,
+    };
+    return () => {
+      viewportRef.current = null;
+    };
+  }, [
+    viewportRef,
+    zoomIn,
+    zoomOut,
+    fitToViewport,
+    resetZoom,
+    zoomPercent,
+  ]);
 
   useEffect(() => {
     if (isLoading || didInitialFit) return;
@@ -124,12 +175,15 @@ export function CanvasWorkspace({
     setDidInitialFit(false);
   }, [contentKey]);
 
-  const onWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
-    if (!(e.ctrlKey || e.metaKey)) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-    setZoom((current) => clampZoom(current + delta));
-  }, []);
+  const onWheel = useCallback(
+    (e: WheelEvent<HTMLDivElement>) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -EDITOR_ZOOM_STEP : EDITOR_ZOOM_STEP;
+      setZoom((current) => clampEditorZoom(current + delta));
+    },
+    [setZoom],
+  );
 
   const scaledW = nativeSize.width * zoom;
   const scaledH = nativeSize.height * zoom;
@@ -164,7 +218,7 @@ export function CanvasWorkspace({
       ) : null}
 
       <div
-        ref={viewportRef}
+        ref={viewportElRef}
         onWheel={onWheel}
         className="relative z-[1] min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable]"
       >
@@ -173,7 +227,7 @@ export function CanvasWorkspace({
           style={{
             minWidth: scaledW + CANVAS_PAD_X * 2,
             alignItems:
-              scaledH < (viewportRef.current?.clientHeight ?? 9999) - 48
+              scaledH < (viewportElRef.current?.clientHeight ?? 9999) - 48
                 ? "center"
                 : "flex-start",
           }}
@@ -182,14 +236,14 @@ export function CanvasWorkspace({
             {...editorMotion.scaleIn}
             className="relative shrink-0"
             style={{
-              width: scaledW || PREVIEW_DESIGN_WIDTH * zoom,
+              width: scaledW || designWidth * zoom,
               height: scaledH || PREVIEW_FALLBACK_HEIGHT * zoom,
             }}
           >
             <div
               className={`${frameClass} absolute left-0 top-0 will-change-transform`}
               style={{
-                width: PREVIEW_DESIGN_WIDTH,
+                width: designWidth,
                 transform: `scale(${zoom})`,
                 transformOrigin: "top left",
               }}
@@ -202,7 +256,7 @@ export function CanvasWorkspace({
         </div>
       </div>
 
-      {!isLoading ? (
+      {!isLoading && !hideZoomChrome ? (
         <div
           className="pointer-events-auto absolute bottom-4 right-4 z-20 flex items-center gap-0.5 rounded-full border border-slate-200/90 bg-white/95 p-1 shadow-lg ring-1 ring-slate-950/5 backdrop-blur-sm sm:bottom-5 sm:right-5"
           title="Zoom the preview camera. Use Fit to see the full page."
@@ -210,7 +264,7 @@ export function CanvasWorkspace({
           <button
             type="button"
             onClick={zoomOut}
-            disabled={zoom <= ZOOM_MIN}
+            disabled={zoom <= EDITOR_ZOOM_MIN}
             className="flex size-8 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Zoom out"
             title="Zoom out"
@@ -223,7 +277,7 @@ export function CanvasWorkspace({
           <button
             type="button"
             onClick={zoomIn}
-            disabled={zoom >= ZOOM_MAX}
+            disabled={zoom >= EDITOR_ZOOM_MAX}
             className="flex size-8 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Zoom in"
             title="Zoom in"

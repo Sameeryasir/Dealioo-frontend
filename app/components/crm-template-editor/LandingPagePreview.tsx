@@ -210,6 +210,55 @@ function LandingCta({
   );
 }
 
+function SelectableSectionShell({
+  sectionId,
+  enabled,
+  selected,
+  onSelect,
+  children,
+}: {
+  sectionId: LandingContentSectionId;
+  enabled: boolean;
+  selected: boolean;
+  onSelect?: (sectionId: LandingContentSectionId) => void;
+  children: ReactNode;
+}) {
+  if (!enabled) return <>{children}</>;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      data-editor-section={sectionId}
+      aria-pressed={selected}
+      aria-label={`Select ${sectionId}`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect?.(sectionId);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect?.(sectionId);
+        }
+      }}
+      className={[
+        "relative rounded-md transition-[box-shadow,outline-color] duration-150",
+        selected
+          ? "z-[2] outline outline-2 outline-offset-2 outline-[#1877f2] ring-2 ring-[#1877f2]/20"
+          : "hover:outline hover:outline-1 hover:outline-offset-2 hover:outline-[#93c5fd]",
+      ].join(" ")}
+    >
+      {selected ? (
+        <span className="pointer-events-none absolute -top-2 left-0 z-[3] rounded bg-[#1877f2] px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-white">
+          {sectionId}
+        </span>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
 export function LandingPagePreview({
   page,
   layoutType,
@@ -221,6 +270,9 @@ export function LandingPagePreview({
   showTopHero,
   onButtonClick,
   fillViewport = false,
+  editorSelectEnabled = false,
+  selectedSectionId = null,
+  onSelectSection,
 }: {
   page: TemplatePage;
   layoutType: string;
@@ -232,6 +284,9 @@ export function LandingPagePreview({
   showTopHero: boolean;
   onButtonClick?: (elementName: string) => void;
   fillViewport?: boolean;
+  editorSelectEnabled?: boolean;
+  selectedSectionId?: LandingContentSectionId | null;
+  onSelectSection?: (sectionId: LandingContentSectionId) => void;
 }) {
   const template = getLandingDesignStyle(landingDesign);
   const heroStyle = getHeroDesignStyle(heroDesign);
@@ -373,7 +428,17 @@ export function LandingPagePreview({
       className={`flex flex-col gap-5 ${align} ${contentPadClass} ${fillViewport ? "min-h-0 flex-1" : ""}`}
       style={pageBackgroundStyle(theme.background, theme.background)}
     >
-      {sectionOrder.map((sectionId) => sectionNodes[sectionId])}
+      {sectionOrder.map((sectionId) => (
+        <SelectableSectionShell
+          key={sectionId}
+          sectionId={sectionId}
+          enabled={editorSelectEnabled}
+          selected={selectedSectionId === sectionId}
+          onSelect={onSelectSection}
+        >
+          {sectionNodes[sectionId]}
+        </SelectableSectionShell>
+      ))}
     </div>
   );
 
