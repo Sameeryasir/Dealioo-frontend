@@ -40,6 +40,7 @@ import {
   Briefcase,
   Box,
   CalendarDays,
+  Check,
   CircleDot,
   Clock3,
   Crown,
@@ -77,6 +78,13 @@ type UserDraft = {
   phone: string;
   roleName: string;
 };
+
+const SORT_OPTIONS: Array<{ id: AdminUsersSort; label: string }> = [
+  { id: "newest", label: "Newest First" },
+  { id: "oldest", label: "Oldest First" },
+  { id: "name_asc", label: "Name A–Z" },
+  { id: "name_desc", label: "Name Z–A" },
+];
 
 type CreateDraft = {
   firstName: string;
@@ -1051,6 +1059,7 @@ export function SuperAdminUsersPanel() {
   const [menuUserId, setMenuUserId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1063,6 +1072,7 @@ export function SuperAdminUsersPanel() {
   useEffect(() => {
     const onOverlayOpen = () => {
       setFilterOpen(false);
+      setSortOpen(false);
       setMenuUserId(null);
     };
     window.addEventListener("dealio:sa-overlay-open", onOverlayOpen);
@@ -1082,6 +1092,24 @@ export function SuperAdminUsersPanel() {
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [filterOpen]);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(`.${styles.usersDirSort}`)) return;
+      setSortOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSortOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [sortOpen]);
 
   const usersQuery = useQuery({
     queryKey: adminQueryKeys.users(
@@ -1229,7 +1257,10 @@ export function SuperAdminUsersPanel() {
                 className={styles.usersDirFilterBtn}
                 aria-expanded={filterOpen}
                 aria-haspopup="menu"
-                onClick={() => setFilterOpen((open) => !open)}
+                onClick={() => {
+                  setSortOpen(false);
+                  setFilterOpen((open) => !open);
+                }}
               >
                 <Filter className="size-4" strokeWidth={2.25} aria-hidden />
                 Filter
@@ -1339,22 +1370,59 @@ export function SuperAdminUsersPanel() {
             users
           </p>
 
-          <label className={styles.usersDirSort}>
-            <ArrowUpDown className="size-3.5 opacity-70" aria-hidden />
-            <select
-              value={sort}
+          <div className={styles.usersDirSort}>
+            <button
+              type="button"
+              className={`${styles.usersDirSortBtn} ${
+                sortOpen ? styles.usersDirSortBtnOpen : ""
+              }`}
               aria-label="Sort users"
-              onChange={(event) => {
-                setSort(event.target.value as AdminUsersSort);
-                setPage(1);
+              aria-haspopup="listbox"
+              aria-expanded={sortOpen}
+              onClick={() => {
+                setFilterOpen(false);
+                setSortOpen((open) => !open);
               }}
             >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name_asc">Name A–Z</option>
-              <option value="name_desc">Name Z–A</option>
-            </select>
-          </label>
+              <ArrowUpDown className="size-3.5 opacity-70" aria-hidden />
+              {SORT_OPTIONS.find((option) => option.id === sort)?.label ??
+                "Newest First"}
+            </button>
+            {sortOpen ? (
+              <div
+                className={styles.usersDirSortMenu}
+                role="listbox"
+                aria-label="Sort users"
+              >
+                {SORT_OPTIONS.map((option) => {
+                  const selected = sort === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={`${styles.usersDirSortMenuItem} ${
+                        selected ? styles.usersDirSortMenuItemSelected : ""
+                      }`}
+                      onClick={() => {
+                        setSort(option.id);
+                        setPage(1);
+                        setSortOpen(false);
+                      }}
+                    >
+                      <span className={styles.usersDirSortCheck} aria-hidden>
+                        {selected ? (
+                          <Check className="size-3.5" strokeWidth={2.75} />
+                        ) : null}
+                      </span>
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className={styles.usersDirTableCard}>
