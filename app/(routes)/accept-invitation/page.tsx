@@ -3,10 +3,15 @@
 import { AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useCredentialContext } from "@/app/contexts/credential-context";
 import { hasAuthSession, markAuthSession } from "@/app/lib/auth-session";
 import { inviteLoginHref, inviteSignupHref } from "@/app/lib/invite-auth-links";
-import { getSetupUser, setSetupUser } from "@/app/lib/setup-user";
+import {
+  clearSetupUser,
+  getSetupUser,
+  setSetupUser,
+} from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
 import {
   acceptBusinessInvitation,
@@ -20,17 +25,26 @@ type InviteAccountChoice = {
   accountExists: boolean;
 };
 
+type InvitePreview = {
+  inviteEmail: string;
+  businessName: string;
+  accountExists: boolean;
+};
+
 function sameEmail(left: string, right: string): boolean {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
 function isWrongAccountError(message: string): boolean {
-  return message.toLowerCase().includes("email address this invitation was sent to");
+  return message
+    .toLowerCase()
+    .includes("email address this invitation was sent to");
 }
 
 function AcceptInvitationInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { rememberCredentials } = useCredentialContext();
   const token = useMemo(
     () => searchParams.get("token")?.trim() ?? "",
     [searchParams],
@@ -42,6 +56,7 @@ function AcceptInvitationInner() {
     null,
   );
   const [switching, setSwitching] = useState(false);
+  const invitePreviewRef = useRef<InvitePreview | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -58,18 +73,31 @@ function AcceptInvitationInner() {
           return;
         }
 
+        const inviteEmail = result.email.trim();
+        invitePreviewRef.current = {
+          inviteEmail,
+          businessName: result.businessName,
+          accountExists: result.accountExists,
+        };
+
+        // --- No session: send invitee to login or signup with the token ---
         if (!hasAuthSession()) {
           router.replace(
             result.accountExists
-              ? inviteLoginHref(token)
-              : inviteSignupHref(token),
+              ? inviteLoginHref(token, undefined, inviteEmail)
+              : inviteSignupHref(token, inviteEmail),
           );
           return;
         }
 
         const signedInEmail = getSetupUser()?.email?.trim() ?? "";
-        const inviteEmail = result.email.trim();
-        if (signedInEmail && inviteEmail && !sameEmail(signedInEmail, inviteEmail)) {
+
+        // --- Best practice: different account in this browser → ask before continuing ---
+        if (
+          inviteEmail &&
+          signedInEmail &&
+          !sameEmail(signedInEmail, inviteEmail)
+        ) {
           setAccountChoice({
             signedInEmail,
             inviteEmail,
@@ -91,12 +119,13 @@ function AcceptInvitationInner() {
           err instanceof Error
             ? err.message
             : "This invitation link is invalid or expired.";
+        const preview = invitePreviewRef.current;
         if (hasAuthSession() && isWrongAccountError(message)) {
           setAccountChoice({
             signedInEmail: getSetupUser()?.email?.trim() ?? "",
-            inviteEmail: "",
-            businessName: "",
-            accountExists: true,
+            inviteEmail: preview?.inviteEmail ?? "",
+            businessName: preview?.businessName ?? "",
+            accountExists: preview?.accountExists ?? true,
           });
           return;
         }
@@ -112,11 +141,20 @@ function AcceptInvitationInner() {
   async function switchToInvitedAccount() {
     if (!token || switching) return;
     setSwitching(true);
+    const inviteEmail =
+      accountChoice?.inviteEmail.trim() ||
+      invitePreviewRef.current?.inviteEmail.trim() ||
+      "";
     try {
+      // Full logout: revoke session tokens and clear stored profile (old user).
       await logoutSession();
+      clearSetupUser();
+      if (inviteEmail) {
+        rememberCredentials(inviteEmail, "");
+      }
       const nextHref = accountChoice?.accountExists
-        ? inviteLoginHref(token)
-        : inviteSignupHref(token);
+        ? inviteLoginHref(token, undefined, inviteEmail || undefined)
+        : inviteSignupHref(token, inviteEmail || undefined);
       router.replace(nextHref);
     } catch {
       setSwitching(false);
@@ -134,8 +172,9 @@ function AcceptInvitationInner() {
             This invite is for a different account
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            You are signed in as <span className="font-semibold">{signedInLabel}</span>.
-            This invitation
+            You are signed in as{" "}
+            <span className="font-semibold">{signedInLabel}</span>. This
+            invitation
             {accountChoice.businessName
               ? ` to ${accountChoice.businessName}`
               : ""}{" "}
@@ -176,7 +215,9 @@ function AcceptInvitationInner() {
           <h1 className="mt-4 text-lg font-bold text-[#07111f]">
             Invitation unavailable
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">{visibleError}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {visibleError}
+          </p>
           <Link
             href="/auth/login"
             className="mt-5 inline-flex h-10 items-center rounded-xl bg-[#1877f2] px-4 text-sm font-semibold text-white no-underline transition hover:bg-[#0d5bb8]"

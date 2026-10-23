@@ -27,13 +27,18 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { rememberCredentials, setCredentials } = useCredentialContext();
+  const {
+    email: credentialEmail,
+    rememberCredentials,
+    setCredentials,
+  } = useCredentialContext();
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recoveryEmailRef = useRef("");
 
   const oauthError = searchParams.get("error");
   const inviteTokenParam = searchParams.get("inviteToken");
+  const inviteEmailParam = searchParams.get("inviteEmail")?.trim() || "";
   const legacyReturnTo = searchParams.get("returnTo");
   const inviteNotice = searchParams.get("inviteNotice");
   const { inviteToken, loginHref, signupHref } = useMemo(
@@ -44,6 +49,8 @@ function LoginPageInner() {
       }),
     [inviteTokenParam, legacyReturnTo],
   );
+  const inviteEmailPrefill =
+    inviteEmailParam || (inviteToken ? credentialEmail.trim() : "");
 
   useEffect(() => {
     if (!legacyReturnTo?.trim()) return;
@@ -163,6 +170,7 @@ function LoginPageInner() {
         submitting={submitting}
         errorMessage={errorMessage}
         signupHref={signupHref}
+        initialEmail={inviteEmailPrefill || null}
         onCredentialsSubmit={onCredentialsSubmit}
         onForgotPassword={onForgotPassword}
         onVerifyRecoveryOtp={onVerifyRecoveryOtp}

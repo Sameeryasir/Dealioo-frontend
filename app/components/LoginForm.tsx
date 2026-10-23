@@ -35,6 +35,8 @@ export type LoginFormProps = {
   submitting: boolean;
   errorMessage: string | null;
   signupHref?: string;
+  /** Prefill email (e.g. invite switch flow). */
+  initialEmail?: string | null;
   initialRecoveryEmail?: string | null;
   autoStartPasswordSetup?: boolean;
   onCredentialsSubmit: (email: string, password: string) => Promise<void>;
@@ -64,6 +66,7 @@ export default function LoginForm({
   submitting,
   errorMessage,
   signupHref = "/auth/signup",
+  initialEmail = null,
   initialRecoveryEmail = null,
   autoStartPasswordSetup = false,
   onCredentialsSubmit,
@@ -84,16 +87,24 @@ export default function LoginForm({
   const [ignoreAutofill, setIgnoreAutofill] = useState(true);
   const [passwordSetupMode, setPasswordSetupMode] = useState(false);
   const autoStartedRef = useRef(false);
+  const prefilledEmail = initialEmail?.trim() || "";
 
   const {
     register,
     handleSubmit,
     getValues,
+    reset,
     formState: { errors },
   } = useForm<LoginFormValues>({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: prefilledEmail, password: "" },
     mode: "onTouched",
   });
+
+  // Keep invite email in the field after account switch in the same browser.
+  useEffect(() => {
+    if (!prefilledEmail) return;
+    reset({ email: prefilledEmail, password: "" });
+  }, [prefilledEmail, reset]);
 
   const {
     register: registerReset,

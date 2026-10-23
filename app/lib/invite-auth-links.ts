@@ -13,19 +13,34 @@ export function inviteTokenFromReturnTo(returnTo: string | null): string {
   }
 }
 
-export function inviteSignupHref(inviteToken: string): string {
-  return `/auth/signup?inviteToken=${encodeURIComponent(inviteToken.trim())}`;
+export function inviteSignupHref(
+  inviteToken: string,
+  inviteEmail?: string,
+): string {
+  const params = new URLSearchParams({
+    inviteToken: inviteToken.trim(),
+  });
+  const email = inviteEmail?.trim();
+  if (email) {
+    params.set("inviteEmail", email);
+  }
+  return `/auth/signup?${params.toString()}`;
 }
 
 export function inviteLoginHref(
   inviteToken: string,
   notice?: "account-exists",
+  inviteEmail?: string,
 ): string {
   const params = new URLSearchParams({
     inviteToken: inviteToken.trim(),
   });
   if (notice) {
     params.set("inviteNotice", notice);
+  }
+  const email = inviteEmail?.trim();
+  if (email) {
+    params.set("inviteEmail", email);
   }
   return `/auth/login?${params.toString()}`;
 }

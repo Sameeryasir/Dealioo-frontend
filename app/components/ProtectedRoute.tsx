@@ -61,22 +61,29 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
         setAllowed(false);
       }
 
+      // Logged-in user hit login/signup with an invite → route through
+      // accept-invitation so a different-account switch can run first.
       const inviteToken =
         searchParams.get("inviteToken")?.trim() ||
         inviteTokenFromReturnTo(searchParams.get("returnTo"));
 
+      if (inviteToken) {
+        if (!cancelled) {
+          router.replace(
+            `/accept-invitation?token=${encodeURIComponent(inviteToken)}`,
+          );
+        }
+        return;
+      }
+
       try {
-        const destination = await resolvePostAuthDestination(inviteToken);
+        const destination = await resolvePostAuthDestination();
         if (!cancelled) {
           router.replace(destination || "/dashboard");
         }
       } catch {
         if (!cancelled) {
-          router.replace(
-            inviteToken
-              ? `/accept-invitation?token=${encodeURIComponent(inviteToken)}`
-              : "/dashboard",
-          );
+          router.replace("/dashboard");
         }
       }
     }
