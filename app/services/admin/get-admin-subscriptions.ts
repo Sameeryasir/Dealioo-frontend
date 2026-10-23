@@ -96,6 +96,7 @@ export async function getAdminSubscriptions(input: {
   page: number;
   limit: number;
   search?: string;
+  status?: string;
 }): Promise<AdminSubscriptionsPage> {
   try {
     const params = new URLSearchParams({
@@ -103,6 +104,9 @@ export async function getAdminSubscriptions(input: {
       limit: String(input.limit),
     });
     if (input.search?.trim()) params.set("search", input.search.trim());
+    if (input.status?.trim() && input.status.trim() !== "all") {
+      params.set("status", input.status.trim());
+    }
 
     const { data } = await authAxios.get<AdminSubscriptionsPage>(
       `/admin/subscriptions?${params.toString()}`,

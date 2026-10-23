@@ -68,8 +68,19 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, "subscription-plans"] as const,
   subscriptionPlans: () => [...adminQueryKeys.subscriptionPlansRoot()] as const,
   subscriptionsRoot: () => [...adminQueryKeys.all, "subscriptions"] as const,
-  subscriptions: (page: number, search: string, limit: number) =>
-    [...adminQueryKeys.subscriptionsRoot(), page, search, limit] as const,
+  subscriptions: (
+    page: number,
+    search: string,
+    limit: number,
+    status = "all",
+  ) =>
+    [
+      ...adminQueryKeys.subscriptionsRoot(),
+      page,
+      search,
+      limit,
+      status,
+    ] as const,
   twilioDashboardRoot: () =>
     [...adminQueryKeys.all, "twilio", "dashboard", "v3"] as const,
   twilioDashboard: (page: number, limit: number) =>

@@ -8,6 +8,8 @@ import {
   humanizeLabel,
   initialsFromName,
 } from "@/app/components/super-admin/super-admin-list-helpers";
+import planStyles from "@/app/components/super-admin/SuperAdminPlansPanel.module.css";
+import subStyles from "@/app/components/super-admin/SuperAdminSubscriptionsPanel.module.css";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -16,24 +18,34 @@ import {
   getAdminSubscriptions,
   type AdminSubscription,
 } from "@/app/services/admin/get-admin-subscriptions";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
-  keepPreviousData,
-  useQuery,
-} from "@tanstack/react-query";
-import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   CircleDot,
   CreditCard,
   Hash,
+  Info,
   RefreshCw,
   Search,
+  Tag,
   User,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const PAGE_SIZE = 10;
+
+type SubTab = "all" | "active" | "trialing" | "past_due" | "cancelled";
+
+const TAB_OPTIONS: Array<{ id: SubTab; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "trialing", label: "Trialing" },
+  { id: "past_due", label: "Past due" },
+  { id: "cancelled", label: "Cancelled" },
+];
 
 function formatMoney(amount: number | null, currency: string): string {
   if (amount == null) return "—";
@@ -50,9 +62,14 @@ function formatMoney(amount: number | null, currency: string): string {
 
 function statusPillClass(status: string): string {
   const key = status.trim().toLowerCase();
-  if (key === "active" || key === "trialing") return "";
-  if (key === "past_due") return styles.usersDirStatusPillProgress;
-  return styles.usersDirStatusPillInactive;
+  if (key === "active") return subStyles.statusActive;
+  if (key === "trialing") return subStyles.statusTrialing;
+  if (key === "past_due") return subStyles.statusPastDue;
+  return subStyles.statusCancelled;
+}
+
+function cycleLabel(billingCycle: string): string {
+  return billingCycle === "annual" ? "Yearly" : "Monthly";
 }
 
 function SubscriptionsStatsSkeleton() {
@@ -81,24 +98,11 @@ function SubscriptionsTableSkeleton({ rows = 8 }: { rows?: number }) {
     >
       <thead>
         <tr>
-          <th style={{ width: "3rem" }}>
-            <Skeleton className="h-3 w-4" />
-          </th>
-          <th>
-            <Skeleton className="h-3 w-16" />
-          </th>
-          <th>
-            <Skeleton className="h-3 w-14" />
-          </th>
-          <th>
-            <Skeleton className="h-3 w-16" />
-          </th>
-          <th>
-            <Skeleton className="h-3 w-14" />
-          </th>
-          <th>
-            <Skeleton className="h-3 w-16" />
-          </th>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <th key={index}>
+              <Skeleton className="h-3 w-14" />
+            </th>
+          ))}
         </tr>
       </thead>
       <tbody>
@@ -120,10 +124,10 @@ function SubscriptionsTableSkeleton({ rows = 8 }: { rows?: number }) {
               <Skeleton className="h-4 w-24" />
             </td>
             <td>
-              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-4 w-16" />
             </td>
             <td>
-              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-6 w-20 rounded-full" />
             </td>
             <td>
               <Skeleton className="h-4 w-20" />
@@ -137,7 +141,7 @@ function SubscriptionsTableSkeleton({ rows = 8 }: { rows?: number }) {
 
 function UserAvatar({ name }: { name: string }) {
   return (
-    <span className={styles.userAvatar} aria-hidden>
+    <span className={planStyles.initialsAvatar} aria-hidden>
       {initialsFromName(name || "?")}
     </span>
   );
@@ -150,12 +154,8 @@ function SubscriptionRow({
   subscription: AdminSubscription;
   rowNumber: number;
 }) {
-  const cycleLabel =
-    subscription.billingCycle === "annual" ? "Annual" : "Monthly";
-  const amountLabel = formatMoney(
-    subscription.amount,
-    subscription.currency,
-  );
+  const amountLabel = formatMoney(subscription.amount, subscription.currency);
+  const billing = cycleLabel(subscription.billingCycle);
 
   return (
     <tr>
@@ -172,13 +172,24 @@ function SubscriptionRow({
         </div>
       </td>
       <td>
-        <div className={styles.userCellText}>
-          <div className={styles.bizName}>{subscription.plan.name}</div>
-          <div className={styles.bizMeta}>
+        <div className={subStyles.priceCell}>
+          <span className={subStyles.priceMain}>{subscription.plan.name}</span>
+          <span className={subStyles.priceSub}>
             {amountLabel}
-            {subscription.amount != null ? ` · ${cycleLabel}` : ""}
-            {subscription.cancelAtPeriodEnd ? " · Cancels at period end" : ""}
-          </div>
+            {subscription.plan.slug ? ` · ${subscription.plan.slug}` : ""}
+          </span>
+          {subscription.cancelAtPeriodEnd &&
+          subscription.status.toLowerCase() !== "cancelled" ? (
+            <span className={subStyles.cancelHint}>Cancels at period end</span>
+          ) : null}
+        </div>
+      </td>
+      <td>
+        <div className={subStyles.priceCell}>
+          <span className={subStyles.priceMain}>{billing}</span>
+          <span className={subStyles.priceSub}>
+            {(subscription.currency || "USD").toUpperCase()}
+          </span>
         </div>
       </td>
       <td>
@@ -192,16 +203,14 @@ function SubscriptionRow({
         </span>
       </td>
       <td>
-        <span className={styles.usersDirDateMain}>
-          {formatAbsoluteDate(
-            subscription.startedAt ?? subscription.createdAt,
-          )}
-        </span>
-      </td>
-      <td>
-        <span className={styles.usersDirDateMain}>
-          {formatAbsoluteDate(subscription.createdAt)}
-        </span>
+        <div className={subStyles.priceCell}>
+          <span className={subStyles.priceMain}>
+            {formatAbsoluteDate(
+              subscription.startedAt ?? subscription.createdAt,
+            )}
+          </span>
+          <span className={subStyles.priceSub}>Started</span>
+        </div>
       </td>
     </tr>
   );
@@ -211,6 +220,7 @@ export function SuperAdminSubscriptionsPanel() {
   const [query, setQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<SubTab>("all");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -221,12 +231,18 @@ export function SuperAdminSubscriptionsPanel() {
   }, [query]);
 
   const subscriptionsQuery = useQuery({
-    queryKey: adminQueryKeys.subscriptions(page, debouncedSearch, PAGE_SIZE),
+    queryKey: adminQueryKeys.subscriptions(
+      page,
+      debouncedSearch,
+      PAGE_SIZE,
+      tab,
+    ),
     queryFn: () =>
       getAdminSubscriptions({
         page,
         limit: PAGE_SIZE,
         search: debouncedSearch,
+        status: tab,
       }),
     enabled: hasAuthSession(),
     staleTime: 30_000,
@@ -248,6 +264,14 @@ export function SuperAdminSubscriptionsPanel() {
     : null;
   const showingStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
 
+  const tabCounts: Record<SubTab, number> = {
+    all: counts?.all ?? 0,
+    active: counts?.active ?? 0,
+    trialing: counts?.trialing ?? 0,
+    past_due: counts?.pastDue ?? 0,
+    cancelled: counts?.cancelled ?? 0,
+  };
+
   const stats = [
     {
       label: "All subscriptions",
@@ -268,13 +292,13 @@ export function SuperAdminSubscriptionsPanel() {
       iconColor: "#059669",
     },
     {
-      label: "Trialing",
-      value: counts?.trialing ?? 0,
-      hint: "On a trial period",
+      label: "Past due",
+      value: counts?.pastDue ?? 0,
+      hint: "Payment needs attention",
       hintMuted: true,
-      icon: CircleDot,
-      iconBg: "#f5f3ff",
-      iconColor: "#7c3aed",
+      icon: AlertTriangle,
+      iconBg: "#fff7ed",
+      iconColor: "#c2410c",
     },
     {
       label: "Cancelled",
@@ -289,7 +313,7 @@ export function SuperAdminSubscriptionsPanel() {
 
   return (
     <section
-      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions}`}
+      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions} ${subStyles.subsShell}`}
       aria-label="Subscriptions"
     >
       <div className={styles.inner}>
@@ -297,20 +321,20 @@ export function SuperAdminSubscriptionsPanel() {
           <div className={styles.heroCopy}>
             <h1 className={styles.title}>Subscriptions</h1>
             <p className={styles.subtitle}>
-              All customer subscriptions on Dealioo. Search by user, email, or
-              plan.
+              Customer purchases on Dealioo — who is paying, past due, or
+              cancelled. Plan catalog lives under Plans.
             </p>
           </div>
 
           <div className={styles.usersDirHeroActions}>
-            <label className={styles.searchWrap}>
-              <Search className={styles.searchIcon} aria-hidden />
+            <label className={styles.usersDirSearch}>
+              <Search className={styles.usersDirSearchIcon} aria-hidden />
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search subscriptions…"
-                className={styles.searchInput}
+                placeholder="Search by customer, email, or plan…"
+                className={styles.usersDirSearchInput}
                 aria-label="Search subscriptions"
               />
             </label>
@@ -327,6 +351,16 @@ export function SuperAdminSubscriptionsPanel() {
               />
             </button>
           </div>
+        </div>
+
+        <div className={subStyles.notice} role="note">
+          <span className={subStyles.noticeIcon} aria-hidden>
+            <Info className="size-3.5" strokeWidth={2.25} />
+          </span>
+          <p className="m-0">
+            Past due means Stripe billing failed and needs attention. Cancelling
+            at period end keeps access until the current period ends.
+          </p>
         </div>
 
         {errorMessage ? (
@@ -375,9 +409,39 @@ export function SuperAdminSubscriptionsPanel() {
         )}
 
         <div className={styles.usersDirToolbar}>
-          <p className={styles.usersDirFooterMeta}>
-            Showing all subscriptions
-            {debouncedSearch ? ` matching “${debouncedSearch}”` : ""}
+          <div
+            className={subStyles.segmentTabs}
+            role="tablist"
+            aria-label="Subscription status"
+          >
+            {TAB_OPTIONS.map((option) => {
+              const selected = tab === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={`${subStyles.segmentTab} ${
+                    selected ? subStyles.segmentTabActive : ""
+                  }`}
+                  onClick={() => {
+                    setTab(option.id);
+                    setPage(1);
+                  }}
+                >
+                  {option.label}
+                  <span className={subStyles.segmentCount}>
+                    {tabCounts[option.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className={subStyles.tableHint}>
+            {total === 0
+              ? "No subscriptions in this view"
+              : `Showing ${showingStart}–${Math.min(showingStart + items.length - 1, total)} of ${total}`}
           </p>
         </div>
 
@@ -386,7 +450,18 @@ export function SuperAdminSubscriptionsPanel() {
             {loading && items.length === 0 ? (
               <SubscriptionsTableSkeleton />
             ) : items.length === 0 ? (
-              <p className={styles.empty}>No subscriptions found.</p>
+              <div className={subStyles.emptyState}>
+                <p className={subStyles.emptyTitle}>
+                  {debouncedSearch || tab !== "all"
+                    ? "No subscriptions match this view"
+                    : "No subscriptions yet"}
+                </p>
+                <p className={subStyles.emptyCopy}>
+                  {debouncedSearch || tab !== "all"
+                    ? "Try another search or status filter."
+                    : "Customer checkouts will show up here once someone subscribes."}
+                </p>
+              </div>
             ) : (
               <table className={styles.usersDirTable}>
                 <thead>
@@ -423,6 +498,16 @@ export function SuperAdminSubscriptionsPanel() {
                     </th>
                     <th>
                       <span className={styles.meetingsThWithIcon}>
+                        <Tag
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Billing
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
                         <CircleDot
                           className="size-3.5"
                           strokeWidth={2.25}
@@ -439,16 +524,6 @@ export function SuperAdminSubscriptionsPanel() {
                           aria-hidden
                         />
                         Started
-                      </span>
-                    </th>
-                    <th>
-                      <span className={styles.meetingsThWithIcon}>
-                        <CalendarDays
-                          className="size-3.5"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
-                        Created
                       </span>
                     </th>
                   </tr>

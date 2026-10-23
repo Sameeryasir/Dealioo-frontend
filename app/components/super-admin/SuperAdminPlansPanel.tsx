@@ -1432,12 +1432,15 @@ export function SuperAdminPlansPanel() {
                         <td>
                           <div className={styles.userCell}>
                             <span
-                              className={styles.userAvatar}
+                              className={planStyles.initialsAvatar}
                               style={{
                                 background:
                                   plan.description?.color || undefined,
                                 color: plan.description?.color
                                   ? "#fff"
+                                  : undefined,
+                                borderColor: plan.description?.color
+                                  ? "transparent"
                                   : undefined,
                               }}
                               aria-hidden
