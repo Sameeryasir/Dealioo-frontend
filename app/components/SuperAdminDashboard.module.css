@@ -96,15 +96,61 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0;
   flex-shrink: 0;
+  padding: 0.2rem;
+  border: 1px solid #e8edf5;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
 @media (max-width: 959px) {
   .heroTools {
     width: 100%;
     flex-wrap: wrap;
+    border-radius: 1rem;
+    gap: 0.25rem;
   }
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 1.35rem;
+  margin: 0 0.2rem;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.toolbarMonth {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbarRefresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  margin-left: 0.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toolbarRefresh:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #1877f2;
+}
+
+.toolbarRefresh:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .searchWrap {
@@ -252,11 +298,17 @@
   box-shadow: 0 0 0 2px #ffffff;
 }
 
+.kpiSection {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.95rem;
+}
+
 .kpiGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.7rem;
+  margin-bottom: 0;
 }
 
 @media (min-width: 700px) {
@@ -265,17 +317,24 @@
   }
 }
 
-@media (min-width: 1100px) {
-  .kpiGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+.kpiGridThree {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 700px) {
+  .kpiGridThree {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 .kpiGridFive {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1.1rem;
+  gap: 0.7rem;
+  margin-bottom: 0;
 }
 
 @media (min-width: 640px) {
@@ -290,17 +349,130 @@
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1200px) {
   .kpiGridFive {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.sectionLabel {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.viewPills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0 0 1rem;
+  padding: 0.2rem;
+  border: 1px solid #e8edf5;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.viewPill {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.viewPill:hover {
+  color: #0f172a;
+  background: #f8fbff;
+}
+
+.viewPillActive {
+  background: #1877f2;
+  color: #fff;
+}
+
+.viewPillActive:hover {
+  background: #166fe0;
+  color: #fff;
+}
+
+.salesInsightCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 280px;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid #e8edf5;
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.salesInsightTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.salesInsightCopy {
+  margin: 0;
+  max-width: 28rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.salesInsightStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.salesInsightLabel {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.salesInsightValue {
+  margin: 0.25rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiGridTwo {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 700px) {
+  .kpiGridTwo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 .kpiGridFour {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1.1rem;
+  gap: 0.7rem;
+  margin-bottom: 0;
 }
 
 @media (min-width: 640px) {
@@ -391,12 +563,12 @@
 .periodPills {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.2rem;
-  border: 1px solid #e8edf5;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  gap: 0.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .periodPill {
@@ -405,10 +577,10 @@
   color: #64748b;
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.45rem 0.85rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  transition: background 180ms ease, color 180ms ease;
 }
 
 .chartMotion {
@@ -605,11 +777,11 @@
   position: relative;
   overflow: hidden;
   min-width: 0;
-  padding: 1rem 1.05rem;
+  padding: 0.85rem 0.95rem;
   border: 1px solid #e8edf5;
-  border-radius: 1.1rem;
+  border-radius: 0.95rem;
   background: #ffffff;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
 }
 
 .kpiCard::before {
@@ -634,11 +806,11 @@
 }
 
 .kpiValue {
-  margin: 0.45rem 0 0;
-  font-size: 1.35rem;
+  margin: 0.35rem 0 0;
+  font-size: 1.28rem;
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.2;
+  line-height: 1.15;
   color: #000000;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -650,9 +822,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.65rem;
   background: var(--kpi-soft, #e8f2ff);
   color: var(--kpi-accent, #1877f2);
   flex-shrink: 0;
@@ -663,11 +835,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.15rem;
-  margin-top: 0.5rem;
-  padding: 0.12rem 0.4rem;
+  margin-top: 0.4rem;
+  padding: 0.1rem 0.38rem;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 750;
+}
+
+.kpiTrendSpacer {
+  margin-top: 0.4rem;
+  min-height: 1.35rem;
 }
 
 .kpiTrendUp {

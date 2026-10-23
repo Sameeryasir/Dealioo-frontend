@@ -50,6 +50,9 @@ export function ActivityMonthCalendarPicker({
   onChange,
   className = "",
   compact = false,
+  iconOnly = false,
+  active = false,
+  onActivate,
   showAllMonths = true,
   monthCount = ACTIVITY_MONTH_COUNT,
 }: {
@@ -57,6 +60,12 @@ export function ActivityMonthCalendarPicker({
   onChange: (monthKey: string) => void;
   className?: string;
   compact?: boolean;
+  /** Compact pill trigger: calendar icon + selected month (e.g. "Jan 2026"). */
+  iconOnly?: boolean;
+  /** When iconOnly, match selected period-pill styling. */
+  active?: boolean;
+  /** Fired when the compact trigger is clicked (e.g. switch to month period). */
+  onActivate?: () => void;
   showAllMonths?: boolean;
   monthCount?: number;
 }) {
@@ -74,6 +83,21 @@ export function ActivityMonthCalendarPicker({
     }
     return formatActivityMonthLabel(value);
   }, [monthOptions, value]);
+
+  // Short label for the toolbar pill (e.g. "Jan 2026") so the icon + month fit.
+  const compactMonthLabel = useMemo(() => {
+    if (value === ACTIVITY_ALL_MONTHS_ID) return "All months";
+    const [yearRaw, monthRaw] = value.split("-");
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+      return selectedLabel;
+    }
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      year: "numeric",
+    }).format(new Date(year, month - 1, 1));
+  }, [selectedLabel, value]);
 
   const [viewYear, setViewYear] = useState(() => getInitialViewYear(value));
   const [pickerView, setPickerView] = useState<"month" | "year">("month");
@@ -329,21 +353,46 @@ export function ActivityMonthCalendarPicker({
       {compact ? (
         <button
           type="button"
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => {
+            onActivate?.();
+            setOpen((current) => !current);
+          }}
           aria-expanded={open}
           aria-haspopup="dialog"
-          aria-label="Choose month"
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent px-1 py-2 text-[0.75rem] font-bold text-[#07111f] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
+          aria-label={`Choose month (${selectedLabel})`}
+          title={selectedLabel}
+          className={
+            iconOnly
+              ? `inline-flex h-[2.05rem] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-[0.85rem] text-[0.78rem] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15 ${
+                  active
+                    ? "bg-[#1877f2] text-white hover:bg-[#166fe0] hover:text-white"
+                    : "bg-transparent text-[#64748b] hover:bg-[#f8fbff] hover:text-[#0f172a]"
+                }`
+              : "inline-flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent px-1 py-2 text-[0.75rem] font-bold text-[#07111f] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
+          }
         >
-          <Calendar className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
-          <span className="max-w-[10rem] truncate">{selectedLabel}</span>
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.24, ease: automationEase }}
-            className="shrink-0 text-slate-400"
-          >
-            <ChevronDown className="size-3.5" aria-hidden />
-          </motion.span>
+          <Calendar
+            className={
+              iconOnly
+                ? "size-3.5 shrink-0"
+                : "size-3.5 shrink-0 text-[#1877f2]"
+            }
+            aria-hidden
+          />
+          {iconOnly ? (
+            <span className="whitespace-nowrap">{compactMonthLabel}</span>
+          ) : (
+            <>
+              <span className="max-w-[10rem] truncate">{selectedLabel}</span>
+              <motion.span
+                animate={{ rotate: open ? 180 : 0 }}
+                transition={{ duration: 0.24, ease: automationEase }}
+                className="shrink-0 text-slate-400"
+              >
+                <ChevronDown className="size-3.5" aria-hidden />
+              </motion.span>
+            </>
+          )}
         </button>
       ) : (
         <label className="flex w-full min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600 sm:w-auto sm:shrink-0">

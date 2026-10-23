@@ -7,7 +7,7 @@ import {
   getPlatformDashboardPanel,
   type PlatformDashboardPeriod,
 } from "@/app/services/admin/get-platform-dashboard";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function usePlatformDashboardQuery(input: {
   period: PlatformDashboardPeriod;
@@ -25,14 +25,17 @@ export function usePlatformDashboardQuery(input: {
         timezone: input.timezone,
       }),
     enabled: hasAuthSession(),
-    staleTime: 30_000,
-    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+    // Don't keep the previous period's numbers while switching filters —
+    // that made Today/Week/Month/Year look broken.
+    refetchOnMount: "always",
   });
 
   return {
     data: query.data ?? null,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
+    isError: query.isError,
     error: query.error
       ? getApiErrorMessage(query.error, "Could not load the platform overview.")
       : null,
