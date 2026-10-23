@@ -27,6 +27,12 @@ export type AdminSubscriptionPlanDescription = {
   };
 };
 
+export type AdminSubscriptionPlanStripe = {
+  monthlySynced: boolean;
+  yearlySynced: boolean;
+  billingReady: boolean;
+};
+
 export type AdminSubscriptionPlan = {
   id: string;
   slug: string;
@@ -39,6 +45,10 @@ export type AdminSubscriptionPlan = {
   description: AdminSubscriptionPlanDescription | null;
   createdAt: string;
   updatedAt: string;
+  activeSubscriberCount: number;
+  totalSubscriberCount: number;
+  canDelete: boolean;
+  stripe: AdminSubscriptionPlanStripe;
 };
 
 export type AdminSubscriptionPlansResponse = {
@@ -73,19 +83,37 @@ export type AdminSubscriptionPlanInput = {
 function normalizePlan(
   data: Partial<AdminSubscriptionPlan> | null | undefined,
 ): AdminSubscriptionPlan {
+  const monthlyPrice =
+    data?.monthlyPrice == null ? null : Number(data.monthlyPrice);
+  const yearlyPrice =
+    data?.yearlyPrice == null ? null : Number(data.yearlyPrice);
+  const monthlySynced = Boolean(data?.stripe?.monthlySynced);
+  const yearlySynced = Boolean(data?.stripe?.yearlySynced);
+
   return {
     id: String(data?.id ?? ""),
     slug: String(data?.slug ?? ""),
     name: String(data?.name ?? ""),
-    monthlyPrice:
-      data?.monthlyPrice == null ? null : Number(data.monthlyPrice),
-    yearlyPrice: data?.yearlyPrice == null ? null : Number(data.yearlyPrice),
+    monthlyPrice,
+    yearlyPrice,
     currency: String(data?.currency ?? "USD"),
     isActive: Boolean(data?.isActive),
     sortOrder: Number(data?.sortOrder) || 0,
     description: data?.description ?? null,
     createdAt: String(data?.createdAt ?? ""),
     updatedAt: String(data?.updatedAt ?? ""),
+    activeSubscriberCount: Number(data?.activeSubscriberCount) || 0,
+    totalSubscriberCount: Number(data?.totalSubscriberCount) || 0,
+    canDelete: Boolean(data?.canDelete),
+    stripe: {
+      monthlySynced,
+      yearlySynced,
+      billingReady:
+        typeof data?.stripe?.billingReady === "boolean"
+          ? data.stripe.billingReady
+          : (monthlyPrice == null || monthlySynced) &&
+            (yearlyPrice == null || yearlySynced),
+    },
   };
 }
 
@@ -140,6 +168,24 @@ export async function updateAdminSubscriptionPlan(
   } catch (error) {
     throw new Error(
       parseApiMessage(error, "Could not update subscription plan."),
+    );
+  }
+}
+
+export async function deleteAdminSubscriptionPlan(
+  planId: string,
+): Promise<{ deleted: boolean; id: string }> {
+  try {
+    const { data } = await authAxios.delete<{ deleted: boolean; id: string }>(
+      `/admin/subscription-plans/${planId}`,
+    );
+    return {
+      deleted: Boolean(data?.deleted),
+      id: String(data?.id ?? planId),
+    };
+  } catch (error) {
+    throw new Error(
+      parseApiMessage(error, "Could not delete subscription plan."),
     );
   }
 }

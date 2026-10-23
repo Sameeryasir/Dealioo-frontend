@@ -632,33 +632,39 @@
 }
 
 .tableWrap {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
+  min-width: 68rem;
   border-collapse: collapse;
+  table-layout: auto;
   text-align: left;
 }
 
 .table th {
-  padding: 0.7rem 0.9rem;
+  padding: 0.55rem 0.7rem;
   border-bottom: 1px solid var(--tw-line);
   background: #f9fafb;
   color: var(--tw-muted);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .table td {
-  padding: 0.9rem;
+  padding: 0.55rem 0.7rem;
   border-bottom: 1px solid #eef0f4;
   vertical-align: middle;
   color: var(--tw-ink);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
+  line-height: 1.2;
 }
 
 .table th,
@@ -666,9 +672,13 @@
   white-space: nowrap;
 }
 
+.table tr {
+  height: 2.75rem;
+}
+
 .webhookUrlCell {
-  white-space: normal !important;
-  min-width: 16rem;
+  white-space: nowrap !important;
+  max-width: 14rem;
 }
 
 .table tr:last-child td {
@@ -676,15 +686,28 @@
 }
 
 .cellMain {
+  display: inline-block;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
   font-weight: 700;
   color: var(--tw-ink);
 }
 
 .cellMeta {
-  margin-top: 0.15rem;
+  display: inline-block;
+  max-width: 9rem;
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
   color: var(--tw-muted);
   font-size: 0.75rem;
 }
+
 
 .userCell {
   display: flex;
@@ -782,17 +805,18 @@
 
 .webhookInput {
   display: block;
-  width: 18rem;
-  min-width: 14rem;
-  max-width: 28rem;
-  min-height: 2.2rem;
+  width: 12rem;
+  max-width: 100%;
+  min-height: 2rem;
   border: 1px solid #cacdd8;
   border-radius: 0.3rem;
   background: #fff;
   color: var(--tw-ink);
-  font-size: 0.78rem;
-  padding: 0.4rem 0.55rem;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .webhookInput:focus {
@@ -810,15 +834,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  min-height: 2.1rem;
+  gap: 0.3rem;
+  min-height: 1.9rem;
   border: 0;
   border-radius: 0.3rem;
   background: var(--tw-blue);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.4rem 0.7rem;
+  padding: 0.3rem 0.55rem;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -830,4 +854,258 @@
 .webhookBtn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.actionStack {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.assignBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 1.9rem;
+  border: 1px solid var(--tw-line);
+  border-radius: 0.3rem;
+  background: #fff;
+  color: var(--tw-ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.assignBtn:hover:not(:disabled) {
+  border-color: #c5d4ea;
+  background: #f5f8fc;
+}
+
+.assignBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.unassignBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 1.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.3rem;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.unassignBtn:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+
+.unassignBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.assignModalPanel {
+  width: min(560px, 100%);
+}
+
+.assignSearchWrap {
+  position: relative;
+}
+
+.assignSearchIcon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  width: 0.95rem;
+  height: 0.95rem;
+  transform: translateY(-50%);
+  color: var(--tw-muted);
+  pointer-events: none;
+}
+
+.assignSearchWrap input {
+  width: 100%;
+  min-height: 2.4rem;
+  border: 1px solid var(--tw-line);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--tw-ink);
+  font-size: 0.875rem;
+  padding: 0.45rem 0.7rem 0.45rem 2.15rem;
+}
+
+.assignSearchWrap input:focus {
+  outline: none;
+  border-color: var(--tw-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.16);
+}
+
+.assignList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: min(42vh, 320px);
+  overflow: auto;
+  margin-top: 0.85rem;
+  padding: 0.15rem;
+}
+
+.assignOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--tw-line);
+  border-radius: 0.4rem;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+}
+
+.assignOption:hover:not(:disabled) {
+  border-color: #c5d4ea;
+  background: #f8fafc;
+}
+
+.assignOptionSelected {
+  border-color: #93c0ff;
+  background: #f0f6ff;
+  box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.12);
+}
+
+.assignOption:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.assignOptionMain {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.assignOptionSide {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.assignFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--tw-line);
+}
+
+.btnLabelShort {
+  display: none;
+}
+
+/* --- Responsive single-line table --- */
+@media (max-width: 1280px) {
+  .table {
+    min-width: 58rem;
+  }
+
+  .colSecondary {
+    display: none;
+  }
+
+  .webhookInput {
+    width: 10rem;
+  }
+
+  .cellMain {
+    max-width: 9rem;
+  }
+
+  .cellMeta {
+    max-width: 7.5rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .table {
+    min-width: 46rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .table th {
+    font-size: 0.62rem;
+  }
+
+  .colTertiary {
+    display: none;
+  }
+
+  .webhookUrlCell {
+    max-width: 9rem;
+  }
+
+  .webhookInput {
+    width: 8.5rem;
+    min-height: 1.85rem;
+    font-size: 0.7rem;
+  }
+
+  .btnLabelFull {
+    display: none;
+  }
+
+  .btnLabelShort {
+    display: inline;
+  }
+
+  .assignBtn,
+  .unassignBtn,
+  .webhookBtn {
+    min-height: 1.75rem;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .table {
+    min-width: 36rem;
+  }
+
+  .table tr {
+    height: 2.45rem;
+  }
+
+  .capCell,
+  .capRow {
+    display: none;
+  }
+
+  .webhookInput {
+    width: 7rem;
+  }
 }

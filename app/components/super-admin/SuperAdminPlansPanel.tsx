@@ -1,15 +1,19 @@
 "use client";
 
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import type { BillingCycle } from "@/app/components/landing/pricing-plans";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
 import { initialsFromName } from "@/app/components/super-admin/super-admin-list-helpers";
+import planStyles from "@/app/components/super-admin/SuperAdminPlansPanel.module.css";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { adminQueryKeys } from "@/app/services/admin/admin-query-keys";
 import {
   createAdminSubscriptionPlan,
+  deleteAdminSubscriptionPlan,
   getAdminSubscriptionPlans,
   updateAdminSubscriptionPlan,
   type AdminSubscriptionPlan,
@@ -17,15 +21,19 @@ import {
 } from "@/app/services/admin/admin-subscription-plans";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Check,
   CircleDot,
   CreditCard,
-  Filter,
+  Eye,
   Hash,
+  Info,
   Pencil,
   Plus,
   Search,
   Sparkles,
   Tag,
+  Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -200,7 +208,28 @@ function parseOptionalPrice(value: string): number | null | undefined {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   if (!Number.isFinite(parsed) || parsed < 0) return undefined;
-  return parsed;
+  // $0 is Custom (no Stripe price) — same rule as backend.
+  if (parsed === 0) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+function priceInputFromPlan(value: number | null): string {
+  return value == null ? "" : String(value);
+}
+
+function draftPricesChanged(
+  draft: PlanDraft,
+  original: AdminSubscriptionPlan | null,
+): boolean {
+  if (!original) return false;
+  const next = draftToInput(draft);
+  if (!isPlanInput(next)) return false;
+  return (
+    next.monthlyPrice !== original.monthlyPrice ||
+    next.yearlyPrice !== original.yearlyPrice ||
+    (next.currency || "USD").toUpperCase() !==
+      (original.currency || "USD").toUpperCase()
+  );
 }
 
 function displayPriceToInput(value: string | null | undefined): string {
@@ -213,9 +242,8 @@ function draftFromPlan(plan: AdminSubscriptionPlan): PlanDraft {
   return {
     slug: plan.slug,
     name: plan.name,
-    monthlyPrice:
-      plan.monthlyPrice == null ? "" : String(plan.monthlyPrice),
-    yearlyPrice: plan.yearlyPrice == null ? "" : String(plan.yearlyPrice),
+    monthlyPrice: priceInputFromPlan(plan.monthlyPrice),
+    yearlyPrice: priceInputFromPlan(plan.yearlyPrice),
     monthlyOriginalPrice: displayPriceToInput(
       plan.description?.monthly?.originalPrice,
     ),
@@ -239,10 +267,13 @@ function draftFromPlan(plan: AdminSubscriptionPlan): PlanDraft {
   };
 }
 
-function draftToInput(draft: PlanDraft): AdminSubscriptionPlanInput | null {
+function draftToInput(
+  draft: PlanDraft,
+): AdminSubscriptionPlanInput | { error: string } {
   const name = draft.name.trim();
   const slug = slugify(draft.slug || draft.name);
-  if (!name || !slug) return null;
+  if (!name) return { error: "Enter a plan name." };
+  if (!slug) return { error: "Enter a valid slug (letters, numbers, hyphens)." };
 
   const monthlyPrice = parseOptionalPrice(draft.monthlyPrice);
   const yearlyPrice = parseOptionalPrice(draft.yearlyPrice);
@@ -254,7 +285,14 @@ function draftToInput(draft: PlanDraft): AdminSubscriptionPlanInput | null {
     monthlyOriginalPrice === undefined ||
     yearlyOriginalPrice === undefined
   ) {
-    return null;
+    return {
+      error: "Prices must be blank (Custom) or a number greater than zero.",
+    };
+  }
+
+  const currency = draft.currency.trim().toUpperCase() || "USD";
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    return { error: "Currency must be a 3-letter code (e.g. USD)." };
   }
 
   const sortOrder = Number(draft.sortOrder);
@@ -266,7 +304,7 @@ function draftToInput(draft: PlanDraft): AdminSubscriptionPlanInput | null {
     monthlyOriginalPrice,
     yearlyOriginalPrice,
     promo: draft.promo.trim() || null,
-    currency: draft.currency.trim().toUpperCase() || "USD",
+    currency,
     isActive: draft.isActive,
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     badge: draft.badge.trim() || null,
@@ -279,10 +317,175 @@ function draftToInput(draft: PlanDraft): AdminSubscriptionPlanInput | null {
   };
 }
 
+function isPlanInput(
+  value: AdminSubscriptionPlanInput | { error: string },
+): value is AdminSubscriptionPlanInput {
+  return !("error" in value);
+}
+
+function formatPlanDisplayPrice(value: string): string {
+  const parsed = parseOptionalPrice(value);
+  if (parsed === undefined) return "—";
+  if (parsed == null) return "Custom";
+  if (Number.isInteger(parsed)) return `$${parsed}`;
+  return `$${parsed.toFixed(2)}`;
+}
+
+type PlanPreviewModel = {
+  name: string;
+  badge: string | null;
+  tagline: string;
+  summary: string;
+  price: string;
+  period: string;
+  originalPrice: string | null;
+  promo: string | null;
+  subline: string | null;
+  features: string[];
+  cta: string;
+  highlighted: boolean;
+  color: string;
+  isActive: boolean;
+};
+
+/** Live customer-facing card model from the admin form draft. */
+function draftToPreviewModel(
+  draft: PlanDraft,
+  billing: BillingCycle,
+): PlanPreviewModel {
+  const monthly = parseOptionalPrice(draft.monthlyPrice);
+  const yearly = parseOptionalPrice(draft.yearlyPrice);
+  const monthlyOriginal = parseOptionalPrice(draft.monthlyOriginalPrice);
+  const yearlyOriginal = parseOptionalPrice(draft.yearlyOriginalPrice);
+  const promo = draft.promo.trim() || null;
+  const annualPerMonth =
+    yearly == null
+      ? null
+      : Math.round((yearly / 12) * 100) / 100;
+
+  const isAnnual = billing === "annual";
+  const price = isAnnual
+    ? annualPerMonth == null
+      ? "Custom"
+      : Number.isInteger(annualPerMonth)
+        ? `$${annualPerMonth}`
+        : `$${annualPerMonth.toFixed(2)}`
+    : formatPlanDisplayPrice(draft.monthlyPrice);
+  const originalPrice = isAnnual
+    ? yearlyOriginal == null
+      ? null
+      : formatPlanDisplayPrice(draft.yearlyOriginalPrice)
+    : monthlyOriginal == null
+      ? null
+      : formatPlanDisplayPrice(draft.monthlyOriginalPrice);
+
+  return {
+    name: draft.name.trim() || "Plan name",
+    badge: draft.badge.trim() || null,
+    tagline: draft.tagline.trim() || "Plan tagline appears here",
+    summary: draft.summary.trim() || "Plan summary appears here",
+    price,
+    period: isAnnual
+      ? annualPerMonth == null
+        ? ""
+        : "/ mo"
+      : monthly == null
+        ? ""
+        : "/ month",
+    originalPrice,
+    promo,
+    subline: isAnnual
+      ? yearly == null
+        ? null
+        : `Billed annually ($${yearly}/year)`
+      : monthly == null
+        ? null
+        : "Billed monthly",
+    features: draft.features.map((line) => line.trim()).filter(Boolean),
+    cta: draft.cta.trim() || "Continue",
+    highlighted: draft.highlighted,
+    color: draft.color.trim() || "#1877F2",
+    isActive: draft.isActive,
+  };
+}
+
+function AdminPlanPreviewCard({ model }: { model: PlanPreviewModel }) {
+  return (
+    <div
+      className={`${planStyles.previewCard} ${
+        model.highlighted ? planStyles.previewCardFeatured : ""
+      }`}
+      style={
+        model.highlighted
+          ? { borderColor: model.color, boxShadow: `0 0 0 2px ${model.color}33` }
+          : undefined
+      }
+    >
+      <div className={planStyles.previewCardTop}>
+        {model.badge ? (
+          <span
+            className={`${planStyles.previewBadge} ${
+              model.highlighted ? planStyles.previewBadgeFeatured : ""
+            }`}
+            style={
+              model.highlighted
+                ? { backgroundColor: model.color, color: "#fff" }
+                : undefined
+            }
+          >
+            {model.badge}
+          </span>
+        ) : (
+          <span />
+        )}
+        {model.promo ? (
+          <span className={planStyles.previewPromo}>{model.promo}</span>
+        ) : null}
+      </div>
+
+      <h3 className={planStyles.previewName}>{model.name}</h3>
+      <p className={planStyles.previewTagline}>{model.tagline}</p>
+
+      <div className={planStyles.previewPriceRow}>
+        {model.originalPrice ? (
+          <span className={planStyles.previewOriginal}>{model.originalPrice}</span>
+        ) : null}
+        <span className={planStyles.previewPrice}>{model.price}</span>
+        {model.period ? (
+          <span className={planStyles.previewPeriod}>{model.period}</span>
+        ) : null}
+      </div>
+      {model.subline ? (
+        <p className={planStyles.previewSubline}>{model.subline}</p>
+      ) : null}
+
+      <p className={planStyles.previewSummary}>{model.summary}</p>
+
+      {model.features.length > 0 ? (
+        <ul className={planStyles.previewFeatures}>
+          {model.features.map((feature) => (
+            <li key={feature}>
+              <Check className={planStyles.previewCheck} strokeWidth={3} />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={planStyles.previewEmptyFeatures}>
+          Add feature lines to show them on the card.
+        </p>
+      )}
+
+      <div className={planStyles.previewCta}>{model.cta}</div>
+    </div>
+  );
+}
+
 function PlanFormModal({
   mode,
   draft,
   saving,
+  editingPlan,
   onClose,
   onChange,
   onSave,
@@ -290,11 +493,18 @@ function PlanFormModal({
   mode: "create" | "edit";
   draft: PlanDraft;
   saving: boolean;
+  editingPlan: AdminSubscriptionPlan | null;
   onClose: () => void;
   onChange: (patch: Partial<PlanDraft>) => void;
   onSave: () => void;
 }) {
   const [slugManual, setSlugManual] = useState(mode === "edit");
+  const [previewBilling, setPreviewBilling] =
+    useState<BillingCycle>("monthly");
+  const previewModel = useMemo(
+    () => draftToPreviewModel(draft, previewBilling),
+    [draft, previewBilling],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -313,7 +523,7 @@ function PlanFormModal({
       }}
     >
       <section
-        className={`${styles.userControl} ${styles.userControlAdd}`}
+        className={`${styles.userControl} ${styles.userControlAdd} ${planStyles.planFormModal}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sa-plan-form-title"
@@ -329,7 +539,7 @@ function PlanFormModal({
           <X className="size-4" strokeWidth={2.25} aria-hidden />
         </button>
 
-        <div className={styles.userControlAddHead}>
+        <div className={`${styles.userControlAddHead} ${planStyles.planFormHead}`}>
           <span className={styles.userControlAddHeroIcon} aria-hidden>
             <CreditCard className="size-6" color="#000000" strokeWidth={2.25} />
           </span>
@@ -339,8 +549,8 @@ function PlanFormModal({
             </h3>
             <p className={styles.userControlSub}>
               {mode === "create"
-                ? "Create a business plan. Monthly and yearly prices sync to Stripe with the platform key from the server env."
-                : "Update pricing and plan details. Price changes sync to Stripe with the platform key from the server env."}
+                ? "Create a business plan customers can choose at signup. Leave prices blank for Custom / sales-assisted plans."
+                : "Update pricing and plan details. Changing price creates a new Stripe price for future checkouts."}
             </p>
             <div className={styles.userControlAddMeta}>
               <span className={styles.userControlAddMetaChip}>
@@ -355,7 +565,14 @@ function PlanFormModal({
           </div>
         </div>
 
-        <div className={styles.userControlAddBody}>
+        <div className={`${styles.userControlAddBody} ${planStyles.planFormBody}`}>
+          <div className={planStyles.planFormFields}>
+          <p className={planStyles.modalCallout}>
+            <strong>Stripe:</strong> priced plans sync automatically.{" "}
+            <strong>Existing subscribers</strong> keep their current Stripe
+            price until they change plan — only new checkouts use the updated
+            amount. Leave a price blank for Custom (no Stripe price).
+          </p>
           <div className={styles.userControlAddCard}>
             <p className={styles.userControlAddSectionLabel}>Basics</p>
             <div className={styles.userControlAddNameRow}>
@@ -615,7 +832,12 @@ function PlanFormModal({
                     onChange({ isActive: event.target.checked })
                   }
                 />
-                <span>Active</span>
+                <span>
+                  Active on signup
+                  <span className={planStyles.toggleHint}>
+                    Inactive plans stay in admin but are hidden from customers
+                  </span>
+                </span>
               </label>
               <label className={styles.userControlCheck}>
                 <input
@@ -626,18 +848,113 @@ function PlanFormModal({
                     onChange({ highlighted: event.target.checked })
                   }
                 />
-                <span>Highlighted</span>
+                <span>
+                  Highlighted
+                  <span className={planStyles.toggleHint}>
+                    Featured styling on the pricing card
+                  </span>
+                </span>
               </label>
             </div>
           </div>
+          </div>
+
+          <aside className={planStyles.planPreviewPane} aria-label="Plan card preview">
+            <div className={planStyles.planPreviewHead}>
+              <div className={planStyles.planPreviewTitleRow}>
+                <Eye className="size-3.5" strokeWidth={2.25} aria-hidden />
+                <p className={planStyles.planPreviewTitle}>Customer preview</p>
+              </div>
+              <p className={planStyles.planPreviewHint}>
+                Live look of the pricing card from the fields on the left
+              </p>
+              <div
+                className={planStyles.previewBillingToggle}
+                role="radiogroup"
+                aria-label="Preview billing cycle"
+              >
+                {(
+                  [
+                    { id: "monthly" as const, label: "Monthly" },
+                    { id: "annual" as const, label: "Yearly" },
+                  ] as const
+                ).map((option) => {
+                  const selected = previewBilling === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`${planStyles.previewBillingBtn} ${
+                        selected ? planStyles.previewBillingBtnActive : ""
+                      }`}
+                      onClick={() => setPreviewBilling(option.id)}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className={planStyles.planPreviewCardWrap}>
+              <AdminPlanPreviewCard model={previewModel} />
+            </div>
+            {mode === "edit" && editingPlan ? (
+              <div className={planStyles.stripeStatusBox}>
+                <p className={planStyles.stripeStatusTitle}>Stripe billing</p>
+                <div className={planStyles.stripeStatusRow}>
+                  <span
+                    className={`${planStyles.stripeChip} ${
+                      editingPlan.stripe.monthlySynced ||
+                      editingPlan.monthlyPrice == null
+                        ? planStyles.stripeChipOk
+                        : planStyles.stripeChipWarn
+                    }`}
+                  >
+                    Monthly{" "}
+                    {editingPlan.monthlyPrice == null
+                      ? "Custom"
+                      : editingPlan.stripe.monthlySynced
+                        ? "synced"
+                        : "missing"}
+                  </span>
+                  <span
+                    className={`${planStyles.stripeChip} ${
+                      editingPlan.stripe.yearlySynced ||
+                      editingPlan.yearlyPrice == null
+                        ? planStyles.stripeChipOk
+                        : planStyles.stripeChipWarn
+                    }`}
+                  >
+                    Yearly{" "}
+                    {editingPlan.yearlyPrice == null
+                      ? "Custom"
+                      : editingPlan.stripe.yearlySynced
+                        ? "synced"
+                        : "missing"}
+                  </span>
+                </div>
+                <p className={planStyles.stripeStatusHint}>
+                  {editingPlan.activeSubscriberCount > 0
+                    ? `${editingPlan.activeSubscriberCount} active subscriber${editingPlan.activeSubscriberCount === 1 ? "" : "s"} on this plan`
+                    : "No active subscribers on this plan"}
+                </p>
+              </div>
+            ) : null}
+            {!previewModel.isActive ? (
+              <p className={planStyles.previewInactiveNote}>
+                This plan is inactive — customers will not see it on signup.
+              </p>
+            ) : null}
+          </aside>
         </div>
 
-        <div className={styles.userControlActions}>
-          <p className={styles.userControlAddFooterNote}>
-            Required: plan name and slug. Priced plans create Stripe prices
-            automatically.
+        <div className={`${styles.userControlActions} ${planStyles.planFormActions}`}>
+          <p className={`${styles.userControlAddFooterNote} ${planStyles.planFormFooterNote}`}>
+            Required: plan name and slug. Use blank prices for Custom plans.
           </p>
-          <div className={styles.userControlAddFooterBtns}>
+          <div className={`${styles.userControlAddFooterBtns} ${planStyles.planFormFooterBtns}`}>
             <button
               type="button"
               className={styles.userControlSecondary}
@@ -678,10 +995,14 @@ export function SuperAdminPlansPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<PlanTab>("all");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [formOpen, setFormOpen] = useState<"create" | "edit" | null>(null);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PlanDraft>(EMPTY_DRAFT);
+  const [priceConfirmOpen, setPriceConfirmOpen] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AdminSubscriptionPlan | null>(
+    null,
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -691,26 +1012,6 @@ export function SuperAdminPlansPanel() {
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  useEffect(() => {
-    const onOverlayOpen = () => setFilterOpen(false);
-    window.addEventListener("dealio:sa-overlay-open", onOverlayOpen);
-    return () => {
-      window.removeEventListener("dealio:sa-overlay-open", onOverlayOpen);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!filterOpen) return;
-    const onPointerDown = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest?.(`.${styles.usersDirFilterMenu}`)) return;
-      if (target?.closest?.(`.${styles.usersDirFilterBtn}`)) return;
-      setFilterOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [filterOpen]);
-
   const plansQuery = useQuery({
     queryKey: adminQueryKeys.subscriptionPlans(),
     queryFn: getAdminSubscriptionPlans,
@@ -718,8 +1019,15 @@ export function SuperAdminPlansPanel() {
     staleTime: 20_000,
   });
 
-  const items = plansQuery.data?.items ?? [];
+  const items = useMemo(
+    () => plansQuery.data?.items ?? [],
+    [plansQuery.data?.items],
+  );
   const counts = plansQuery.data?.counts ?? { all: 0, active: 0, inactive: 0 };
+  const editingPlan = useMemo(
+    () => items.find((plan) => plan.id === editingPlanId) ?? null,
+    [items, editingPlanId],
+  );
 
   const filteredItems = useMemo(() => {
     const search = debouncedSearch.toLowerCase();
@@ -758,8 +1066,8 @@ export function SuperAdminPlansPanel() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const input = draftToInput(draft);
-      if (!input) {
-        throw new Error("Enter a valid plan name, slug, and prices.");
+      if (!isPlanInput(input)) {
+        throw new Error(input.error);
       }
       if (formOpen === "edit" && editingPlanId) {
         return updateAdminSubscriptionPlan(editingPlanId, input);
@@ -768,6 +1076,8 @@ export function SuperAdminPlansPanel() {
     },
     onSuccess: async () => {
       toast.success(formOpen === "edit" ? "Plan updated." : "Plan created.");
+      setPriceConfirmOpen(false);
+      setDeactivateConfirmOpen(false);
       setFormOpen(null);
       setEditingPlanId(null);
       setDraft(EMPTY_DRAFT);
@@ -780,15 +1090,55 @@ export function SuperAdminPlansPanel() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (planId: string) => deleteAdminSubscriptionPlan(planId),
+    onSuccess: async () => {
+      toast.success("Plan deleted.");
+      setDeleteTarget(null);
+      await queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.subscriptionPlansRoot(),
+      });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Could not delete plan."));
+    },
+  });
+
+  const requestSave = () => {
+    const input = draftToInput(draft);
+    if (!isPlanInput(input)) {
+      toast.error(input.error);
+      return;
+    }
+    if (
+      formOpen === "edit" &&
+      editingPlan?.isActive &&
+      !draft.isActive &&
+      (editingPlan.activeSubscriberCount ?? 0) > 0
+    ) {
+      setDeactivateConfirmOpen(true);
+      return;
+    }
+    if (formOpen === "edit" && draftPricesChanged(draft, editingPlan)) {
+      setPriceConfirmOpen(true);
+      return;
+    }
+    saveMutation.mutate();
+  };
+
   const openCreate = () => {
     setEditingPlanId(null);
     setDraft(EMPTY_DRAFT);
+    setPriceConfirmOpen(false);
+    setDeactivateConfirmOpen(false);
     setFormOpen("create");
   };
 
   const openEdit = (plan: AdminSubscriptionPlan) => {
     setEditingPlanId(plan.id);
     setDraft(draftFromPlan(plan));
+    setPriceConfirmOpen(false);
+    setDeactivateConfirmOpen(false);
     setFormOpen("edit");
   };
 
@@ -839,7 +1189,7 @@ export function SuperAdminPlansPanel() {
 
   return (
     <section
-      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions}`}
+      className={`${styles.page} ${styles.usersDir} ${styles.usersDirBlackActions} ${planStyles.plansShell}`}
       aria-label="Plans"
     >
       <div className={styles.inner}>
@@ -847,8 +1197,8 @@ export function SuperAdminPlansPanel() {
           <div className={styles.heroCopy}>
             <h1 className={styles.title}>Plans</h1>
             <p className={styles.subtitle}>
-              Business subscription plans. Create new plans or update pricing
-              and copy.
+              Catalog of Dealioo subscription packages — pricing, copy, and
+              signup visibility. Customer purchases live under Subscriptions.
             </p>
           </div>
           <div className={styles.usersDirHeroActions}>
@@ -858,72 +1208,31 @@ export function SuperAdminPlansPanel() {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search plans by name or slug..."
+                placeholder="Search by name, slug, or badge…"
                 className={styles.usersDirSearchInput}
                 aria-label="Search plans"
               />
             </label>
-            <div className="relative">
-              <button
-                type="button"
-                className={styles.usersDirFilterBtn}
-                aria-expanded={filterOpen}
-                aria-haspopup="menu"
-                onClick={() => setFilterOpen((open) => !open)}
-              >
-                <Filter className="size-4" strokeWidth={2.25} aria-hidden />
-                Filter
-                {tab !== "all" ? (
-                  <span className="ml-1 text-[0.72rem] font-semibold text-slate-500">
-                    · {TAB_OPTIONS.find((option) => option.id === tab)?.label}
-                  </span>
-                ) : null}
-              </button>
-              {filterOpen ? (
-                <div className={styles.usersDirFilterMenu} role="menu">
-                  {TAB_OPTIONS.map((option) => {
-                    const selected = tab === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={selected}
-                        className={`${styles.usersDirFilterMenuItem} ${
-                          selected ? styles.usersDirFilterMenuItemSelected : ""
-                        }`}
-                        onClick={() => {
-                          setTab(option.id);
-                          setPage(1);
-                          setFilterOpen(false);
-                        }}
-                      >
-                        <span>
-                          {option.label}{" "}
-                          <span className={styles.usersDirFilterMenuCount}>
-                            ({tabCounts[option.id]})
-                          </span>
-                        </span>
-                        {selected ? (
-                          <span className={styles.usersDirFilterMenuApplied}>
-                            Applied
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
             <button
               type="button"
               className={styles.usersDirAddBtn}
               onClick={openCreate}
             >
               <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-              Add Plan
+              Add plan
             </button>
           </div>
+        </div>
+
+        <div className={planStyles.notice} role="note">
+          <span className={planStyles.noticeIcon} aria-hidden>
+            <Info className="size-3.5" strokeWidth={2.25} />
+          </span>
+          <p className="m-0">
+            Active plans appear on signup. Changing a price updates Stripe for
+            new checkouts only — existing subscribers keep their current price
+            until they change plan.
+          </p>
         </div>
 
         {errorMessage ? (
@@ -972,10 +1281,39 @@ export function SuperAdminPlansPanel() {
         )}
 
         <div className={styles.usersDirToolbar}>
-          <p className={styles.usersDirFooterMeta}>
-            Showing{" "}
-            {TAB_OPTIONS.find((option) => option.id === tab)?.label ?? "All"}{" "}
-            plans
+          <div
+            className={planStyles.segmentTabs}
+            role="tablist"
+            aria-label="Plan status"
+          >
+            {TAB_OPTIONS.map((option) => {
+              const selected = tab === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={`${planStyles.segmentTab} ${
+                    selected ? planStyles.segmentTabActive : ""
+                  }`}
+                  onClick={() => {
+                    setTab(option.id);
+                    setPage(1);
+                  }}
+                >
+                  {option.label}
+                  <span className={planStyles.segmentCount}>
+                    {tabCounts[option.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className={planStyles.tableHint}>
+            {total === 0
+              ? "No plans in this view"
+              : `Showing ${showingStart}–${Math.min(showingStart + pageItems.length - 1, total)} of ${total}`}
           </p>
         </div>
 
@@ -984,7 +1322,28 @@ export function SuperAdminPlansPanel() {
             {loading && items.length === 0 ? (
               <PlansTableSkeleton />
             ) : pageItems.length === 0 ? (
-              <p className={styles.empty}>No plans found.</p>
+              <div className={planStyles.emptyState}>
+                <p className={planStyles.emptyTitle}>
+                  {debouncedSearch || tab !== "all"
+                    ? "No plans match this view"
+                    : "No plans yet"}
+                </p>
+                <p className={planStyles.emptyCopy}>
+                  {debouncedSearch || tab !== "all"
+                    ? "Try another search or status filter, or create a new plan."
+                    : "Create your first subscription plan to show on signup and bill through Stripe."}
+                </p>
+                {!debouncedSearch && tab === "all" ? (
+                  <button
+                    type="button"
+                    className={styles.usersDirAddBtn}
+                    onClick={openCreate}
+                  >
+                    <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+                    Add plan
+                  </button>
+                ) : null}
+              </div>
             ) : (
               <table className={styles.usersDirTable}>
                 <thead>
@@ -1031,6 +1390,16 @@ export function SuperAdminPlansPanel() {
                     </th>
                     <th>
                       <span className={styles.meetingsThWithIcon}>
+                        <Users
+                          className="size-3.5"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        Subscribers
+                      </span>
+                    </th>
+                    <th>
+                      <span className={styles.meetingsThWithIcon}>
                         <CircleDot
                           className="size-3.5"
                           strokeWidth={2.25}
@@ -1047,6 +1416,8 @@ export function SuperAdminPlansPanel() {
                 <tbody>
                   {pageItems.map((plan, index) => {
                     const rowNumber = showingStart + index;
+                    const featureCount = planFeatureLines(plan).filter(Boolean)
+                      .length;
                     return (
                       <tr
                         key={plan.id}
@@ -1060,33 +1431,86 @@ export function SuperAdminPlansPanel() {
                         </td>
                         <td>
                           <div className={styles.userCell}>
-                            <span className={styles.userAvatar} aria-hidden>
+                            <span
+                              className={styles.userAvatar}
+                              style={{
+                                background:
+                                  plan.description?.color || undefined,
+                                color: plan.description?.color
+                                  ? "#fff"
+                                  : undefined,
+                              }}
+                              aria-hidden
+                            >
                               {initialsFromName(plan.name || plan.slug || "?")}
                             </span>
                             <div className={styles.userCellText}>
-                              <div className={styles.bizName}>
-                                {plan.name || "—"}
+                              <div className={planStyles.planNameRow}>
+                                <span className={styles.bizName}>
+                                  {plan.name || "—"}
+                                </span>
+                                {plan.description?.badge ? (
+                                  <span className={planStyles.planBadge}>
+                                    {plan.description.badge}
+                                  </span>
+                                ) : null}
+                                {plan.description?.highlighted ? (
+                                  <span className={planStyles.planHighlight}>
+                                    Featured
+                                  </span>
+                                ) : null}
                               </div>
-                              <div className={styles.bizMeta}>{plan.slug}</div>
+                              <div className={styles.bizMeta}>
+                                {plan.slug}
+                                {featureCount > 0
+                                  ? ` · ${featureCount} feature${featureCount === 1 ? "" : "s"}`
+                                  : ""}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <span className={styles.usersDirDateMain}>
-                            {formatMoney(plan.monthlyPrice)}
-                          </span>
+                          <div className={planStyles.priceCell}>
+                            <span className={planStyles.priceMain}>
+                              {formatMoney(plan.monthlyPrice)}
+                            </span>
+                            <span className={planStyles.priceSub}>
+                              {(plan.currency || "USD").toUpperCase()}
+                              {plan.monthlyPrice == null ? " · Custom" : "/mo"}
+                            </span>
+                          </div>
                         </td>
                         <td>
-                          <span className={styles.usersDirDateMain}>
-                            {formatMoney(plan.yearlyPrice)}
-                          </span>
+                          <div className={planStyles.priceCell}>
+                            <span className={planStyles.priceMain}>
+                              {formatMoney(plan.yearlyPrice)}
+                            </span>
+                            <span className={planStyles.priceSub}>
+                              {(plan.currency || "USD").toUpperCase()}
+                              {plan.yearlyPrice == null ? " · Custom" : "/yr"}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={planStyles.priceCell}>
+                            <span className={planStyles.priceMain}>
+                              {plan.activeSubscriberCount.toLocaleString()}
+                            </span>
+                            <span className={planStyles.priceSub}>
+                              active
+                              {plan.totalSubscriberCount >
+                              plan.activeSubscriberCount
+                                ? ` · ${plan.totalSubscriberCount} total`
+                                : ""}
+                            </span>
+                          </div>
                         </td>
                         <td>
                           <span
                             className={`${styles.usersDirStatusPill} ${
                               plan.isActive
-                                ? ""
-                                : styles.usersDirStatusPillInactive
+                                ? planStyles.statusActive
+                                : planStyles.statusInactive
                             }`}
                           >
                             <span
@@ -1100,19 +1524,44 @@ export function SuperAdminPlansPanel() {
                           className={styles.userMenuCell}
                           onClick={(event) => event.stopPropagation()}
                         >
-                          <button
-                            type="button"
-                            className={styles.userMenuBtn}
-                            aria-label={`Edit ${plan.name || plan.slug}`}
-                            disabled={saveMutation.isPending}
-                            onClick={() => openEdit(plan)}
-                          >
-                            <Pencil
-                              className="size-4"
-                              strokeWidth={2}
-                              aria-hidden
-                            />
-                          </button>
+                          <div className={planStyles.rowActions}>
+                            <button
+                              type="button"
+                              className={planStyles.editAction}
+                              aria-label={`Edit ${plan.name || plan.slug}`}
+                              disabled={
+                                saveMutation.isPending ||
+                                deleteMutation.isPending
+                              }
+                              onClick={() => openEdit(plan)}
+                            >
+                              <Pencil
+                                className="size-3.5"
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                              Edit
+                            </button>
+                            {plan.canDelete ? (
+                              <button
+                                type="button"
+                                className={planStyles.deleteAction}
+                                aria-label={`Delete ${plan.name || plan.slug}`}
+                                disabled={
+                                  saveMutation.isPending ||
+                                  deleteMutation.isPending
+                                }
+                                onClick={() => setDeleteTarget(plan)}
+                              >
+                                <Trash2
+                                  className="size-3.5"
+                                  strokeWidth={2.25}
+                                  aria-hidden
+                                />
+                                Delete
+                              </button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1139,17 +1588,86 @@ export function SuperAdminPlansPanel() {
           mode={formOpen}
           draft={draft}
           saving={saveMutation.isPending}
+          editingPlan={editingPlan}
           onClose={() => {
             if (saveMutation.isPending) return;
+            setPriceConfirmOpen(false);
+            setDeactivateConfirmOpen(false);
             setFormOpen(null);
             setEditingPlanId(null);
           }}
           onChange={(patch) =>
             setDraft((current) => ({ ...current, ...patch }))
           }
-          onSave={() => saveMutation.mutate()}
+          onSave={requestSave}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={priceConfirmOpen}
+        tone="warning"
+        title="Update plan pricing?"
+        description={
+          (editingPlan?.activeSubscriberCount ?? 0) > 0
+            ? `This creates a new Stripe price for future checkouts. ${editingPlan!.activeSubscriberCount} active subscriber${editingPlan!.activeSubscriberCount === 1 ? "" : "s"} keep their current price until they change plan.`
+            : "This creates a new Stripe price for future checkouts. There are no active subscribers on this plan right now."
+        }
+        confirmLabel="Update pricing"
+        cancelLabel="Cancel"
+        isLoading={saveMutation.isPending}
+        loadingLabel="Saving…"
+        onCancel={() => {
+          if (!saveMutation.isPending) setPriceConfirmOpen(false);
+        }}
+        onConfirm={() => saveMutation.mutate()}
+      />
+
+      <ConfirmDialog
+        open={deactivateConfirmOpen}
+        tone="warning"
+        title="Deactivate this plan?"
+        description={
+          editingPlan
+            ? `"${editingPlan.name}" has ${editingPlan.activeSubscriberCount} active subscriber${editingPlan.activeSubscriberCount === 1 ? "" : "s"}. They keep access; new customers will not see this plan on signup.`
+            : "New customers will not see this plan on signup."
+        }
+        confirmLabel="Deactivate plan"
+        cancelLabel="Cancel"
+        isLoading={saveMutation.isPending}
+        loadingLabel="Saving…"
+        onCancel={() => {
+          if (!saveMutation.isPending) setDeactivateConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          setDeactivateConfirmOpen(false);
+          if (draftPricesChanged(draft, editingPlan)) {
+            setPriceConfirmOpen(true);
+            return;
+          }
+          saveMutation.mutate();
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        tone="danger"
+        title="Delete this plan?"
+        description={
+          deleteTarget
+            ? `"${deleteTarget.name}" has no subscribers and will be removed permanently. This cannot be undone.`
+            : "This plan will be removed permanently."
+        }
+        confirmLabel="Delete plan"
+        cancelLabel="Cancel"
+        isLoading={deleteMutation.isPending}
+        loadingLabel="Deleting…"
+        onCancel={() => {
+          if (!deleteMutation.isPending) setDeleteTarget(null);
+        }}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
+      />
     </section>
   );
 }

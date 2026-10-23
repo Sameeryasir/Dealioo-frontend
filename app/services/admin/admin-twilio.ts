@@ -1,5 +1,5 @@
 /**
- * Super Admin Twilio actions: webhook + buy number.
+ * Super Admin Twilio actions: webhook, buy, assign, unassign.
  * Related: SuperAdminTwilioPanel, platform-admin Twilio routes
  */
 
@@ -58,6 +58,74 @@ export async function purchaseAdminTwilioNumber(input: {
   } catch (error) {
     throw new Error(
       parseApiMessage(error, "Could not buy that Twilio number."),
+    );
+  }
+}
+
+export async function assignAdminTwilioNumber(input: {
+  phoneNumber: string;
+  businessId: number;
+  phoneSid?: string;
+}): Promise<{
+  businessId: number;
+  businessName: string;
+  twilioPhoneNumber: string;
+  twilioConnectedAt: string | Date;
+}> {
+  try {
+    const { data } = await authAxios.post<{
+      businessId: number;
+      businessName: string;
+      twilioPhoneNumber: string;
+      twilioConnectedAt: string | Date;
+    }>("/admin/twilio/phone-numbers/assign", {
+      phoneNumber: input.phoneNumber,
+      businessId: input.businessId,
+      ...(input.phoneSid?.trim() ? { phoneSid: input.phoneSid.trim() } : {}),
+    });
+    return {
+      businessId: Number(data?.businessId) || input.businessId,
+      businessName: String(data?.businessName ?? ""),
+      twilioPhoneNumber: String(
+        data?.twilioPhoneNumber ?? input.phoneNumber,
+      ),
+      twilioConnectedAt: data?.twilioConnectedAt ?? new Date().toISOString(),
+    };
+  } catch (error) {
+    throw new Error(
+      parseApiMessage(error, "Could not assign that Twilio number."),
+    );
+  }
+}
+
+export async function unassignAdminTwilioNumber(input: {
+  phoneNumber: string;
+  phoneSid?: string;
+}): Promise<{
+  phoneNumber: string;
+  unassigned: boolean;
+  previousBusinessId: number | null;
+}> {
+  try {
+    const { data } = await authAxios.post<{
+      phoneNumber: string;
+      unassigned: boolean;
+      previousBusinessId?: number | null;
+    }>("/admin/twilio/phone-numbers/unassign", {
+      phoneNumber: input.phoneNumber,
+      ...(input.phoneSid?.trim() ? { phoneSid: input.phoneSid.trim() } : {}),
+    });
+    return {
+      phoneNumber: String(data?.phoneNumber ?? input.phoneNumber),
+      unassigned: Boolean(data?.unassigned),
+      previousBusinessId:
+        data?.previousBusinessId == null
+          ? null
+          : Number(data.previousBusinessId),
+    };
+  } catch (error) {
+    throw new Error(
+      parseApiMessage(error, "Could not remove that number from the business."),
     );
   }
 }

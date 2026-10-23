@@ -113,7 +113,8 @@ function BillingToggle({
   );
 }
 
-function SignupPlanCard({
+/** Shared signup pricing card — also used for Super Admin plan preview. */
+export function SignupPlanCard({
   plan,
   billing,
   selected,

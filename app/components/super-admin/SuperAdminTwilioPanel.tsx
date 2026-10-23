@@ -1,15 +1,20 @@
 "use client";
 
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
+import { AdminTwilioAssignNumberModal } from "@/app/components/super-admin/AdminTwilioAssignNumberModal";
 import { AdminTwilioBuyNumberModal } from "@/app/components/super-admin/AdminTwilioBuyNumberModal";
 import { formatAbsoluteDate } from "@/app/components/super-admin/super-admin-list-helpers";
 import styles from "@/app/components/super-admin/SuperAdminTwilioPanel.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { adminQueryKeys } from "@/app/services/admin/admin-query-keys";
-import { setAdminTwilioWebhook } from "@/app/services/admin/admin-twilio";
+import {
+  setAdminTwilioWebhook,
+  unassignAdminTwilioNumber,
+} from "@/app/services/admin/admin-twilio";
 import { getAdminTwilioDashboard } from "@/app/services/admin/get-admin-twilio-dashboard";
 import {
   keepPreviousData,
@@ -18,6 +23,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
+  Building2,
   CircleDot,
   ImageIcon,
   Loader2,
@@ -26,6 +32,7 @@ import {
   Plus,
   Printer,
   RefreshCw,
+  Unlink,
   User,
   Webhook,
 } from "lucide-react";
@@ -127,6 +134,14 @@ export function SuperAdminTwilioPanel() {
   const [page, setPage] = useState(1);
   const [buyOpen, setBuyOpen] = useState(false);
   const [buySession, setBuySession] = useState(0);
+  const [assignTarget, setAssignTarget] = useState<{
+    phoneNumber: string;
+    businessName: string | null;
+  } | null>(null);
+  const [unassignTarget, setUnassignTarget] = useState<{
+    phoneNumber: string;
+    businessName: string;
+  } | null>(null);
   const [webhookPhone, setWebhookPhone] = useState<string | null>(null);
   const [webhookOverrides, setWebhookOverrides] = useState<
     Record<string, string>
@@ -197,6 +212,29 @@ export function SuperAdminTwilioPanel() {
       toast.error(getApiErrorMessage(error, "Could not configure webhook."));
     },
     onSettled: () => setWebhookPhone(null),
+  });
+
+  const unassignMutation = useMutation({
+    mutationFn: (phoneNumber: string) =>
+      unassignAdminTwilioNumber({ phoneNumber }),
+    onSuccess: async (result) => {
+      toast.success(`Removed ${result.phoneNumber} from the business.`);
+      setUnassignTarget(null);
+      await queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.twilioDashboardRoot(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.businessesRoot(),
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Could not remove that number from the business.",
+        ),
+      );
+    },
   });
 
   return (
@@ -341,20 +379,20 @@ export function SuperAdminTwilioPanel() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th style={{ width: "3rem" }}>
+                        <th style={{ width: "2.5rem" }}>
                           <span className="sr-only">Row number</span>
                           #
                         </th>
                         <th>Phone number</th>
-                        <th>Label</th>
+                        <th className={styles.colTertiary}>Label</th>
                         <th>Status</th>
                         <th className={styles.capCell}>Capabilities</th>
-                        <th>Address req.</th>
+                        <th className={styles.colSecondary}>Address req.</th>
                         <th>Webhook URL</th>
-                        <th>Webhook</th>
+                        <th className={styles.colTertiary}>Webhook</th>
                         <th>Business</th>
-                        <th>Created</th>
-                        <th>Connected</th>
+                        <th className={styles.colSecondary}>Created</th>
+                        <th className={styles.colSecondary}>Connected</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -377,12 +415,18 @@ export function SuperAdminTwilioPanel() {
                               </span>
                             </td>
                             <td>
-                              <span className={styles.cellMain}>
+                              <span
+                                className={styles.cellMain}
+                                title={row.phoneNumber}
+                              >
                                 {row.phoneNumber}
                               </span>
                             </td>
-                            <td>
-                              <span className={styles.cellMeta}>
+                            <td className={styles.colTertiary}>
+                              <span
+                                className={styles.cellMeta}
+                                title={row.label || undefined}
+                              >
                                 {row.label || "—"}
                               </span>
                             </td>
@@ -456,7 +500,7 @@ export function SuperAdminTwilioPanel() {
                                 </span>
                               </div>
                             </td>
-                            <td>
+                            <td className={styles.colSecondary}>
                               <span className={styles.cellMeta}>
                                 {row.addressRequirement || "None"}
                               </span>
@@ -466,6 +510,7 @@ export function SuperAdminTwilioPanel() {
                                 className={styles.webhookInput}
                                 type="url"
                                 value={draftUrl}
+                                title={draftUrl || undefined}
                                 disabled={saving || webhookMutation.isPending}
                                 placeholder="https://…"
                                 aria-label={`Webhook URL for ${row.phoneNumber}`}
@@ -477,7 +522,7 @@ export function SuperAdminTwilioPanel() {
                                 }
                               />
                             </td>
-                            <td>
+                            <td className={styles.colTertiary}>
                               <span
                                 className={`${styles.badge} ${
                                   row.webhookConfigured
@@ -493,7 +538,10 @@ export function SuperAdminTwilioPanel() {
                             </td>
                             <td>
                               {row.businessName ? (
-                                <span className={styles.cellMain}>
+                                <span
+                                  className={styles.cellMain}
+                                  title={row.businessName}
+                                >
                                   {row.businessName}
                                 </span>
                               ) : (
@@ -504,14 +552,14 @@ export function SuperAdminTwilioPanel() {
                                 </span>
                               )}
                             </td>
-                            <td>
+                            <td className={styles.colSecondary}>
                               <span className={styles.cellMeta}>
                                 {row.dateCreated
                                   ? formatAbsoluteDate(row.dateCreated)
                                   : "—"}
                               </span>
                             </td>
-                            <td>
+                            <td className={styles.colSecondary}>
                               <span className={styles.cellMeta}>
                                 {row.connectedAt
                                   ? formatAbsoluteDate(row.connectedAt)
@@ -519,57 +567,117 @@ export function SuperAdminTwilioPanel() {
                               </span>
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                className={styles.webhookBtn}
-                                disabled={
-                                  !configured ||
-                                  !canSave ||
-                                  saving ||
-                                  webhookMutation.isPending
-                                }
-                                onClick={() => {
-                                  const smsUrl = draftUrl.trim();
-                                  if (!/^https:\/\//i.test(smsUrl)) {
-                                    toast.error(
-                                      "Webhook URL must start with https://",
-                                    );
-                                    return;
+                              <div className={styles.actionStack}>
+                                <button
+                                  type="button"
+                                  className={styles.assignBtn}
+                                  disabled={!configured}
+                                  onClick={() =>
+                                    setAssignTarget({
+                                      phoneNumber: row.phoneNumber,
+                                      businessName: row.businessName,
+                                    })
                                   }
-                                  try {
-                                    const parsed = new URL(smsUrl);
-                                    const host = parsed.hostname.toLowerCase();
-                                    if (
-                                      host === "localhost" ||
-                                      host === "127.0.0.1" ||
-                                      host.endsWith(".local")
-                                    ) {
+                                  title={
+                                    row.businessName
+                                      ? "Reassign this number to another business"
+                                      : "Assign this number to a business"
+                                  }
+                                >
+                                  <Building2 className="size-3.5" />
+                                  <span className={styles.btnLabelFull}>
+                                    {row.businessName ? "Reassign" : "Assign"}
+                                  </span>
+                                  <span className={styles.btnLabelShort}>
+                                    {row.businessName ? "Move" : "Assign"}
+                                  </span>
+                                </button>
+                                {row.businessName ? (
+                                  <button
+                                    type="button"
+                                    className={styles.unassignBtn}
+                                    disabled={
+                                      !configured || unassignMutation.isPending
+                                    }
+                                    onClick={() =>
+                                      setUnassignTarget({
+                                        phoneNumber: row.phoneNumber,
+                                        businessName: row.businessName!,
+                                      })
+                                    }
+                                    title="Remove this number from the business"
+                                  >
+                                    <Unlink className="size-3.5" />
+                                    <span className={styles.btnLabelFull}>
+                                      Remove
+                                    </span>
+                                    <span className={styles.btnLabelShort}>
+                                      Remove
+                                    </span>
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className={styles.webhookBtn}
+                                  disabled={
+                                    !configured ||
+                                    !canSave ||
+                                    saving ||
+                                    webhookMutation.isPending
+                                  }
+                                  onClick={() => {
+                                    const smsUrl = draftUrl.trim();
+                                    if (!/^https:\/\//i.test(smsUrl)) {
                                       toast.error(
-                                        "Webhook URL cannot point to a local host.",
+                                        "Webhook URL must start with https://",
                                       );
                                       return;
                                     }
-                                  } catch {
-                                    toast.error("Webhook URL is not valid.");
-                                    return;
-                                  }
-                                  webhookMutation.mutate({
-                                    phoneNumber: row.phoneNumber,
-                                    smsUrl,
-                                  });
-                                }}
-                              >
-                                {saving ? (
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                ) : (
-                                  <Webhook className="size-3.5" />
-                                )}
-                                {saving
-                                  ? "Saving…"
-                                  : row.webhookConfigured
-                                    ? "Save webhook"
-                                    : "Configure webhook"}
-                              </button>
+                                    try {
+                                      const parsed = new URL(smsUrl);
+                                      const host =
+                                        parsed.hostname.toLowerCase();
+                                      if (
+                                        host === "localhost" ||
+                                        host === "127.0.0.1" ||
+                                        host.endsWith(".local")
+                                      ) {
+                                        toast.error(
+                                          "Webhook URL cannot point to a local host.",
+                                        );
+                                        return;
+                                      }
+                                    } catch {
+                                      toast.error("Webhook URL is not valid.");
+                                      return;
+                                    }
+                                    webhookMutation.mutate({
+                                      phoneNumber: row.phoneNumber,
+                                      smsUrl,
+                                    });
+                                  }}
+                                >
+                                  {saving ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <Webhook className="size-3.5" />
+                                  )}
+                                  <span className={styles.btnLabelFull}>
+                                    {saving
+                                      ? "Saving…"
+                                      : row.webhookConfigured
+                                        ? "Save webhook"
+                                        : "Configure webhook"}
+                                  </span>
+                                  <span className={styles.btnLabelShort}>
+                                    {saving
+                                      ? "…"
+                                      : row.webhookConfigured
+                                        ? "Save"
+                                        : "Webhook"}
+                                  </span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -604,6 +712,45 @@ export function SuperAdminTwilioPanel() {
           await queryClient.invalidateQueries({
             queryKey: adminQueryKeys.twilioDashboardRoot(),
           });
+        }}
+      />
+
+      <AdminTwilioAssignNumberModal
+        key={assignTarget?.phoneNumber ?? "twilio-assign-closed"}
+        open={Boolean(assignTarget)}
+        configured={configured}
+        phoneNumber={assignTarget?.phoneNumber ?? ""}
+        currentBusinessName={assignTarget?.businessName ?? null}
+        onClose={() => setAssignTarget(null)}
+        onAssigned={async () => {
+          await queryClient.invalidateQueries({
+            queryKey: adminQueryKeys.twilioDashboardRoot(),
+          });
+          await queryClient.invalidateQueries({
+            queryKey: adminQueryKeys.businessesRoot(),
+          });
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(unassignTarget)}
+        tone="warning"
+        title="Remove number from business?"
+        description={
+          unassignTarget
+            ? `${unassignTarget.phoneNumber} will be unassigned from ${unassignTarget.businessName}. The number stays on the Dealioo Twilio account and can be assigned again later.`
+            : ""
+        }
+        confirmLabel="Remove from business"
+        cancelLabel="Cancel"
+        isLoading={unassignMutation.isPending}
+        loadingLabel="Removing…"
+        onCancel={() => {
+          if (!unassignMutation.isPending) setUnassignTarget(null);
+        }}
+        onConfirm={() => {
+          if (!unassignTarget) return;
+          unassignMutation.mutate(unassignTarget.phoneNumber);
         }}
       />
     </section>
