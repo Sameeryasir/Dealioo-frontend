@@ -905,30 +905,100 @@ export function SuperAdminDashboard() {
               </OverviewChartShell>
 
               <div className={styles.salesInsightCard}>
-                <p className={styles.salesInsightTitle}>Sales snapshot</p>
+                <p className={styles.salesInsightTitle}>Sales funnel</p>
                 <p className={styles.salesInsightCopy}>
-                  Conversion is attended meetings that became deals won. Ready
-                  to create is the backlog of won deals still waiting for an
-                  account.
+                  How meetings move from booked → attended → won this period.
                 </p>
-                <div className={styles.salesInsightStats}>
-                  <div>
-                    <p className={styles.salesInsightLabel}>Conversion</p>
-                    <p className={styles.salesInsightValue}>
-                      {blankLoading
-                        ? "—"
-                        : `${kpis?.conversionRate.value ?? 0}%`}
-                    </p>
+                {blankLoading ? (
+                  <div className={styles.salesFunnelSkeleton} aria-busy="true">
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-[85%] rounded-xl" />
+                    <Skeleton className="h-10 w-[70%] rounded-xl" />
                   </div>
-                  <div>
-                    <p className={styles.salesInsightLabel}>Ready to create</p>
-                    <p className={styles.salesInsightValue}>
-                      {blankLoading
-                        ? "—"
-                        : String(kpis?.readyToCreate.value ?? 0)}
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className={styles.salesFunnelSteps}>
+                      {(
+                        [
+                          {
+                            key: "booked",
+                            label: "Booked",
+                            value: kpis?.meetingsBooked.value ?? 0,
+                            color: "#2563eb",
+                          },
+                          {
+                            key: "attended",
+                            label: "Attended",
+                            value: kpis?.meetingsAttended.value ?? 0,
+                            color: "#7c3aed",
+                          },
+                          {
+                            key: "won",
+                            label: "Deals won",
+                            value: kpis?.dealsWon.value ?? 0,
+                            color: "#059669",
+                          },
+                        ] as const
+                      ).map((step) => {
+                        const booked = Math.max(
+                          kpis?.meetingsBooked.value ?? 0,
+                          1,
+                        );
+                        const widthPct = Math.max(
+                          18,
+                          Math.min(100, (step.value / booked) * 100),
+                        );
+                        return (
+                          <div key={step.key} className={styles.salesFunnelRow}>
+                            <div className={styles.salesFunnelMeta}>
+                              <span>{step.label}</span>
+                              <strong>{step.value}</strong>
+                            </div>
+                            <div className={styles.salesFunnelTrack}>
+                              <div
+                                className={styles.salesFunnelFill}
+                                style={
+                                  {
+                                    width: `${widthPct}%`,
+                                    background: step.color,
+                                  } as CSSProperties
+                                }
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className={styles.salesInsightStats}>
+                      <div>
+                        <p className={styles.salesInsightLabel}>Show-up rate</p>
+                        <p className={styles.salesInsightValue}>
+                          {(() => {
+                            const booked = kpis?.meetingsBooked.value ?? 0;
+                            const attended =
+                              kpis?.meetingsAttended.value ?? 0;
+                            if (booked <= 0) return "0%";
+                            return `${Math.round((attended / booked) * 1000) / 10}%`;
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={styles.salesInsightLabel}>Win rate</p>
+                        <p className={styles.salesInsightValue}>
+                          {`${kpis?.conversionRate.value ?? 0}%`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={styles.salesInsightLabel}>
+                          Ready to create
+                        </p>
+                        <p className={styles.salesInsightValue}>
+                          {String(kpis?.readyToCreate.value ?? 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </>
