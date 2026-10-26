@@ -9,14 +9,15 @@ import { useCredentialContext } from "@/app/contexts/credential-context";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { isScannerUser } from "@/app/lib/is-scanner-user";
-import type { BusinessMemberPermission } from "@/app/services/member/types";
 import {
   businessSettingsHref,
   defaultBusinessSettingsSection,
   orgSettingsHref,
 } from "@/app/lib/business-settings-routes";
+import { scanningHref } from "@/app/lib/scanning-routes";
 import { clearSetupUser } from "@/app/lib/setup-user";
 import { logoutSession } from "@/app/services/auth/logout";
+import type { BusinessMemberPermission } from "@/app/services/member/types";
 import {
   Activity,
   ChartColumn,
@@ -26,6 +27,7 @@ import {
   Megaphone,
   MessageSquare,
   ScanLine,
+  Search,
   Settings,
   ShoppingBag,
   UserPlus,
@@ -207,10 +209,28 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
-            ? `${restaurantHomeHref}/scanning`
+            ? scanningHref(businessId, "scan")
             : "/dashboard/scanning",
           label: "Scanning",
           icon: ScanLine,
+          activeMatch: "exact",
+          permission: "scanning",
+        },
+        {
+          href: businessId
+            ? scanningHref(businessId, "search")
+            : "/dashboard/scanning/search",
+          label: "Search",
+          icon: Search,
+          activeMatch: "prefix",
+          permission: "scanning",
+        },
+        {
+          href: businessId
+            ? scanningHref(businessId, "create")
+            : "/dashboard/scanning/new-guest",
+          label: "Create new guest",
+          icon: UserPlus,
           activeMatch: "prefix",
           permission: "scanning",
         },
@@ -323,7 +343,9 @@ export default function AdminPanelSidebar() {
               activeMatch === "exact"
                 ? pathname === href
                 : pathname === href || pathname.startsWith(`${href}/`);
-            const disabled = scannerUser && label !== "Scanning";
+            const disabled =
+              scannerUser &&
+              !href.includes("/scanning");
             const iconNode = brandIcon ? (
               <Icon
                 className="rd-sidebar-item-icon"
