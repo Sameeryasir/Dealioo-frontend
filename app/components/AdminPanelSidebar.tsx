@@ -27,7 +27,6 @@ import {
   Megaphone,
   MessageSquare,
   ScanLine,
-  Search,
   Settings,
   ShoppingBag,
   UserPlus,
@@ -213,24 +212,7 @@ export default function AdminPanelSidebar() {
             : "/dashboard/scanning",
           label: "Scanning",
           icon: ScanLine,
-          activeMatch: "exact",
-          permission: "scanning",
-        },
-        {
-          href: businessId
-            ? scanningHref(businessId, "search")
-            : "/dashboard/scanning/search",
-          label: "Search",
-          icon: Search,
-          activeMatch: "prefix",
-          permission: "scanning",
-        },
-        {
-          href: businessId
-            ? scanningHref(businessId, "create")
-            : "/dashboard/scanning/new-guest",
-          label: "Create new guest",
-          icon: UserPlus,
+          // Prefix so search/create tabs on the scanning page still highlight Scanning
           activeMatch: "prefix",
           permission: "scanning",
         },

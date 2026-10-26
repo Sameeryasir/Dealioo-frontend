@@ -251,15 +251,22 @@ function DescriptionCell({ event }: { event: BusinessHistoryEvent }) {
 function HistoryRow({
   event,
   index,
+  rowNumber,
 }: {
   event: BusinessHistoryEvent;
   index: number;
+  rowNumber: number;
 }) {
   const actor = event.actorName?.trim() || "Team";
   const when = formatDateParts(event.occurredAt);
 
   return (
     <tr className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70">
+      <td className={tdClass}>
+        <span className="text-xs font-semibold tabular-nums text-slate-400">
+          {rowNumber}
+        </span>
+      </td>
       <td className={tdClass}>
         <ActivityCell event={event} />
       </td>
@@ -597,11 +604,20 @@ export function BusinessHistoryPanel({
             ) : null}
 
             {showTable ? (
-              <>
+              // Wrapper keeps table full height so .rd-premium-panel__body can scroll
+              // (same pattern as Activity/Orders — avoid .table-h-scroll as direct flex child).
+              <div className="min-w-0">
                 <div className="table-h-scroll hidden md:block">
                   <table className="w-full min-w-[44rem] border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
+                        <th className={`${thClass} w-12`}>
+                          <TableColumnHeader
+                            label="#"
+                            iconClassName={TABLE_HEAD_ICON_CLASS}
+                            labelClassName={TABLE_HEAD_LABEL_CLASS}
+                          />
+                        </th>
                         <th className={thClass}>
                           <TableColumnHeader
                             icon={Activity}
@@ -638,7 +654,12 @@ export function BusinessHistoryPanel({
                     </thead>
                     <tbody>
                       {events.map((event, index) => (
-                        <HistoryRow key={event.id} event={event} index={index} />
+                        <HistoryRow
+                          key={event.id}
+                          event={event}
+                          index={index}
+                          rowNumber={rowOffset + index + 1}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -675,7 +696,7 @@ export function BusinessHistoryPanel({
                     );
                   })}
                 </ul>
-              </>
+              </div>
             ) : null}
           </div>
 
