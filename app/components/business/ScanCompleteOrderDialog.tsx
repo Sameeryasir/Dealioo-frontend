@@ -89,7 +89,7 @@ export function ScanCompleteOrderDialog({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-sm font-semibold text-[#1877f2]"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-sm font-semibold text-[#1777f2]"
               aria-hidden
             >
               {initials}
@@ -101,7 +101,7 @@ export function ScanCompleteOrderDialog({
               >
                 {customerName}
               </h2>
-              <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#e8f2ff] px-2.5 py-1 text-[12px] font-medium text-[#1877f2]">
+              <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#e8f1ff] px-2.5 py-1 text-[12px] font-medium text-[#1777f2]">
                 <Check className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
                 Redeeming {rewardCount} {rewardCount === 1 ? "reward" : "rewards"}
               </p>
@@ -134,7 +134,7 @@ export function ScanCompleteOrderDialog({
             return (
               <div key={`${group.offerName}::${group.displayLabel}`}>
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-[#f7f7f7] px-3.5 py-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2]">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[#1777f2]">
                     <Gift className="size-4" aria-hidden />
                   </span>
                   <p className="min-w-0 flex-1 text-[14px] text-zinc-800">
@@ -149,7 +149,7 @@ export function ScanCompleteOrderDialog({
                   <span
                     className={
                       isPrepaid
-                        ? "shrink-0 rounded-full bg-[#1877f2] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                        ? "shrink-0 rounded-full bg-[#1777f2] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                         : "shrink-0 rounded-full bg-zinc-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                     }
                   >
@@ -160,7 +160,7 @@ export function ScanCompleteOrderDialog({
                 <ol className="mt-1">
                   <li>
                     <div className="flex items-start gap-3 py-3">
-                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[13px] font-semibold text-[#1877f2]">
+                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[13px] font-semibold text-[#1777f2]">
                         {stepBase}
                       </span>
                       <p className="pt-0.5 text-[14px] leading-5 text-zinc-800">
@@ -173,7 +173,7 @@ export function ScanCompleteOrderDialog({
                   </li>
                   <li>
                     <div className="flex items-start gap-3 py-3">
-                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[13px] font-semibold text-[#1877f2]">
+                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[13px] font-semibold text-[#1777f2]">
                         {stepBase + 1}
                       </span>
                       <p className="pt-0.5 text-[14px] leading-5 text-zinc-800">
@@ -221,7 +221,7 @@ export function ScanCompleteOrderDialog({
             type="button"
             onClick={onContinue}
             disabled={confirming}
-            className="rounded-lg bg-[#1877f2] px-8 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe0] disabled:opacity-50"
+            className="rounded-lg bg-[#1777f2] px-8 py-2.5 text-sm font-semibold text-white hover:bg-[#1569e0] disabled:opacity-50"
           >
             {confirming ? "Redeeming…" : "Continue"}
           </button>

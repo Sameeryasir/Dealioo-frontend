@@ -7,11 +7,10 @@ import {
   Check,
   CheckCircle2,
   CreditCard,
+  Focus,
   Loader2,
   Mail,
   Megaphone,
-  Phone,
-  Plus,
   ShieldCheck,
   UserPlus,
   UserRound,
@@ -29,6 +28,20 @@ import {
 import { formatDollars } from "@/app/lib/money";
 import { standardEase } from "@/app/lib/motion";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
+import {
+  scannerCardHeaderClass,
+  scannerEyebrowClass,
+  scannerInputClass,
+  scannerInputErrorClass,
+  scannerMainCardClass,
+  scannerPageWrapClass,
+  scannerPrimaryBtnClass,
+  scannerSecondaryBtnClass,
+  scannerStackClass,
+  scannerStatusChipClass,
+  scannerTwoColGridClass,
+  scannerWorkflowCardClass,
+} from "@/app/lib/scanner-ui";
 import { createCustomer } from "@/app/services/customer/create-customer";
 import {
   purchaseScannerDeals,
@@ -76,19 +89,19 @@ function DealCheckboxRow({
           disabled
             ? "cursor-not-allowed opacity-60"
             : "cursor-pointer hover:bg-[#f8fafc]"
-        } ${checked ? "bg-[#f4f8ff]" : "bg-transparent"}`}
+        } ${checked ? "bg-[#e8f1ff]" : "bg-transparent"}`}
       >
         <span
           className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition ${
             checked
-              ? "border-[#1877f2] bg-[#1877f2] text-white"
+              ? "border-[#1777f2] bg-[#1777f2] text-white"
               : "border-[#cbd5e1] bg-white"
           }`}
           aria-hidden
         >
           {checked ? <Check className="size-3" strokeWidth={3} /> : null}
         </span>
-        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e8f1ff] text-[#1877f2]">
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e8f1ff] text-[#1777f2]">
           {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -128,24 +141,45 @@ function DealCheckboxRow({
 const CREATE_STEPS = [
   {
     icon: UserPlus,
-    title: "Create profile",
+    title: "Create Profile",
     description: "Add name, email, and phone at the counter.",
-    iconWrap: "bg-[#e8f1ff] text-[#1877f2] ring-[#dbeafe]",
-    stepWrap: "bg-[#1877f2] text-white",
+    iconWrap: "bg-[#ccfbf1] text-[#0f766e]",
+    badgeWrap: "bg-[#0d9488] text-white",
   },
   {
     icon: Briefcase,
-    title: "Pick deals",
+    title: "Pick Deals",
     description: "Choose which offers to attach to the guest.",
-    iconWrap: "bg-[#ecfdf5] text-[#059669] ring-[#a7f3d0]",
-    stepWrap: "bg-[#10b981] text-white",
+    iconWrap: "bg-[#ecfdf5] text-[#059669]",
+    badgeWrap: "bg-[#059669] text-white",
   },
   {
     icon: CreditCard,
-    title: "Complete purchase",
+    title: "Complete Purchase",
     description: "Record payment and finish the order.",
-    iconWrap: "bg-[#f3e8ff] text-[#7e22ce] ring-[#e9d5ff]",
-    stepWrap: "bg-[#9333ea] text-white",
+    iconWrap: "bg-[#fff7ed] text-[#c2410c]",
+    badgeWrap: "bg-[#ea580c] text-white",
+  },
+] as const;
+
+const CREATE_TIPS = [
+  {
+    icon: Focus,
+    title: "Enter accurate details",
+    description: "Use the guest's real name and contact info.",
+    iconWrap: "border-[#fde68a] bg-[#fffbeb] text-[#d97706]",
+  },
+  {
+    icon: Mail,
+    title: "Unique email & phone",
+    description: "Duplicates are blocked to keep records clean.",
+    iconWrap: "border-[#a7f3d0] bg-[#ecfdf5] text-[#059669]",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Confirm before purchase",
+    description: "Review selected deals before completing.",
+    iconWrap: "border-[#ddd6fe] bg-[#f5f3ff] text-[#7c3aed]",
   },
 ] as const;
 
@@ -170,11 +204,8 @@ const CREATE_FIELDS = [
   },
 ] as const;
 
-const inputClassName =
-  "w-full rounded-full border border-[#e2e8f0] bg-white py-3 px-4 text-[0.88rem] font-medium text-[#0e182b] shadow-[0_6px_18px_rgba(15,23,42,0.05)] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15";
-
-const inputErrorClassName =
-  "w-full rounded-full border border-red-300 bg-white py-3 px-4 text-[0.88rem] font-medium text-[#0e182b] shadow-[0_6px_18px_rgba(15,23,42,0.05)] outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-200";
+const inputClassName = scannerInputClass;
+const inputErrorClassName = scannerInputErrorClass;
 
 type CreateGuestFieldKey = "name" | "email" | "phone";
 
@@ -475,7 +506,7 @@ export function ScannerCreateGuestPanel({
                 type="button"
                 disabled={!canConfirmDeals || purchasing}
                 onClick={() => setPurchaseStep("enterPrice")}
-                className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-w-24 rounded-lg bg-[#1777f2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Confirm
               </button>
@@ -526,27 +557,25 @@ export function ScannerCreateGuestPanel({
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-4xl pb-6">
+      <div className={scannerPageWrapClass}>
         {purchaseSuccess ? (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: standardEase }}
-            className="overflow-hidden rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.08)]"
+            className={scannerMainCardClass}
           >
-            <div className="flex items-center justify-between gap-3 bg-[#0e182b] px-5 py-3 sm:px-6">
-              <div className="flex items-center gap-2.5">
+            <div className={scannerCardHeaderClass}>
+              <span className={scannerStatusChipClass}>
                 <span className="relative flex size-2">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1777f2]/45" />
+                  <span className="relative inline-flex size-2 rounded-full bg-[#1777f2]" />
                 </span>
-                <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-white">
-                  Purchase complete
-                </p>
-              </div>
+                Purchase complete
+              </span>
             </div>
-            <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-[#f0fdf4] text-emerald-600 ring-1 ring-[#bbf7d0]">
+            <div className="flex flex-col items-center gap-4 px-6 py-10 text-center sm:px-7">
+              <span className="flex size-14 items-center justify-center rounded-full bg-[#e8f1ff] text-[#1777f2] ring-1 ring-[#dbeafe]">
                 <CheckCircle2 className="size-7" aria-hidden />
               </span>
               <div>
@@ -564,7 +593,7 @@ export function ScannerCreateGuestPanel({
               <button
                 type="button"
                 onClick={resetForm}
-                className="cursor-pointer rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white transition hover:bg-[#166fe5]"
+                className={scannerPrimaryBtnClass}
               >
                 Create another guest
               </button>
@@ -573,28 +602,30 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {createdGuestId && !purchaseSuccess ? (
-          <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-4 sm:px-5 sm:py-5">
+          <div className={scannerStackClass}>
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: standardEase }}
-              className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
+              className={scannerMainCardClass}
             >
-              <div className="flex items-center gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-[0.9rem] font-extrabold text-white">
-                  {guestInitials(createdGuestName || "Guest")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 truncate text-[1.05rem] font-extrabold text-[#0e182b]">
-                    {createdGuestName || "Guest"}
-                  </p>
-                  <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
-                    Guest #{createdGuestId} · profile created
-                  </p>
+              <div className={scannerCardHeaderClass}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1777f2] text-[0.9rem] font-extrabold text-white">
+                    {guestInitials(createdGuestName || "Guest")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 truncate text-[1.05rem] font-extrabold text-[#0e182b]">
+                      {createdGuestName || "Guest"}
+                    </p>
+                    <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                      Guest #{createdGuestId} · profile created
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 sm:px-6 sm:px-7">
                 <div>
                   <h3 className="m-0 text-[0.98rem] font-extrabold text-[#0e182b]">
                     Attach deals
@@ -608,11 +639,11 @@ export function ScannerCreateGuestPanel({
                 </span>
               </div>
 
-              <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6">
+              <div className="px-5 pb-5 pt-3 sm:px-7 sm:pb-6">
                 {loadingDeals ? (
                   <div className="flex flex-col items-center gap-3 py-10 text-center">
                     <Loader2
-                      className="size-7 animate-spin text-[#1877f2]"
+                      className="size-7 animate-spin text-[#1777f2]"
                       aria-hidden
                     />
                     <p className="m-0 text-[0.82rem] font-medium text-slate-600">
@@ -622,7 +653,7 @@ export function ScannerCreateGuestPanel({
                 ) : null}
 
                 {!loadingDeals && deals.length > 0 ? (
-                  <ul className="divide-y divide-[#f1f5f9]">
+                  <ul className="divide-y divide-[#eef2f7]">
                     {deals.map((deal) => (
                       <DealCheckboxRow
                         key={deal.id}
@@ -642,16 +673,16 @@ export function ScannerCreateGuestPanel({
                 ) : null}
 
                 {errorMessage ? (
-                  <p className="mt-2 rounded-xl bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
+                  <p className="mt-2 rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
                     {errorMessage}
                   </p>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e8edf5] pt-4">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e2e8f0] pt-4">
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-4 py-2.5 text-[0.82rem] font-bold text-slate-700 transition hover:bg-[#f8fafc]"
+                    className={scannerSecondaryBtnClass}
                   >
                     <ArrowLeft className="size-4" aria-hidden />
                     Back
@@ -667,7 +698,7 @@ export function ScannerCreateGuestPanel({
                       }
                       setPurchaseStep("confirm");
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                    className={scannerPrimaryBtnClass}
                   >
                     Continue
                     <ArrowRight className="size-4" aria-hidden />
@@ -679,45 +710,41 @@ export function ScannerCreateGuestPanel({
         ) : null}
 
         {!createdGuestId && !purchaseSuccess ? (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div className={scannerStackClass}>
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: standardEase }}
-              className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
+              transition={{ duration: 0.35, ease: standardEase }}
+              className={scannerMainCardClass}
             >
-              <div className="flex items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3 sm:px-6">
-                <div className="flex items-center gap-2.5">
+              <div className={scannerCardHeaderClass}>
+                <span className={scannerStatusChipClass}>
                   <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1777f2]/45" />
+                    <span className="relative inline-flex size-2 rounded-full bg-[#1777f2]" />
                   </span>
-                  <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-[#0e182b]">
-                    New guest
-                  </p>
-                </div>
-                <p className="m-0 hidden text-[0.7rem] font-medium text-slate-400 sm:inline-flex">
-                  Counter create mode
-                </p>
+                  Ready to create
+                </span>
               </div>
 
-              <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:gap-8 sm:px-7 sm:py-7">
+              <div className={scannerTwoColGridClass}>
                 <div className="min-w-0">
-                  <p className="m-0 inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#059669] ring-1 ring-[#a7f3d0]">
-                    <ShieldCheck className="size-3.5" strokeWidth={2.25} aria-hidden />
-                    Ready to create
-                  </p>
-                  <h3 className="m-0 mt-3.5 text-[1.55rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.75rem]">
-                    Create a guest profile
-                  </h3>
-                  <p className="m-0 mt-2 max-w-lg text-[0.88rem] font-medium leading-relaxed text-slate-500">
+                  <p className={scannerEyebrowClass}>Counter create mode</p>
+                  <span
+                    className="mt-1.5 block h-0.5 w-10 rounded-full bg-[#1777f2]"
+                    aria-hidden
+                  />
+                  <h2 className="m-0 mt-2.5 text-[1.4rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.55rem]">
+                    New Guest
+                  </h2>
+                  <p className="m-0 mt-1.5 text-[0.78rem] font-medium leading-snug text-slate-500">
                     Add the guest&apos;s details at the counter, then attach deals
                     and complete the purchase in one flow.
                   </p>
 
                   <form
                     onSubmit={(event) => void handleSubmit(event)}
-                    className="mt-5 space-y-3"
+                    className="mt-3 space-y-2"
                   >
                     {CREATE_FIELDS.map((field) => {
                       const value =
@@ -732,7 +759,7 @@ export function ScannerCreateGuestPanel({
                         <div key={field.id} className="min-w-0">
                           <label
                             htmlFor={field.id}
-                            className="mb-1.5 block text-[0.72rem] font-bold text-slate-600"
+                            className="mb-0.5 block text-[0.68rem] font-bold text-slate-600"
                           >
                             {field.label}
                             <span className="ml-1.5 font-medium text-slate-400">
@@ -741,7 +768,7 @@ export function ScannerCreateGuestPanel({
                           </label>
                           <div className="relative">
                             <field.icon
-                              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-slate-400"
+                              className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-slate-400"
                               aria-hidden
                             />
                             <input
@@ -755,12 +782,12 @@ export function ScannerCreateGuestPanel({
                               aria-invalid={Boolean(error)}
                               className={`${
                                 error ? inputErrorClassName : inputClassName
-                              } pl-11`}
+                              } py-2 pl-9 text-[0.84rem] shadow-none`}
                             />
                           </div>
                           {error ? (
                             <p
-                              className="mt-1.5 text-xs font-medium text-red-600"
+                              className="mt-0.5 text-[0.7rem] font-medium text-red-600"
                               role="alert"
                             >
                               {error}
@@ -773,7 +800,7 @@ export function ScannerCreateGuestPanel({
                     <div className="min-w-0">
                       <label
                         htmlFor="guest-phone"
-                        className="mb-1.5 block text-[0.72rem] font-bold text-slate-600"
+                        className="mb-0.5 block text-[0.68rem] font-bold text-slate-600"
                       >
                         Phone
                         <span className="ml-1.5 font-medium text-slate-400">
@@ -781,29 +808,22 @@ export function ScannerCreateGuestPanel({
                         </span>
                       </label>
                       <div
-                        className={`rounded-full border bg-white px-4 py-2.5 shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition focus-within:ring-2 ${
-                          showError("phone")
-                            ? "border-red-300 focus-within:border-red-400 focus-within:ring-red-200"
-                            : "border-[#e2e8f0] focus-within:border-[#1877f2]/45 focus-within:ring-[#1877f2]/15"
-                        }`}
+                        data-phone-field
+                        className={`${
+                          showError("phone") ? inputErrorClassName : inputClassName
+                        } flex items-center py-2 shadow-none focus-within:border-[#1777f2]/45 focus-within:ring-2 focus-within:ring-[#1777f2]/15`}
                         onBlur={() => markTouched("phone")}
                       >
-                        <div className="flex items-center gap-3">
-                          <Phone
-                            className="size-4 shrink-0 text-slate-400"
-                            aria-hidden
-                          />
-                          <BookMeetingPhoneInput
-                            value={phone}
-                            onChange={setPhone}
-                            variant="boxed"
-                            wrapClassName="min-w-0 flex-1"
-                          />
-                        </div>
+                        <BookMeetingPhoneInput
+                          value={phone}
+                          onChange={setPhone}
+                          variant="boxed"
+                          wrapClassName="min-w-0 flex-1 [&_input]:!text-[0.84rem] [&_input]:!font-medium"
+                        />
                       </div>
                       {showError("phone") ? (
                         <p
-                          className="mt-1.5 text-xs font-medium text-red-600"
+                          className="mt-0.5 text-[0.7rem] font-medium text-red-600"
                           role="alert"
                         >
                           {showError("phone")}
@@ -812,7 +832,7 @@ export function ScannerCreateGuestPanel({
                     </div>
 
                     {errorMessage ? (
-                      <p className="rounded-[1.1rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#dc2626]">
+                      <p className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3 py-1.5 text-[0.8rem] text-[#dc2626]">
                         {errorMessage}
                       </p>
                     ) : null}
@@ -820,14 +840,14 @@ export function ScannerCreateGuestPanel({
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1877f2] px-4 py-3 text-[0.88rem] font-bold text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`mt-3 w-full ${scannerPrimaryBtnClass} py-2 text-[0.8rem]`}
                     >
                       {submitting ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
                       ) : (
                         <>
                           <UserPlus
-                            className="size-4"
+                            className="size-3.5"
                             strokeWidth={2.25}
                             aria-hidden
                           />
@@ -835,55 +855,61 @@ export function ScannerCreateGuestPanel({
                         </>
                       )}
                     </button>
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                      <p className="m-0 inline-flex items-center gap-1.5 text-[0.72rem] font-medium text-slate-500">
-                        <ShieldCheck
-                          className="size-3.5 text-slate-400"
-                          aria-hidden
-                        />
-                        Unique email and phone required
-                      </p>
-                      <p className="m-0 text-[0.72rem] font-medium text-slate-400">
-                        Name, email, and phone required
-                      </p>
-                    </div>
                   </form>
                 </div>
 
-                <div
-                  className="relative mx-auto hidden w-full max-w-[15rem] lg:block"
-                  aria-hidden
-                >
-                  <div className="relative rounded-[1.35rem] border border-[#e8edf5] bg-[#f8fbff] p-5 shadow-[0_16px_36px_rgba(24,119,242,0.1)]">
-                    <div className="flex items-center gap-3 border-b border-[#eef2f7] pb-4">
-                      <span className="flex size-12 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.3)]">
-                        <UserRound className="size-6" strokeWidth={2} />
-                      </span>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <span className="block h-2.5 w-24 rounded-full bg-[#dbeafe]" />
-                        <span className="block h-2 w-16 rounded-full bg-[#e2e8f0]" />
-                      </div>
-                    </div>
-                    <div className="mt-4 space-y-2.5">
-                      <span className="block h-2 w-full rounded-full bg-[#eef2f7]" />
-                      <span className="block h-2 w-[85%] rounded-full bg-[#eef2f7]" />
-                      <span className="block h-2 w-[60%] rounded-full bg-[#eef2f7]" />
-                    </div>
-                    <span className="mt-4 inline-flex rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-wide text-[#059669] ring-1 ring-[#a7f3d0]">
-                      New profile
-                    </span>
+                <div className="min-w-0 lg:pl-1">
+                  <h3 className="m-0 text-[0.95rem] font-extrabold tracking-tight text-[#0e182b]">
+                    Tips for best results
+                  </h3>
+                  <ul className="m-0 mt-4 flex list-none flex-col gap-3.5 p-0">
+                    {CREATE_TIPS.map((tip) => {
+                      const Icon = tip.icon;
+                      return (
+                        <li key={tip.title} className="flex items-start gap-3">
+                          <span
+                            className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${tip.iconWrap}`}
+                          >
+                            <Icon
+                              className="size-4"
+                              strokeWidth={2.1}
+                              aria-hidden
+                            />
+                          </span>
+                          <div className="min-w-0 pt-0.5">
+                            <p className="m-0 text-[0.84rem] font-bold text-[#0e182b]">
+                              {tip.title}
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                              {tip.description}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  <div className="mt-5 rounded-2xl border border-[#a7f3d0] bg-[#ecfdf5] px-4 py-4">
+                    <p className="m-0 flex items-center gap-2 text-[0.84rem] font-extrabold text-[#0e182b]">
+                      <ShieldCheck
+                        className="size-4 text-[#059669]"
+                        strokeWidth={2.2}
+                        aria-hidden
+                      />
+                      Secure &amp; Verified
+                    </p>
+                    <p className="m-0 mt-1.5 text-[0.76rem] font-medium leading-relaxed text-slate-600">
+                      Deals, payments, and eligibility are checked before
+                      redemption.
+                    </p>
                   </div>
-                  <span className="absolute -bottom-3 -right-2 flex size-16 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_12px_28px_rgba(24,119,242,0.35)] ring-4 ring-white">
-                    <Plus className="size-7" strokeWidth={2.5} />
-                  </span>
                 </div>
               </div>
             </motion.div>
 
             <div className="relative grid gap-3 sm:grid-cols-3 sm:gap-4">
               <span
-                className="pointer-events-none absolute left-[16%] right-[16%] top-[1.65rem] hidden border-t border-dashed border-[#dbeafe] sm:block"
+                className="pointer-events-none absolute left-[16%] right-[16%] top-[1.7rem] hidden border-t border-dashed border-slate-200 sm:block"
                 aria-hidden
               />
               {CREATE_STEPS.map((step, index) => {
@@ -891,23 +917,23 @@ export function ScannerCreateGuestPanel({
                 return (
                   <motion.div
                     key={step.title}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      duration: 0.35,
-                      delay: 0.08 + index * 0.06,
+                      duration: 0.3,
+                      delay: 0.05 + index * 0.05,
                       ease: standardEase,
                     }}
-                    className="relative rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
+                    className={scannerWorkflowCardClass}
                   >
                     <div className="mb-3 flex items-center gap-2.5">
                       <span
-                        className={`flex size-9 items-center justify-center rounded-xl ring-1 ${step.iconWrap}`}
+                        className={`flex size-9 items-center justify-center rounded-xl ${step.iconWrap}`}
                       >
                         <Icon className="size-4" strokeWidth={2.15} aria-hidden />
                       </span>
                       <span
-                        className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${step.stepWrap}`}
+                        className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${step.badgeWrap}`}
                       >
                         {index + 1}
                       </span>

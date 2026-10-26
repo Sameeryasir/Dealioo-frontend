@@ -98,10 +98,15 @@ export function BookMeetingCountrySelect({
     if (!trigger) return;
 
     const phoneRow = trigger.closest("[data-phone-input-row]");
+    const phoneField = trigger.closest("[data-phone-field]");
+    const phoneLabel = trigger.closest("label");
     const anchor = phoneRow ?? trigger;
     const rect = anchor.getBoundingClientRect();
-    const phoneLabel = trigger.closest("label");
-    const columnWidth = phoneLabel?.getBoundingClientRect().width ?? 0;
+    const columnWidth =
+      phoneField?.getBoundingClientRect().width ??
+      phoneLabel?.getBoundingClientRect().width ??
+      phoneRow?.getBoundingClientRect().width ??
+      0;
     const width = Math.min(
       Math.max(columnWidth, DROPDOWN_MIN_WIDTH),
       DROPDOWN_MAX_WIDTH,
@@ -223,8 +228,10 @@ export function BookMeetingCountrySelect({
     open && dropdownPosition && mounted ? (
       <div
         ref={dropdownRef}
-        className={styles.countryDropdownPortal}
+        className={`${styles.countryDropdownPortal} flex flex-col overflow-hidden rounded-[0.65rem] border border-[#e8eaed] bg-white shadow-[0_10px_32px_rgba(0,0,0,0.16)]`}
         style={{
+          position: "fixed",
+          zIndex: 200,
           top: dropdownPosition.top,
           left: dropdownPosition.left,
           width: dropdownPosition.width,
@@ -232,13 +239,29 @@ export function BookMeetingCountrySelect({
             dropdownPosition.listMaxHeight +
             SEARCH_HEADER_HEIGHT +
             LIST_BOTTOM_PAD,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "#ffffff",
         }}
       >
-        <div className={styles.countrySearchWrap}>
-          <Search className={styles.countrySearchIcon} aria-hidden />
+        <div
+          className={`${styles.countrySearchWrap} flex shrink-0 items-center gap-2 border-b border-[#f1f3f4] px-3 py-2.5`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.45rem",
+            padding: "0.6rem 0.75rem",
+            borderBottom: "1px solid #f1f3f4",
+          }}
+        >
+          <Search
+            className={`${styles.countrySearchIcon} size-4 shrink-0 text-slate-500`}
+            aria-hidden
+          />
           <input
             type="search"
-            className={styles.countrySearch}
+            className={`${styles.countrySearch} w-full border-0 bg-transparent text-sm text-[#202124] outline-none`}
             placeholder="Search countries"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -247,12 +270,22 @@ export function BookMeetingCountrySelect({
         </div>
 
         <ul
-          className={styles.countryList}
+          className={`${styles.countryList} m-0 min-h-0 list-none overflow-y-auto p-1.5`}
           role="listbox"
-          style={{ maxHeight: dropdownPosition.listMaxHeight }}
+          style={{
+            maxHeight: dropdownPosition.listMaxHeight,
+            margin: 0,
+            padding: "0.3rem 0.35rem 0.65rem",
+            listStyle: "none",
+            overflowY: "auto",
+          }}
         >
           {filteredOptions.length === 0 ? (
-            <li className={styles.countryEmpty}>No countries found</li>
+            <li
+              className={`${styles.countryEmpty} px-3 py-3 text-center text-[0.8125rem] font-medium text-slate-500`}
+            >
+              No countries found
+            </li>
           ) : (
             filteredOptions.map((option) => {
               const code = option.value as Country;
@@ -262,23 +295,77 @@ export function BookMeetingCountrySelect({
               const selected = code === country;
 
               return (
-                <li key={code}>
+                <li key={code} className="list-none">
                   <button
                     type="button"
                     role="option"
                     aria-selected={selected}
-                    className={`${styles.countryOption}${selected ? ` ${styles.countryOptionSelected}` : ""}`}
+                    className={`${styles.countryOption}${selected ? ` ${styles.countryOptionSelected}` : ""} flex w-full flex-row flex-nowrap items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left hover:bg-[#f8f9fa]`}
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      flexWrap: "nowrap",
+                      alignItems: "center",
+                      gap: "0.65rem",
+                      width: "100%",
+                      minHeight: "2.5rem",
+                      padding: "0.45rem 0.65rem",
+                      border: selected
+                        ? "1px solid var(--brand-primary, #1877f2)"
+                        : "1px solid transparent",
+                      borderRadius: "0.45rem",
+                      background: selected
+                        ? "color-mix(in srgb, var(--brand-primary, #1877f2) 8%, #ffffff)"
+                        : "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
                     onClick={() => {
                       onChange(code);
                       setOpen(false);
                       setSearch("");
                     }}
                   >
-                    <span className={styles.countryOptionFlag}>
+                    <span
+                      className={`${styles.countryOptionFlag} inline-flex h-[0.9rem] w-[1.35rem] shrink-0 overflow-hidden rounded-[0.15rem] [&>svg]:block [&>svg]:h-full [&>svg]:w-full`}
+                      style={{
+                        display: "inline-flex",
+                        width: "1.35rem",
+                        height: "0.9rem",
+                        flexShrink: 0,
+                        overflow: "hidden",
+                        borderRadius: "0.15rem",
+                      }}
+                    >
                       {FlagIcon ? <FlagIcon title={name} /> : null}
                     </span>
-                    <span className={styles.countryOptionName}>{name}</span>
-                    <span className={styles.countryOptionCode}>{calling}</span>
+                    <span
+                      className={`${styles.countryOptionName} min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-[#3c4043]`}
+                      style={{
+                        flex: "1 1 auto",
+                        minWidth: 0,
+                        fontSize: "0.8125rem",
+                        fontWeight: 500,
+                        color: "#3c4043",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {name}
+                    </span>
+                    <span
+                      className={`${styles.countryOptionCode} shrink-0 text-[0.8125rem] font-semibold text-[#5f6368]`}
+                      style={{
+                        flexShrink: 0,
+                        fontSize: "0.8125rem",
+                        fontWeight: 600,
+                        color: "#5f6368",
+                        marginLeft: "0.25rem",
+                      }}
+                    >
+                      {calling}
+                    </span>
                   </button>
                 </li>
               );
@@ -289,11 +376,23 @@ export function BookMeetingCountrySelect({
     ) : null;
 
   return (
-    <div ref={rootRef} className={styles.countrySelectRoot}>
+    <div
+      ref={rootRef}
+      className={`${styles.countrySelectRoot} inline-flex shrink-0 flex-row flex-nowrap items-center`}
+      style={{ display: "inline-flex", flexDirection: "row", alignItems: "center" }}
+    >
       <button
         ref={triggerRef}
         type="button"
-        className={styles.countryTrigger}
+        className={`${styles.countryTrigger} inline-flex flex-row flex-nowrap items-center gap-1`}
+        style={{
+          display: "inline-flex",
+          flexDirection: "row",
+          flexWrap: "nowrap",
+          alignItems: "center",
+          gap: "0.35rem",
+          whiteSpace: "nowrap",
+        }}
         onClick={() => {
           if (disabled || readOnly) return;
           setOpen((current) => !current);
@@ -303,12 +402,24 @@ export function BookMeetingCountrySelect({
         aria-haspopup="listbox"
         aria-label="Select country code"
       >
-        <span className={styles.countryFlag}>
+        <span
+          className={`${styles.countryFlag} inline-flex h-[1.05rem] w-[1.55rem] shrink-0 overflow-hidden`}
+          style={{
+            display: "inline-flex",
+            width: "1.55rem",
+            height: "1.05rem",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+        >
           {SelectedFlag ? (
             <SelectedFlag title={countryLabels[country] ?? country} />
           ) : null}
         </span>
-        <ChevronDown className={styles.countryChevron} aria-hidden />
+        <ChevronDown
+          className={`${styles.countryChevron} size-3.5 shrink-0 text-slate-500`}
+          aria-hidden
+        />
       </button>
 
       {dropdown ? createPortal(dropdown, document.body) : null}

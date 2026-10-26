@@ -208,7 +208,7 @@ export default function AdminPanelSidebar() {
         },
         {
           href: businessId
-            ? scanningHref(businessId, "scan")
+            ? scanningHref(businessId)
             : "/dashboard/scanning",
           label: "Scanning",
           icon: ScanLine,

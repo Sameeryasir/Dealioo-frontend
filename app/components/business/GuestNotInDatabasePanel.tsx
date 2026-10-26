@@ -56,9 +56,9 @@ export function GuestNotInDatabasePanel({
             Saved profiles
           </p>
         </div>
-        <div className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] px-4 py-4 text-center">
-          <p className="text-2xl font-bold text-[#1877f2]">New</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-[#1877f2]/70">
+        <div className="rounded-2xl border border-[#dbeafe] bg-[#e8f1ff] px-4 py-4 text-center">
+          <p className="text-2xl font-bold text-[#1777f2]">New</p>
+          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-[#1777f2]/70">
             Guest status
           </p>
         </div>
@@ -72,7 +72,7 @@ export function GuestNotInDatabasePanel({
 
       <div className="border-t border-zinc-100 px-5 py-5 sm:px-6">
         <div className="flex items-start gap-3 rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] shadow-sm ring-1 ring-[#1877f2]/15">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1777f2] shadow-sm ring-1 ring-[#1777f2]/15">
             <SearchX className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 text-sm leading-relaxed text-zinc-600">
@@ -89,7 +89,7 @@ export function GuestNotInDatabasePanel({
             <button
               type="button"
               onClick={onCreateGuest}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1877f2] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1777f2] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0]"
             >
               <UserPlus className="size-3.5" aria-hidden />
               Create new guest

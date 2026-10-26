@@ -1,26 +1,20 @@
 "use client";
 
-import {
-  scanningHref,
-  scanningTabFromPathname,
-  type ScanningTabId,
-} from "@/app/lib/scanning-routes";
+import { type ScanningTabId } from "@/app/lib/scanning-routes";
+import { scannerShellClass } from "@/app/lib/scanner-ui";
 import { ScanLine, Search, UserPlus } from "lucide-react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-export const scannerCardClass =
-  "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+export const scannerCardClass = scannerShellClass;
 
 const SCANNER_TABS: Array<{
   id: ScanningTabId;
   label: string;
   icon: typeof ScanLine;
 }> = [
-  { id: "scan", label: "Scan", icon: ScanLine },
-  { id: "search", label: "Search", icon: Search },
+  { id: "scan", label: "Scan QR", icon: ScanLine },
+  { id: "search", label: "Search Guest", icon: Search },
   { id: "create", label: "New Guest", icon: UserPlus },
 ];
 
@@ -67,71 +61,63 @@ const ScannerCreateGuestPanel = dynamic(
   },
 );
 
-function FilterPill({
+function ScannerNavTab({
   active,
   label,
   icon: Icon,
-  href,
+  onSelect,
 }: {
   active: boolean;
   label: string;
   icon: typeof ScanLine;
-  href: string;
+  onSelect: () => void;
 }) {
   return (
-    <Link
-      href={href}
+    <button
+      type="button"
       role="tab"
       aria-selected={active}
-      className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.76rem] font-bold no-underline transition ${
+      onClick={onSelect}
+      className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-3.5 py-2 text-[0.8rem] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1777f2] ${
         active
-          ? "bg-[#1877f2] text-white shadow-[0_6px_16px_rgba(24,119,242,0.28)]"
-          : "bg-white text-[#0e182b] ring-1 ring-[#e2e8f0] hover:bg-[#f8fafc] hover:text-[#1877f2] hover:ring-[#dbeafe]"
+          ? "bg-[#1777f2] text-white shadow-[0_8px_20px_rgba(23,119,242,0.28)]"
+          : "bg-white text-[#0e182b] ring-1 ring-[#e2e8f0] hover:bg-[#e8f1ff] hover:text-[#1777f2] hover:ring-[#dbeafe]"
       }`}
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
       {label}
-    </Link>
+    </button>
   );
 }
 
 export function BusinessQrScannerPanel({
   businessId,
-  initialTab,
 }: {
   businessId: number;
-  initialTab?: ScanningTabId;
 }) {
-  const router = useRouter();
-  const pathname = usePathname() ?? "";
-  const activeTab = useMemo(() => {
-    const fromPath = scanningTabFromPathname(pathname, businessId);
-    if (fromPath !== "scan" || !initialTab) return fromPath;
-    return initialTab;
-  }, [pathname, businessId, initialTab]);
+  const [activeTab, setActiveTab] = useState<ScanningTabId>("scan");
   const [hideScannerTabs, setHideScannerTabs] = useState(false);
 
-  const goToTab = (tab: ScanningTabId) => {
-    router.push(scanningHref(businessId, tab));
-  };
-
   return (
-    <section className="rd-premium rd-premium--fill" aria-label="Scan and redeem">
+    <section
+      className="rd-premium rd-premium--fill"
+      aria-label="Scan and redeem"
+    >
       <div className="rd-premium-page">
-        <article className={`${scannerCardClass} rd-premium-panel`}>
+        <article className={`${scannerShellClass} rd-premium-panel`}>
           {!hideScannerTabs ? (
             <div
-              className="shrink-0 border-b border-[#e8edf5] bg-white pl-6 pr-5 pt-5 pb-3.5 sm:pl-7 sm:pr-6 sm:pt-5 sm:pb-4"
-              aria-label="Scanner actions"
+              className="shrink-0 border-b border-[#eef2f7] bg-gradient-to-r from-[#f8fafc] via-white to-[#f4f8ff] px-5 pt-4 pb-3.5 sm:px-6 sm:pt-4 sm:pb-4"
+              aria-label="Scanner navigation"
             >
               <div className="flex flex-wrap items-center gap-2" role="tablist">
                 {SCANNER_TABS.map(({ id, label, icon }) => (
-                  <FilterPill
+                  <ScannerNavTab
                     key={id}
                     label={label}
                     icon={icon}
                     active={id === activeTab}
-                    href={scanningHref(businessId, id)}
+                    onSelect={() => setActiveTab(id)}
                   />
                 ))}
               </div>
@@ -141,23 +127,22 @@ export function BusinessQrScannerPanel({
           <div
             className={
               activeTab === "search"
-                ? "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-hidden p-0"
-                : "rd-premium-panel__body min-h-0 flex-1 !block overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5"
+                ? "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8fafc] p-0"
+                : "rd-premium-panel__body min-h-0 flex-1 !block overflow-y-auto overscroll-contain bg-[#f8fafc] px-4 py-4 sm:px-5 sm:py-5"
             }
             role="tabpanel"
           >
             {activeTab === "scan" ? (
               <ScannerScanCodePanel
                 businessId={businessId}
-                onCreateGuest={() => goToTab("create")}
-                onManualEntry={() => goToTab("search")}
+                onCreateGuest={() => setActiveTab("create")}
               />
             ) : null}
 
             {activeTab === "search" ? (
               <ScannerSearchGuestPanel
                 businessId={businessId}
-                onCreateGuest={() => goToTab("create")}
+                onCreateGuest={() => setActiveTab("create")}
                 onHideScannerTabsChange={setHideScannerTabs}
               />
             ) : null}

@@ -324,7 +324,7 @@ export function ScanOrderSubtotalDialog({
                               })
                             }
                             placeholder="Product name"
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-slate-400 focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-slate-400 focus:border-[#1777f2] focus:ring-2 focus:ring-[#1777f2]/15"
                           />
                         </label>
 
@@ -409,7 +409,7 @@ export function ScanOrderSubtotalDialog({
                               });
                             }}
                             placeholder="0.00"
-                            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-7 pr-2 text-sm tabular-nums text-zinc-900 outline-none placeholder:text-slate-400 focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15"
+                            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-7 pr-2 text-sm tabular-nums text-zinc-900 outline-none placeholder:text-slate-400 focus:border-[#1777f2] focus:ring-2 focus:ring-[#1777f2]/15"
                           />
                         </label>
 
@@ -487,7 +487,7 @@ export function ScanOrderSubtotalDialog({
                     submitAmount(resolvedAmount);
                   }}
                   disabled={!canSubmit || confirming}
-                  className="min-w-24 rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-w-24 rounded-xl bg-[#1777f2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {confirming
                     ? "Saving…"
@@ -561,7 +561,7 @@ export function ScanOrderSubtotalDialog({
                     ? "text-amber-700"
                     : matchesExpected
                       ? "text-emerald-700"
-                      : "text-blue-600"
+                      : "text-[#1777f2]"
                 }`}
               >
                 {fieldLabel}
@@ -604,7 +604,7 @@ export function ScanOrderSubtotalDialog({
                   submitAmount(resolvedAmount);
                 }}
                 disabled={!canSubmit || confirming}
-                className="min-w-24 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-w-24 rounded-lg bg-[#1777f2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {confirming ? "Saving…" : "Done"}
               </button>

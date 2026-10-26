@@ -53,6 +53,16 @@ const nextConfig: NextConfig = {
         destination: "/business/:businessId/dashboard/:path*",
         permanent: false,
       },
+      {
+        source: "/business/:businessId/dashboard/scanning/search",
+        destination: "/business/:businessId/dashboard/scanning",
+        permanent: false,
+      },
+      {
+        source: "/business/:businessId/dashboard/scanning/new-guest",
+        destination: "/business/:businessId/dashboard/scanning",
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

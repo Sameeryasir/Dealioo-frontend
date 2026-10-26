@@ -2,20 +2,31 @@
 
 import {
   ArrowDownToLine,
+  Camera,
+  CheckCircle2,
+  CreditCard,
   Focus,
   Gift,
+  ImagePlus,
   Loader2,
-  PencilLine,
   QrCode,
   ScanLine,
-  Sparkles,
+  ShieldCheck,
   SunMedium,
   UserCheck,
   XCircle,
 } from "lucide-react";
 import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
-import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { ScanCompleteOrderDialog } from "@/app/components/business/ScanCompleteOrderDialog";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
@@ -30,6 +41,18 @@ import {
 } from "@/app/services/redemption/scan-redemption";
 import { formatDateTimeShort } from "@/app/lib/datetime";
 import { standardEase } from "@/app/lib/motion";
+import {
+  scannerCardHeaderClass,
+  scannerCenterStageClass,
+  scannerGhostBtnClass,
+  scannerMainCardClass,
+  scannerMainGridClass,
+  scannerPageWrapClass,
+  scannerPrimaryBtnClass,
+  scannerStackClass,
+  scannerStatusChipClass,
+  scannerWorkflowCardClass,
+} from "@/app/lib/scanner-ui";
 
 type ScanState = "idle" | "scanning" | "loading" | "preview" | "error";
 type DialogStep =
@@ -38,6 +61,9 @@ type DialogStep =
   | "completeOrder"
   | "enterSubtotal"
   | "enterExtra";
+type AutoDetectStatus = "on" | "off" | "processing";
+
+const MAX_QR_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function pickCameraId(cameras: CameraDevice[]): string {
   const backCamera = cameras.find((camera) =>
@@ -46,39 +72,58 @@ function pickCameraId(cameras: CameraDevice[]): string {
   return backCamera?.id ?? cameras[0].id;
 }
 
-async function resolveCameraConfig(): Promise<string | MediaTrackConstraints> {
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    if (cameras.length > 0) {
-      return pickCameraId(cameras);
-    }
-  } catch {
-  }
-
-  return { facingMode: "user" };
-}
-
-const SCAN_STEPS = [
+const WORKFLOW_STEPS = [
   {
+    id: "scan",
     icon: ScanLine,
-    title: "Scan pass",
+    title: "Scan Pass",
     description: "Point the camera at the guest's QR code.",
-    iconWrap: "bg-[#e8f1ff] text-[#1877f2] ring-[#dbeafe]",
-    stepWrap: "bg-[#1877f2] text-white",
+    iconIdle: "bg-[#ccfbf1] text-[#0f766e]",
+    iconActive: "bg-[#0d9488] text-white",
+    badgeIdle: "bg-[#ccfbf1] text-[#0f766e]",
+    badgeActive: "bg-[#0d9488] text-white",
+    cardActive:
+      "border-[#99f6e4] shadow-[0_10px_28px_rgba(13,148,136,0.12)] ring-1 ring-[#0d9488]/20",
+    cardComplete: "border-[#ccfbf1] bg-[#f0fdfa]/80",
   },
   {
+    id: "confirm",
     icon: UserCheck,
-    title: "Confirm guest",
-    description: "Review their profile and available rewards.",
-    iconWrap: "bg-[#ecfdf5] text-[#059669] ring-[#a7f3d0]",
-    stepWrap: "bg-[#10b981] text-white",
+    title: "Confirm Guest",
+    description: "Review the guest's profile and available deals.",
+    iconIdle: "bg-[#ecfdf5] text-[#059669]",
+    iconActive: "bg-[#059669] text-white",
+    badgeIdle: "bg-[#ecfdf5] text-[#059669]",
+    badgeActive: "bg-[#059669] text-white",
+    cardActive:
+      "border-[#a7f3d0] shadow-[0_10px_28px_rgba(5,150,105,0.12)] ring-1 ring-[#059669]/20",
+    cardComplete: "border-[#d1fae5] bg-[#ecfdf5]/80",
   },
   {
+    id: "payment",
+    icon: CreditCard,
+    title: "Handle Payment",
+    description: "Collect or confirm payment if required.",
+    iconIdle: "bg-[#fff7ed] text-[#c2410c]",
+    iconActive: "bg-[#ea580c] text-white",
+    badgeIdle: "bg-[#fff7ed] text-[#c2410c]",
+    badgeActive: "bg-[#ea580c] text-white",
+    cardActive:
+      "border-[#fed7aa] shadow-[0_10px_28px_rgba(234,88,12,0.12)] ring-1 ring-[#ea580c]/20",
+    cardComplete: "border-[#ffedd5] bg-[#fff7ed]/80",
+  },
+  {
+    id: "redeem",
     icon: Gift,
-    title: "Redeem offer",
-    description: "Apply the deal and complete the order.",
-    iconWrap: "bg-[#f3e8ff] text-[#7e22ce] ring-[#e9d5ff]",
-    stepWrap: "bg-[#9333ea] text-white",
+    title: "Redeem Offer",
+    description: "Complete redemption and record the visit.",
+    iconIdle: "bg-[#f5f3ff] text-[#7c3aed]",
+    iconActive: "bg-[#7c3aed] text-white",
+    badgeIdle: "bg-[#f5f3ff] text-[#7c3aed]",
+    badgeActive: "bg-[#7c3aed] text-white",
+    cardActive:
+      "border-[#ddd6fe] shadow-[0_10px_28px_rgba(124,58,237,0.12)] ring-1 ring-[#7c3aed]/20",
+    cardComplete: "border-[#ede9fe] bg-[#f5f3ff]/80",
   },
 ] as const;
 
@@ -86,268 +131,189 @@ const SCAN_TIPS = [
   {
     icon: SunMedium,
     title: "Ensure good lighting",
-    description: "Avoid glare and shadows",
+    description: "Avoid glare and shadows.",
+    iconWrap: "border-[#fde68a] bg-[#fffbeb] text-[#d97706]",
   },
   {
     icon: Focus,
     title: "Hold steady",
-    description: "Keep the QR code within the frame",
+    description: "Keep the QR code within the frame.",
+    iconWrap: "border-[#a7f3d0] bg-[#ecfdf5] text-[#059669]",
   },
   {
     icon: ArrowDownToLine,
     title: "Close distance",
-    description: "Move closer if the code isn't detected",
+    description: "Move closer if the QR code is not detected.",
+    iconWrap: "border-[#ddd6fe] bg-[#f5f3ff] text-[#7c3aed]",
   },
 ] as const;
 
-function ScannerIdleState({
-  onStart,
-  onManualEntry,
+function CornerBracket({
+  className,
 }: {
-  onStart: () => void;
-  onManualEntry?: () => void;
+  className: string;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: standardEase }}
-        className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#f8fafc] px-3 py-1.5 text-[0.72rem] font-bold text-[#334155] ring-1 ring-[#e2e8f0]">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-            </span>
-            Camera ready
-          </span>
-          {onManualEntry ? (
-            <button
-              type="button"
-              onClick={onManualEntry}
-              className="inline-flex cursor-pointer items-center gap-1.5 text-[0.8rem] font-bold text-[#1877f2] transition hover:text-[#0f5ed7]"
-            >
-              <PencilLine className="size-3.5" strokeWidth={2.25} aria-hidden />
-              Switch to manual entry
-            </button>
-          ) : null}
-        </div>
+    <span
+      className={`pointer-events-none absolute size-4 border-[#1777f2] sm:size-5 ${className}`}
+      aria-hidden
+    />
+  );
+}
 
-        <div className="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-8 sm:px-7 sm:py-7">
-          <div className="min-w-0">
-            <p className="m-0 text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[#1877f2]">
-              Counter scan mode
-            </p>
-            <span
-              className="mt-2 block h-0.5 w-10 rounded-full bg-[#1877f2]"
+function ScannerCameraStage({
+  active,
+  reducedMotion,
+  children,
+}: {
+  active: boolean;
+  reducedMotion: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={scannerCenterStageClass}>
+      <div className="relative aspect-[4/5] w-full sm:aspect-square">
+        {children}
+        <CornerBracket className="left-3.5 top-3.5 border-l-[2.5px] border-t-[2.5px]" />
+        <CornerBracket className="right-3.5 top-3.5 border-r-[2.5px] border-t-[2.5px]" />
+        <CornerBracket className="bottom-3.5 left-3.5 border-b-[2.5px] border-l-[2.5px]" />
+        <CornerBracket className="bottom-3.5 right-3.5 border-b-[2.5px] border-r-[2.5px]" />
+        {!reducedMotion ? (
+          <motion.span
+            aria-hidden
+            className="absolute left-7 right-7 z-10 h-0.5 rounded-full bg-[#1777f2] shadow-[0_0_12px_rgba(23,119,242,0.85)]"
+            initial={{ top: "18%" }}
+            animate={{ top: ["18%", "78%", "18%"] }}
+            transition={{
+              duration: 2.4,
+              ease: "easeInOut",
+              repeat: Infinity,
+            }}
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="absolute left-7 right-7 top-1/2 z-10 h-0.5 -translate-y-1/2 rounded-full bg-[#1777f2]/80"
+          />
+        )}
+        {!active ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+            <QrCode
+              className="size-16 text-white/90 drop-shadow-sm"
+              strokeWidth={1.4}
               aria-hidden
             />
-            <h3 className="m-0 mt-4 text-[1.65rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.85rem]">
-              Scan guest pass
-            </h3>
-            <p className="m-0 mt-3 text-[0.88rem] font-medium leading-relaxed text-slate-500">
-              Scan the guest&apos;s QR code to verify their pass, confirm
-              details, and redeem their offer.
+            <p className="m-0 text-center text-[0.78rem] font-semibold text-white/80">
+              Position QR code within the frame
             </p>
-            <button
-              type="button"
-              onClick={onStart}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1877f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_24px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-            >
-              <ScanLine className="size-4" strokeWidth={2.25} aria-hidden />
-              Start camera
-            </button>
           </div>
-
-          <div className="flex flex-col items-center">
-            <button
-              type="button"
-              onClick={onStart}
-              aria-label="Start camera and scan guest pass"
-              className="group relative w-full max-w-[20rem] cursor-pointer overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)] transition hover:ring-2 hover:ring-[#1877f2]/35"
-            >
-              <div className="relative aspect-[4/5] w-full sm:aspect-square">
-                <span
-                  className="absolute left-4 top-4 size-8 border-l-[3px] border-t-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute right-4 top-4 size-8 border-r-[3px] border-t-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute bottom-4 left-4 size-8 border-b-[3px] border-l-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <span
-                  className="absolute bottom-4 right-4 size-8 border-b-[3px] border-r-[3px] border-[#1877f2]"
-                  aria-hidden
-                />
-                <motion.span
-                  aria-hidden
-                  className="absolute left-6 right-6 z-10 h-0.5 rounded-full bg-[#1877f2] shadow-[0_0_12px_rgba(24,119,242,0.85)]"
-                  initial={{ top: "18%" }}
-                  animate={{ top: ["18%", "78%", "18%"] }}
-                  transition={{
-                    duration: 2.4,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                  }}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
-                  <QrCode
-                    className="size-14 text-white/95 drop-shadow-sm transition group-hover:scale-105"
-                    strokeWidth={1.5}
-                    aria-hidden
-                  />
-                  <p className="m-0 text-center text-[0.78rem] font-semibold text-white/85">
-                    Position QR code within the frame
-                  </p>
-                </div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={onStart}
-              className="mt-3.5 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-[#0e182b] shadow-sm transition hover:border-[#dbeafe] hover:text-[#1877f2]"
-            >
-              <Sparkles className="size-3.5 text-[#1877f2]" aria-hidden />
-              Auto-detect on
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-            </button>
-          </div>
-
-          <div className="lg:pl-1">
-            <h4 className="m-0 text-[0.95rem] font-extrabold tracking-tight text-[#0e182b]">
-              Tips for best results
-            </h4>
-            <ul className="m-0 mt-4 flex list-none flex-col gap-3.5 p-0">
-              {SCAN_TIPS.map((tip) => {
-                const Icon = tip.icon;
-                return (
-                  <li key={tip.title} className="flex items-start gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-[#f4f8ff] text-[#1877f2]">
-                      <Icon className="size-4" strokeWidth={2.1} aria-hidden />
-                    </span>
-                    <div className="min-w-0 pt-0.5">
-                      <p className="m-0 text-[0.84rem] font-bold text-[#0e182b]">
-                        {tip.title}
-                      </p>
-                      <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
-                        {tip.description}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="relative grid gap-3 sm:grid-cols-3 sm:gap-4">
-        <span
-          className="pointer-events-none absolute left-[16%] right-[16%] top-[1.55rem] hidden border-t border-dashed border-[#dbeafe] sm:block"
-          aria-hidden
-        />
-        {SCAN_STEPS.map((step, index) => {
-          const Icon = step.icon;
-          return (
-            <motion.div
-              key={step.title}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.35,
-                delay: 0.08 + index * 0.06,
-                ease: standardEase,
-              }}
-              className="relative rounded-[1.15rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.03)]"
-            >
-              <div className="mb-3 flex items-center gap-2.5">
-                <span
-                  className={`flex size-9 items-center justify-center rounded-xl ring-1 ${step.iconWrap}`}
-                >
-                  <Icon className="size-4" strokeWidth={2.15} aria-hidden />
-                </span>
-                <span
-                  className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${step.stepWrap}`}
-                >
-                  {index + 1}
-                </span>
-              </div>
-              <p className="m-0 text-[0.88rem] font-extrabold text-[#0e182b]">
-                {step.title}
-              </p>
-              <p className="m-0 mt-1 text-[0.74rem] leading-snug text-slate-500">
-                {step.description}
-              </p>
-            </motion.div>
-          );
-        })}
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
-  return (
-    <div className="mx-auto w-full max-w-4xl">
-      <div className="overflow-hidden rounded-[1.5rem] border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f8ff] px-3 py-1.5 text-[0.72rem] font-bold text-[#1877f2] ring-1 ring-[#dbeafe]">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1877f2]/55" />
-              <span className="relative inline-flex size-2 rounded-full bg-[#1877f2]" />
-            </span>
-            Scanning
-          </span>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="cursor-pointer text-[0.8rem] font-bold text-slate-500 transition hover:text-[#1877f2]"
-          >
-            Cancel
-          </button>
-        </div>
+function WorkflowCards({
+  scanState,
+  dialogStep,
+  previewResult,
+}: {
+  scanState: ScanState;
+  dialogStep: DialogStep;
+  previewResult: ScanPreviewSuccess | null;
+}) {
+  const selectedRewards =
+    previewResult?.availableRewards?.filter((reward) => reward.canSelect) ??
+    [];
+  const allPrepaid =
+    selectedRewards.length > 0 &&
+    selectedRewards.every((reward) => reward.paymentLabel === "PREPAID");
 
-        <div className="px-5 py-5 sm:px-8 sm:py-6">
-          <div className="relative mx-auto w-full max-w-xl overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_18px_40px_rgba(11,31,58,0.28)]">
-            <div
-              id="qr-reader"
-              className="min-h-[320px] overflow-hidden [&_video]:min-h-[320px] [&_video]:w-full [&_video]:object-cover"
-            />
-            <span
-              className="pointer-events-none absolute left-5 top-5 size-8 border-l-[3px] border-t-[3px] border-[#1877f2]"
-              aria-hidden
-            />
-            <span
-              className="pointer-events-none absolute right-5 top-5 size-8 border-r-[3px] border-t-[3px] border-[#1877f2]"
-              aria-hidden
-            />
-            <span
-              className="pointer-events-none absolute bottom-5 left-5 size-8 border-b-[3px] border-l-[3px] border-[#1877f2]"
-              aria-hidden
-            />
-            <span
-              className="pointer-events-none absolute bottom-5 right-5 size-8 border-b-[3px] border-r-[3px] border-[#1877f2]"
-              aria-hidden
-            />
-          </div>
-          <p className="m-0 mt-4 text-center text-[0.8rem] font-medium text-slate-500">
-            Position QR code within the frame
-          </p>
-          <div className="mt-3 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-[#0e182b]">
-              <Sparkles className="size-3.5 text-[#1877f2]" aria-hidden />
-              Auto-detect on
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-            </span>
-          </div>
-        </div>
-      </div>
+  let activeIndex = 0;
+  if (scanState === "loading" || scanState === "scanning") activeIndex = 0;
+  if (scanState === "preview") {
+    if (dialogStep === "confirm" || dialogStep === "selectRewards") {
+      activeIndex = 1;
+    } else if (
+      dialogStep === "completeOrder" ||
+      dialogStep === "enterSubtotal" ||
+      dialogStep === "enterExtra"
+    ) {
+      activeIndex = allPrepaid && dialogStep !== "enterExtra" ? 3 : 2;
+      if (dialogStep === "enterExtra" || dialogStep === "completeOrder") {
+        activeIndex = allPrepaid ? 3 : 2;
+      }
+      if (dialogStep === "enterSubtotal" && allPrepaid) activeIndex = 3;
+      if (dialogStep === "enterSubtotal" && !allPrepaid) activeIndex = 2;
+      if (dialogStep === "enterExtra") activeIndex = 3;
+    }
+  }
+
+  return (
+    <div className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
+      <span
+        className="pointer-events-none absolute left-[12%] right-[12%] top-[1.7rem] hidden border-t border-dashed border-slate-200 xl:block"
+        aria-hidden
+      />
+      {WORKFLOW_STEPS.map((step, index) => {
+        const Icon = step.icon;
+        const isActive = index === activeIndex && scanState !== "error";
+        const isComplete = index < activeIndex && scanState !== "error";
+        const paymentSkipped =
+          step.id === "payment" && allPrepaid && activeIndex >= 3;
+
+        return (
+          <motion.div
+            key={step.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.3,
+              delay: 0.05 + index * 0.05,
+              ease: standardEase,
+            }}
+            className={`${scannerWorkflowCardClass} transition ${
+              isActive
+                ? step.cardActive
+                : isComplete
+                  ? step.cardComplete
+                  : ""
+            }`}
+          >
+            <div className="mb-3 flex items-center gap-2.5">
+              <span
+                className={`flex size-9 items-center justify-center rounded-xl ${
+                  isActive || isComplete ? step.iconActive : step.iconIdle
+                }`}
+              >
+                {isComplete ? (
+                  <CheckCircle2 className="size-4" strokeWidth={2.2} aria-hidden />
+                ) : (
+                  <Icon className="size-4" strokeWidth={2.15} aria-hidden />
+                )}
+              </span>
+              <span
+                className={`flex size-6 items-center justify-center rounded-full text-[0.68rem] font-extrabold ${
+                  isActive ? step.badgeActive : step.badgeIdle
+                }`}
+              >
+                {index + 1}
+              </span>
+            </div>
+            <p className="m-0 text-[0.88rem] font-extrabold text-[#0e182b]">
+              {step.title}
+            </p>
+            <p className="m-0 mt-1 text-[0.74rem] leading-snug text-slate-500">
+              {step.description}
+            </p>
+            {paymentSkipped ? (
+              <p className="m-0 mt-2 text-[0.68rem] font-bold uppercase tracking-wide text-[#c2410c]">
+                Not required · prepaid
+              </p>
+            ) : null}
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
@@ -355,16 +321,18 @@ function ScannerActiveView({ onCancel }: { onCancel: () => void }) {
 export function ScannerScanCodePanel({
   businessId,
   onCreateGuest,
-  onManualEntry,
 }: {
   businessId: number;
   onCreateGuest?: () => void;
-  onManualEntry?: () => void;
 }) {
+  const preferReducedMotion = useReducedMotion() === true;
+  const fileInputId = useId();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannedRef = useRef(false);
   const pendingTokenRef = useRef("");
   const idempotencyKeyRef = useRef("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewResult, setPreviewResult] = useState<ScanPreviewSuccess | null>(
@@ -377,6 +345,10 @@ export function ScannerScanCodePanel({
   const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
     null,
   );
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [autoDetectStatus, setAutoDetectStatus] =
+    useState<AutoDetectStatus>("off");
+  const [decodingImage, setDecodingImage] = useState(false);
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -395,6 +367,8 @@ export function ScannerScanCodePanel({
       scanner.clear();
     } catch {
     }
+
+    setAutoDetectStatus("off");
   }, []);
 
   const handlePreview = useCallback(
@@ -403,6 +377,7 @@ export function ScannerScanCodePanel({
       scannedRef.current = true;
       pendingTokenRef.current = rawToken.trim();
       setScanState("loading");
+      setAutoDetectStatus("processing");
       setErrorMessage(null);
       setPreviewResult(null);
       setShowPreviousRedemptions(false);
@@ -417,6 +392,7 @@ export function ScannerScanCodePanel({
           }
           setPreviewResult(result);
           setScanState("preview");
+          setDialogStep("confirm");
         } else {
           setErrorMessage(result.message);
           setScanState("error");
@@ -428,6 +404,7 @@ export function ScannerScanCodePanel({
         setScanState("error");
       } finally {
         scannedRef.current = false;
+        setAutoDetectStatus("off");
       }
     },
     [businessId, stopScanner],
@@ -507,19 +484,42 @@ export function ScannerScanCodePanel({
     let cancelled = false;
 
     const startCamera = async () => {
+      setAutoDetectStatus("processing");
+
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      if (cancelled) return;
+
       const readerElement = document.getElementById("qr-reader");
       if (!readerElement) {
         setScanState("error");
         setErrorMessage("Camera view failed to load. Refresh and try again.");
+        setAutoDetectStatus("off");
         return;
       }
+
+      await stopScanner();
+      if (cancelled) return;
 
       const scanner = new Html5Qrcode("qr-reader");
       scannerRef.current = scanner;
 
       try {
-        const cameraConfig = await resolveCameraConfig();
-        if (cancelled) return;
+        let cameraConfig: string | MediaTrackConstraints = {
+          facingMode: "user",
+        };
+        try {
+          const list = await Html5Qrcode.getCameras();
+          if (cancelled) return;
+          const preferred =
+            (selectedCameraId &&
+              list.find((camera) => camera.id === selectedCameraId)?.id) ||
+            (list.length > 0 ? pickCameraId(list) : null);
+          if (preferred) {
+            setSelectedCameraId((current) => current ?? preferred);
+            cameraConfig = preferred;
+          }
+        } catch {
+        }
 
         await scanner.start(
           cameraConfig,
@@ -529,16 +529,43 @@ export function ScannerScanCodePanel({
           },
           () => {},
         );
+
+        if (cancelled) {
+          await stopScanner();
+          return;
+        }
+
+        setAutoDetectStatus("on");
       } catch (err) {
         if (cancelled) return;
 
         await stopScanner();
         setScanState("error");
-        setErrorMessage(
+        const message =
           err instanceof Error
             ? err.message
-            : "Could not access camera. Allow camera permission and try again.",
-        );
+            : "Could not access camera. Allow camera permission and try again.";
+        const lower = message.toLowerCase();
+        if (
+          lower.includes("permission") ||
+          lower.includes("notallowed") ||
+          lower.includes("denied")
+        ) {
+          setErrorMessage(
+            "Camera permission denied. Allow camera access in your browser, then try again.",
+          );
+        } else if (
+          lower.includes("notfound") ||
+          lower.includes("no camera") ||
+          lower.includes("device")
+        ) {
+          setErrorMessage(
+            "No camera is available on this device. Use Upload QR Image, or check camera access and try again.",
+          );
+        } else {
+          setErrorMessage(message);
+        }
+        setAutoDetectStatus("off");
       }
     };
 
@@ -548,7 +575,7 @@ export function ScannerScanCodePanel({
       cancelled = true;
       void stopScanner();
     };
-  }, [scanState, handlePreview, stopScanner]);
+  }, [scanState, selectedCameraId, handlePreview, stopScanner]);
 
   useEffect(() => {
     return () => {
@@ -572,9 +599,70 @@ export function ScannerScanCodePanel({
     setConfirmingRedemption(false);
     setDialogStep("confirm");
     setPendingCouponIds([]);
+    setPendingRedeemAmount(null);
     pendingTokenRef.current = "";
     idempotencyKeyRef.current = "";
     scannedRef.current = false;
+    setDecodingImage(false);
+    setAutoDetectStatus("off");
+  };
+
+  const handleQrImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file containing the QR code.");
+      return;
+    }
+    if (file.size > MAX_QR_IMAGE_BYTES) {
+      toast.error("Image is too large. Use a file under 8 MB.");
+      return;
+    }
+
+    setDecodingImage(true);
+    setErrorMessage(null);
+    setAutoDetectStatus("processing");
+
+    const hostId = "qr-file-decoder-host";
+    let host = document.getElementById(hostId);
+    if (!host) {
+      host = document.createElement("div");
+      host.id = hostId;
+      host.className = "sr-only";
+      host.setAttribute("aria-hidden", "true");
+      document.body.appendChild(host);
+    }
+
+    const decoder = new Html5Qrcode(hostId);
+    try {
+      await stopScanner();
+      const decoded = await decoder.scanFile(file, false);
+      await handlePreview(decoded);
+    } catch (err) {
+      const raw =
+        err instanceof Error ? err.message : "Could not read a QR code from that image.";
+      const lower = raw.toLowerCase();
+      const friendly =
+        lower.includes("multiformat") ||
+        lower.includes("detect the code") ||
+        lower.includes("not found") ||
+        lower.includes("no qr") ||
+        lower.includes("could not")
+          ? "We couldn’t find a QR code in that image. Try a clearer photo with the full code visible, or use Start Camera instead."
+          : raw;
+
+      setScanState("error");
+      setErrorMessage(friendly);
+      setAutoDetectStatus("off");
+    } finally {
+      try {
+        decoder.clear();
+      } catch {
+      }
+      setDecodingImage(false);
+    }
   };
 
   const guestNotInDatabase =
@@ -583,6 +671,19 @@ export function ScannerScanCodePanel({
       errorMessage?.toLowerCase().includes("customer not found") ||
         errorMessage?.toLowerCase().includes("guest not found"),
     );
+
+  const cameraBusy = scanState === "scanning" || scanState === "loading";
+
+  const statusLabel = (() => {
+    if (scanState === "scanning" && autoDetectStatus === "processing") {
+      return "Requesting camera…";
+    }
+    if (scanState === "scanning") return "Camera active";
+    if (scanState === "loading") return "Validating pass…";
+    if (scanState === "preview") return "Guest preview";
+    if (scanState === "error") return "Needs attention";
+    return "Camera ready";
+  })();
 
   return (
     <>
@@ -711,74 +812,225 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-4xl pb-4">
+      <div className={scannerPageWrapClass}>
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}
             onScanAgain={() => void resetScan()}
           />
         ) : (
-        <div className="flex w-full flex-col">
-          {scanState === "idle" ? (
-            <ScannerIdleState
-              onStart={startScanner}
-              onManualEntry={onManualEntry}
+          <div className={scannerStackClass}>
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: standardEase }}
+              className={scannerMainCardClass}
+            >
+              <div className={scannerCardHeaderClass}>
+                <span className={scannerStatusChipClass}>
+                  <span className="relative flex size-2">
+                    {!preferReducedMotion && cameraBusy ? (
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#1777f2]/45" />
+                    ) : null}
+                    <span className="relative inline-flex size-2 rounded-full bg-[#1777f2]" />
+                  </span>
+                  {statusLabel}
+                </span>
+                {scanState !== "idle" ? (
+                  <button
+                    type="button"
+                    onClick={() => void resetScan()}
+                    className="cursor-pointer text-[0.8rem] font-bold text-slate-500 transition hover:text-[#1777f2]"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
+
+              <div className={scannerMainGridClass}>
+                <div className="min-w-0">
+                  <p className="m-0 text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[#1777f2]">
+                    Counter scan mode
+                  </p>
+                  <span
+                    className="mt-2 block h-0.5 w-10 rounded-full bg-[#1777f2]"
+                    aria-hidden
+                  />
+                  <h2 className="m-0 mt-4 text-[1.65rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.85rem]">
+                    Scan &amp; Redeem
+                  </h2>
+                  <p className="m-0 mt-3 text-[0.88rem] font-medium leading-relaxed text-slate-500">
+                    Scan a guest&apos;s QR code to verify their pass, confirm
+                    details, collect payment if needed, and redeem their offer.
+                  </p>
+
+                  <div className="mt-5 flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={startScanner}
+                      disabled={cameraBusy || decodingImage}
+                      className={scannerPrimaryBtnClass}
+                    >
+                      {scanState === "scanning" &&
+                      autoDetectStatus === "processing" ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Camera className="size-4" strokeWidth={2.25} aria-hidden />
+                      )}
+                      {scanState === "scanning" &&
+                      autoDetectStatus === "processing"
+                        ? "Requesting camera…"
+                        : scanState === "scanning"
+                          ? "Camera running"
+                          : "Start Camera"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={scanState === "loading" || decodingImage}
+                      className={scannerGhostBtnClass}
+                    >
+                      {decodingImage ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <ImagePlus className="size-4" strokeWidth={2.25} aria-hidden />
+                      )}
+                      {decodingImage ? "Reading image…" : "Upload QR Image"}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      id={fileInputId}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(event) => void handleQrImageSelected(event)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex min-w-0 flex-col items-center">
+                  <ScannerCameraStage
+                    active={scanState === "scanning"}
+                    reducedMotion={preferReducedMotion}
+                  >
+                    {scanState === "scanning" ? (
+                      <div
+                        id="qr-reader"
+                        className="absolute inset-0 min-h-full overflow-hidden [&_video]:h-full [&_video]:min-h-full [&_video]:w-full [&_video]:object-cover [&_img]:hidden"
+                      />
+                    ) : null}
+                    {scanState === "loading" ? (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#0b1f3a]/85 px-6 text-center">
+                        <Loader2
+                          className="size-9 animate-spin text-[#1777f2]"
+                          aria-hidden
+                        />
+                        <p className="m-0 text-[0.9rem] font-bold text-white">
+                          Validating pass
+                        </p>
+                        <p className="m-0 text-[0.75rem] text-white/70">
+                          Checking eligibility with your business account…
+                        </p>
+                      </div>
+                    ) : null}
+                    {scanState === "preview" ? (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#0b1f3a]/80 px-6 text-center">
+                        <CheckCircle2
+                          className="size-10 text-[#1777f2]"
+                          aria-hidden
+                        />
+                        <p className="m-0 text-[0.95rem] font-extrabold text-white">
+                          Guest found
+                        </p>
+                        <p className="m-0 text-[0.78rem] text-white/75">
+                          Confirm redemption in the popup to continue.
+                        </p>
+                      </div>
+                    ) : null}
+                    {scanState === "error" && !guestNotInDatabase ? (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#2a0f12]/88 px-6 text-center">
+                        <XCircle className="size-10 text-[#f87171]" aria-hidden />
+                        <p className="m-0 text-[0.95rem] font-extrabold text-white">
+                          Scan failed
+                        </p>
+                        <p className="m-0 max-w-xs text-[0.78rem] text-[#fecaca]">
+                          {errorMessage}
+                        </p>
+                      </div>
+                    ) : null}
+                  </ScannerCameraStage>
+                </div>
+
+                <div className="min-w-0 lg:pl-1">
+                  <h3 className="m-0 text-[0.95rem] font-extrabold tracking-tight text-[#0e182b]">
+                    Tips for best results
+                  </h3>
+                  <ul className="m-0 mt-4 flex list-none flex-col gap-3.5 p-0">
+                    {SCAN_TIPS.map((tip) => {
+                      const Icon = tip.icon;
+                      return (
+                        <li key={tip.title} className="flex items-start gap-3">
+                          <span
+                            className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${tip.iconWrap}`}
+                          >
+                            <Icon
+                              className="size-4"
+                              strokeWidth={2.1}
+                              aria-hidden
+                            />
+                          </span>
+                          <div className="min-w-0 pt-0.5">
+                            <p className="m-0 text-[0.84rem] font-bold text-[#0e182b]">
+                              {tip.title}
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.76rem] font-medium text-slate-500">
+                              {tip.description}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  <div className="mt-5 rounded-2xl border border-[#a7f3d0] bg-[#ecfdf5] px-4 py-4">
+                    <p className="m-0 flex items-center gap-2 text-[0.84rem] font-extrabold text-[#0e182b]">
+                      <ShieldCheck
+                        className="size-4 text-[#059669]"
+                        strokeWidth={2.2}
+                        aria-hidden
+                      />
+                      Secure &amp; Verified
+                    </p>
+                    <p className="m-0 mt-1.5 text-[0.76rem] font-medium leading-relaxed text-slate-600">
+                      Deals, payments, and eligibility are checked before
+                      redemption.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <WorkflowCards
+              scanState={scanState}
+              dialogStep={dialogStep}
+              previewResult={previewResult}
             />
-          ) : null}
 
-          {scanState === "scanning" ? (
-            <ScannerActiveView onCancel={() => void resetScan()} />
-          ) : null}
-
-          {scanState === "loading" ? (
-            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#e8edf5] bg-white px-6 py-14 text-center shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-              <Loader2 className="size-10 animate-spin text-[#1877f2]" aria-hidden />
-              <div>
-                <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-                  Loading guest
+            {scanState === "error" && !guestNotInDatabase ? (
+              <div className="flex flex-col items-center gap-3 rounded-[1.35rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-6 text-center">
+                <p className="m-0 max-w-md text-[0.84rem] font-medium text-[#dc2626]">
+                  {errorMessage}
                 </p>
-                <p className="m-0 mt-1 text-[0.8rem] font-medium text-slate-500">
-                  Fetching pass details from your business account…
-                </p>
+                <button
+                  type="button"
+                  onClick={() => void resetScan()}
+                  className={scannerPrimaryBtnClass}
+                >
+                  Try again
+                </button>
               </div>
-            </div>
-          ) : null}
-
-          {scanState === "preview" ? (
-            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#dbeafe] bg-[#f4f8ff] px-6 py-12 text-center">
-              <p className="m-0 text-[0.95rem] font-extrabold text-[#07111f]">
-                Guest found
-              </p>
-              <p className="m-0 max-w-sm text-[0.8rem] font-medium text-slate-600">
-                Confirm redemption in the popup to continue.
-              </p>
-              <button
-                type="button"
-                onClick={() => void resetScan()}
-                className="cursor-pointer rounded-full border border-[#e8edf5] bg-white px-4 py-2 text-[0.8rem] font-bold text-slate-700 transition hover:bg-white hover:text-[#1877f2]"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : null}
-
-          {scanState === "error" ? (
-            <div className="flex flex-col items-center gap-4 rounded-[1.35rem] border border-[#fecaca] bg-[#fef2f2] px-4 py-8 text-center shadow-[0_10px_28px_rgba(239,68,68,0.08)]">
-              <div className="flex size-16 items-center justify-center rounded-full bg-white ring-1 ring-[#fecaca]/80 shadow-sm">
-                <XCircle className="size-10 text-[#ef4444]" aria-hidden />
-              </div>
-              <p className="m-0 text-[1.05rem] font-extrabold text-[#07111f]">Scan failed</p>
-              <p className="m-0 max-w-sm text-[0.82rem] text-[#dc2626]">{errorMessage}</p>
-              <button
-                type="button"
-                onClick={() => void resetScan()}
-                className="rounded-full bg-[#1877f2] px-6 py-2.5 text-[0.82rem] font-bold text-white shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-              >
-                Try again
-              </button>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
         )}
       </div>
     </>
