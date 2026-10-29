@@ -912,9 +912,10 @@ export function ScannerSearchGuestPanel({
 
       const deal = availableBusinessDeals.find((row) => row.id === funnelId);
       if (deal && deal.campaignType !== "postpaid") {
-        setSelectedFunnelIds([funnelId]);
+        setSelectedFunnelIds((current) =>
+          current.includes(funnelId) ? [] : [funnelId],
+        );
         setPendingDealAmount(null);
-        setPurchaseStep("enterPrice");
         return;
       }
 
@@ -1172,6 +1173,17 @@ export function ScannerSearchGuestPanel({
           confirming={purchasing}
           requirePositiveAmount
           expectedAmount={expectedPurchaseAmount}
+          initialAmount={expectedPurchaseAmount}
+          dealSummary={
+            selectedBusinessDeals[0]
+              ? {
+                  name: selectedBusinessDeals[0].campaignName,
+                  imageUrl: selectedBusinessDeals[0].imageUrl,
+                  priceLabel: formatDealPrice(selectedBusinessDeals[0].price),
+                  description: "Attach this published deal to the guest.",
+                }
+              : null
+          }
           onBack={() => {
             setPurchaseStep(null);
             setPendingDealAmount(null);
@@ -1543,49 +1555,44 @@ export function ScannerSearchGuestPanel({
                     className="overflow-hidden rounded-[1.35rem] border border-[#e2e8f0] bg-white px-5 py-4 shadow-[0_12px_32px_rgba(14,24,43,0.06)] sm:px-6 sm:py-5"
                   >
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between xl:gap-6">
-                      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:gap-5">
-                        <div className="flex min-w-0 items-center gap-3.5">
-                          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,#1777f2_0%,#3b82f6_100%)] text-[0.95rem] font-extrabold text-white shadow-[0_10px_24px_rgba(23,119,242,0.28)] ring-[3px] ring-[#dbeafe]">
-                            {guestInitials(selectedProfile.customerName)}
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e9e5ff] bg-[#f5f3ff] text-[#7c5cfc]">
+                            <UserRound className="size-3.5" aria-hidden />
                           </span>
                           <div className="min-w-0">
-                            <h3 className="m-0 truncate text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
+                            <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
                               {selectedProfile.customerName}
-                            </h3>
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
+                              Name
+                            </p>
                           </div>
                         </div>
-
-                        <div
-                          className="hidden h-12 w-px shrink-0 bg-[#e2e8f0] lg:block"
-                          aria-hidden
-                        />
-
-                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-white text-[#1777f2]">
-                              <Mail className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
-                                {selectedProfile.email || "No email"}
-                              </p>
-                              <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
-                                Email
-                              </p>
-                            </div>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-[#eff6ff] text-[#1777f2]">
+                            <Mail className="size-3.5" aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
+                              {selectedProfile.email || "No email"}
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
+                              Email
+                            </p>
                           </div>
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-white text-[#1777f2]">
-                              <Phone className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
-                                {selectedProfile.phone?.trim() || "No phone"}
-                              </p>
-                              <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
-                                Phone
-                              </p>
-                            </div>
+                        </div>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#d1fae5] bg-[#ecfdf5] text-[#059669]">
+                            <Phone className="size-3.5" aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
+                              {selectedProfile.phone?.trim() || "No phone"}
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
+                              Phone
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1815,11 +1822,7 @@ export function ScannerSearchGuestPanel({
                                 }
                                 onClick={() => {
                                   setPendingDealAmount(null);
-                                  if (attachingPostpaidOnly) {
-                                    setPurchaseStep("enterPrice");
-                                    return;
-                                  }
-                                  setPurchaseStep("confirm");
+                                  setPurchaseStep("enterPrice");
                                 }}
                                 className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1777f2] px-4 py-3.5 text-[0.88rem] font-bold text-white shadow-[0_10px_24px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
                               >
