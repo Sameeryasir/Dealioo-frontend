@@ -1,6 +1,8 @@
 "use client";
 
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
+import { hasAuthSession } from "@/app/lib/auth-session";
+import { redirectToLogin } from "@/app/lib/authenticated-fetch";
 import { isInvitedTeamUser } from "@/app/lib/is-invited-team-user";
 import { resolvePostAuthPath } from "@/app/lib/onboarding-redirect";
 import {
@@ -17,7 +19,6 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    setAllowed(false);
 
     async function run() {
       if (pathname?.startsWith("/dashboard/upgrade-plan")) {
@@ -30,6 +31,11 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (!hasAuthSession()) {
+        if (!cancelled) redirectToLogin();
+        return;
+      }
+
       if (isInvitedTeamUser()) {
         if (!cancelled) setAllowed(true);
         return;
@@ -39,6 +45,11 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         invalidateOnboardingStatusCache();
         const status = await getOnboardingStatus();
         if (cancelled) return;
+
+        if (!hasAuthSession()) {
+          redirectToLogin();
+          return;
+        }
 
         const unpaid =
           !status.subscriptionCompleted && !status.subscriptionSelected;
@@ -60,7 +71,7 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         if (!cancelled) setAllowed(true);
       } catch {
         if (!cancelled) {
-          router.replace("/auth/select-plan");
+          redirectToLogin();
         }
       }
     }
