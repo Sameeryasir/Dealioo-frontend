@@ -557,7 +557,7 @@ export function ScannerCreateGuestPanel({
         />
       ) : null}
 
-      <div className={scannerPageWrapClass}>
+      <div className={`${scannerPageWrapClass} w-full shrink-0`}>
         {purchaseSuccess ? (
           <motion.div
             initial={{ opacity: 0, y: 14 }}

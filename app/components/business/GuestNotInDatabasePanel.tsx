@@ -1,6 +1,6 @@
 "use client";
 
-import { SearchX, UserPlus, UserRound, Sparkles } from "lucide-react";
+import { UserPlus, UserRound, X } from "lucide-react";
 
 type GuestNotInDatabasePanelProps = {
   searchQuery?: string;
@@ -16,99 +16,117 @@ export function GuestNotInDatabasePanel({
   onScanAgain,
 }: GuestNotInDatabasePanelProps) {
   const trimmedQuery = searchQuery?.trim();
+  const onDismiss = onSearchAgain ?? onScanAgain;
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-[#0a1628]/20 bg-white shadow-lg shadow-[0_16px_40px_rgba(7,17,31,0.14)] ring-1 ring-[#07111f]/10">
-      <div className="relative overflow-hidden bg-[#07111f] px-5 py-4 text-white sm:px-6 sm:py-5">
-        <div className="relative flex items-center gap-2 text-white/70">
-          <Sparkles className="size-3.5 shrink-0" aria-hidden />
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em]">
-            Not in your database
-          </p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0e182b]/45 p-4"
+      role="presentation"
+      onClick={onDismiss}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guest-not-found-title"
+        className="relative w-full max-w-[24rem] rounded-[1.35rem] border border-[#e8edf5] bg-white px-6 pb-6 pt-5 text-center shadow-[0_24px_60px_rgba(14,24,43,0.22)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {onDismiss ? (
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Close"
+            className="absolute right-3.5 top-3.5 flex size-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X className="size-4" strokeWidth={2.25} aria-hidden />
+          </button>
+        ) : null}
+
+        <div className="relative mx-auto mt-2 flex size-[6.5rem] items-center justify-center">
+          <span
+            className="absolute inset-0 rounded-full bg-[#eef5ff]"
+            aria-hidden
+          />
+          <span
+            className="absolute left-2 top-7 size-5 rounded-full bg-white/80"
+            aria-hidden
+          />
+          <span
+            className="absolute bottom-6 right-3 size-4 rounded-full bg-white/70"
+            aria-hidden
+          />
+          <svg
+            className="absolute inset-2 text-[#bfdbfe]"
+            viewBox="0 0 88 88"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M18 58C28 44 42 36 58 34"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeDasharray="3 3.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="relative flex size-12 items-center justify-center rounded-full bg-white text-[#1777f2] shadow-[0_8px_18px_rgba(23,119,242,0.16)] ring-1 ring-[#dbeafe]">
+            <UserRound className="size-6" strokeWidth={2.05} aria-hidden />
+            <span className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[#1777f2] text-white ring-2 ring-white">
+              <X className="size-2.5" strokeWidth={3} aria-hidden />
+            </span>
+          </span>
         </div>
 
-        <h2 className="relative mt-1.5 max-w-lg text-xl font-bold leading-tight sm:text-2xl">
-          This guest hasn&apos;t been saved yet
+        <h2
+          id="guest-not-found-title"
+          className="mt-4 text-[1.35rem] font-extrabold tracking-tight text-[#0e182b]"
+        >
+          Guest not found
         </h2>
 
-        <p className="relative mt-1.5 max-w-xl text-sm leading-snug text-white/80">
+        <p className="mt-2 text-[0.9rem] font-medium leading-relaxed text-slate-500">
           {trimmedQuery ? (
             <>
-              We looked for{" "}
-              <span className="font-semibold text-white">
+              No guest matched{" "}
+              <span className="font-bold text-[#0e182b]">
                 &ldquo;{trimmedQuery}&rdquo;
-              </span>{" "}
-              but no profile exists in Dealioo.
+              </span>
+              .
             </>
           ) : (
-            <>
-              No matching guest profile exists in Dealioo. They may not have
-              signed up through your deal page yet.
-            </>
+            <>No matching guest was found.</>
           )}
         </p>
-      </div>
 
-      <div className="grid gap-3 px-5 py-6 sm:grid-cols-3 sm:px-6">
-        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 text-center">
-          <p className="text-2xl font-bold text-zinc-900">0</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Saved profiles
-          </p>
-        </div>
-        <div className="rounded-2xl border border-[#dbeafe] bg-[#e8f1ff] px-4 py-4 text-center">
-          <p className="text-2xl font-bold text-[#1777f2]">New</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-[#1777f2]/70">
-            Guest status
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 text-center">
-          <UserRound className="mx-auto size-6 text-zinc-400" aria-hidden />
-          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Add manually
-          </p>
-        </div>
-      </div>
+        <p className="mt-1.5 text-[0.78rem] font-medium text-slate-400">
+          Try a different email, phone number, or create a new guest.
+        </p>
 
-      <div className="border-t border-zinc-100 px-5 py-5 sm:px-6">
-        <div className="flex items-start gap-3 rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1777f2] shadow-sm ring-1 ring-[#1777f2]/15">
-            <SearchX className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 text-sm leading-relaxed text-zinc-600">
-            <p className="font-medium text-zinc-900">What you can do next</p>
-            <p className="mt-1">
-              Guests are saved when they complete signup on your campaign funnel,
-              or when you create them here at the scanner.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
           {onCreateGuest ? (
             <button
               type="button"
               onClick={onCreateGuest}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1777f2] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0]"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1777f2] px-3.5 py-2.5 text-[0.86rem] font-bold text-white shadow-[0_10px_22px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0]"
             >
-              <UserPlus className="size-3.5" aria-hidden />
-              Create new guest
+              <UserPlus className="size-3.5" strokeWidth={2.25} aria-hidden />
+              Create guest
             </button>
           ) : null}
           {onSearchAgain ? (
             <button
               type="button"
               onClick={onSearchAgain}
-              className="inline-flex flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
+              className="inline-flex flex-1 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-[0.86rem] font-bold text-[#0e182b] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
             >
-              Try another search
+              Search again
             </button>
           ) : null}
           {onScanAgain ? (
             <button
               type="button"
               onClick={onScanAgain}
-              className="inline-flex flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
+              className="inline-flex flex-1 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-[0.86rem] font-bold text-[#0e182b] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
             >
               Scan again
             </button>

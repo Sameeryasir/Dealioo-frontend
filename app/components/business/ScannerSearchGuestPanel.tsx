@@ -2,22 +2,25 @@
 
 import {
   ArrowLeft,
-  CheckCircle2,
+  ArrowRight,
   ChevronRight,
   Clock,
+  CreditCard,
   FileText,
   Focus,
   Gift,
-  History,
+  Lightbulb,
   Loader2,
   Mail,
   Megaphone,
   Phone,
+  Plus,
   Search,
   ShieldCheck,
+  Store,
+  Tag,
   UserRound,
   Users,
-  Wallet,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -58,13 +61,10 @@ import {
 } from "@/app/services/funnel/purchase-scanner-deals";
 import {
   getGuestProfile,
-  getGuestPreviousRedemptions,
-  GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
   redeemExpectedOfferAmount,
   scanRedemptionQr,
   type GuestActiveDeal,
   type GuestAvailableBusinessDeal,
-  type GuestPreviousRedemption,
   type GuestProfile,
   type RedeemableReward,
 } from "@/app/services/redemption/scan-redemption";
@@ -374,16 +374,22 @@ function BusinessDealCheckboxRow({
     <li>
       <button
         type="button"
+        role="radio"
+        aria-checked={checked}
         disabled={disabled}
         onClick={onToggle}
-        className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition duration-150 ${
+        className={`group flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition duration-150 sm:p-4 ${
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-        } ${checked ? "bg-[#f7faff]" : "bg-transparent hover:bg-[#fafbfc]"}`}
+        } ${
+          checked
+            ? "border-[#3B82F6] bg-[#eff6ff] shadow-[0_8px_20px_rgba(59,130,246,0.12)]"
+            : "border-[#e2e8f0] bg-white hover:border-[#bfdbfe] hover:bg-[#f8fbff]"
+        }`}
       >
         <span
-          className={`flex size-[1.15rem] shrink-0 items-center justify-center rounded-full border-2 transition ${
+          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
             checked
-              ? "border-[#1777f2] bg-[#1777f2]"
+              ? "border-[#3B82F6] bg-[#3B82F6]"
               : "border-[#cbd5e1] bg-white"
           }`}
           aria-hidden
@@ -392,7 +398,7 @@ function BusinessDealCheckboxRow({
             <span className="size-1.5 rounded-full bg-white" />
           ) : null}
         </span>
-        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#eef5ff] text-[#1777f2]">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#eef5ff] text-[#1777f2] ring-1 ring-[#dbeafe]">
           {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -401,30 +407,155 @@ function BusinessDealCheckboxRow({
               className="size-full object-cover"
             />
           ) : (
-            <Megaphone className="size-4" aria-hidden />
+            <Megaphone className="size-5" aria-hidden />
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.92rem] font-bold tracking-tight text-[#0f172a]">
-            {deal.campaignName}
-          </span>
-          {deal.campaignType === "postpaid" ? (
-            <span className="mt-1.5 inline-flex rounded-md bg-[#eef1f5] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.04em] text-[#4b5563] ring-1 ring-[#e5e7eb]">
-              Postpaid
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block truncate text-[0.95rem] font-extrabold tracking-tight text-[#0e182b]">
+                {deal.campaignName}
+              </span>
             </span>
-          ) : null}
+            {deal.price != null && deal.price !== "" ? (
+              <DealPriceDisplay
+                price={deal.price}
+                originalPrice={deal.originalPrice}
+                size="sm"
+                showSaveBadge={false}
+                className="shrink-0"
+              />
+            ) : null}
+          </span>
         </span>
-        {deal.price != null && deal.price !== "" ? (
-          <DealPriceDisplay
-            price={deal.price}
-            originalPrice={deal.originalPrice}
-            size="sm"
-            showSaveBadge={false}
-            className="shrink-0"
-          />
-        ) : null}
       </button>
     </li>
+  );
+}
+
+function GuestStatCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+  showDivider = false,
+}: {
+  icon: typeof Tag;
+  label: string;
+  value: number;
+  tone: "blue" | "purple" | "green";
+  showDivider?: boolean;
+}) {
+  const tones = {
+    blue: "bg-[#e8f1ff] text-[#1777f2]",
+    purple: "bg-[#efe9ff] text-[#7c5cfc]",
+    green: "bg-[#e8f8ef] text-[#22a06b]",
+  } as const;
+
+  return (
+    <div className="inline-flex shrink-0 items-center">
+      {showDivider ? (
+        <span
+          className="mx-3 h-9 w-px shrink-0 bg-[#e5eaf2] sm:mx-4"
+          aria-hidden
+        />
+      ) : null}
+      <div className="inline-flex items-center gap-2.5">
+        <span
+          className={`flex size-9 shrink-0 items-center justify-center rounded-[0.7rem] ${tones[tone]}`}
+        >
+          <Icon className="size-4" strokeWidth={2.1} aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="m-0 text-[1.15rem] font-extrabold leading-none tabular-nums tracking-tight text-[#0e182b]">
+            {value}
+          </p>
+          <p className="m-0 mt-1 text-[0.7rem] font-medium lowercase tracking-wide text-slate-500">
+            {label}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GuestDealsEmptyState() {
+  return (
+    <div className="mt-4 flex flex-1 flex-col items-center justify-center px-3 py-8 text-center sm:px-4">
+      <div className="relative mb-5 flex size-[8.25rem] items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full bg-[#eef4fb]"
+          aria-hidden
+        />
+        <span
+          className="absolute left-4 top-9 size-6 rounded-full bg-white/70 blur-[1px]"
+          aria-hidden
+        />
+        <span
+          className="absolute bottom-8 left-7 size-4 rounded-full bg-white/55"
+          aria-hidden
+        />
+        <span
+          className="absolute bottom-10 right-5 size-5 rounded-full bg-white/60"
+          aria-hidden
+        />
+        <span
+          className="absolute right-6 top-7 flex flex-col gap-[3px]"
+          aria-hidden
+        >
+          <span className="h-[2px] w-3 rotate-[18deg] rounded-full bg-[#93c5fd]" />
+          <span className="ml-1.5 h-[2px] w-2.5 rotate-[18deg] rounded-full bg-[#93c5fd]" />
+          <span className="ml-0.5 h-[2px] w-3.5 rotate-[18deg] rounded-full bg-[#93c5fd]" />
+        </span>
+
+        <div className="relative -rotate-[8deg]">
+          <svg
+            width="56"
+            height="42"
+            viewBox="0 0 52 40"
+            fill="none"
+            aria-hidden
+            className="drop-shadow-[0_10px_18px_rgba(59,130,246,0.2)]"
+          >
+            <path
+              d="M4 8C4 5.79086 5.79086 4 8 4H22C22 6.20914 23.7909 8 26 8C28.2091 8 30 6.20914 30 4H44C46.2091 4 48 5.79086 48 8V32C48 34.2091 46.2091 36 44 36H30C30 33.7909 28.2091 32 26 32C23.7909 32 22 33.7909 22 36H8C5.79086 36 4 34.2091 4 32V8Z"
+              fill="#60A5FA"
+            />
+            <path
+              d="M26 10V30"
+              stroke="white"
+              strokeWidth="1.6"
+              strokeDasharray="2.5 2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute -bottom-1.5 -right-2.5 flex size-[1.55rem] items-center justify-center rounded-full bg-[#93c5fd] text-white shadow-[0_4px_10px_rgba(59,130,246,0.28)] ring-[3px] ring-white">
+            <Plus className="size-3.5" strokeWidth={2.75} aria-hidden />
+          </span>
+        </div>
+      </div>
+
+      <p className="m-0 text-[0.98rem] font-extrabold tracking-tight text-[#0e182b]">
+        No active deals on this guest yet
+      </p>
+      <p className="m-0 mt-1.5 text-[0.8rem] font-medium text-slate-400">
+        Attach a business deal to get started.
+      </p>
+
+      <div className="mt-6 flex w-full max-w-fit items-center gap-3 rounded-[1.15rem] border border-[#dbeafe] bg-[#eff6ff] px-3.5 py-3 text-left">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-[#1777f2] shadow-[0_2px_8px_rgba(23,119,242,0.08)] ring-1 ring-[#dbeafe]">
+          <Lightbulb className="size-4" strokeWidth={2.1} aria-hidden />
+        </span>
+        <p className="m-0 whitespace-nowrap text-[0.78rem] leading-snug">
+          <span className="font-bold text-[#0e182b]">
+            Select a campaign from the right panel
+          </span>{" "}
+          <span className="font-medium text-slate-400">
+            to attach it to this guest.
+          </span>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -575,18 +706,6 @@ export function ScannerSearchGuestPanel({
   const [selectedProfile, setSelectedProfile] = useState<GuestProfile | null>(
     null,
   );
-  const [previousRedemptions, setPreviousRedemptions] = useState<
-    GuestPreviousRedemption[]
-  >([]);
-  const [previousRedemptionsMeta, setPreviousRedemptionsMeta] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null>(null);
-  const [previousRedemptionsPage, setPreviousRedemptionsPage] = useState(1);
-  const [loadingPreviousRedemptions, setLoadingPreviousRedemptions] =
-    useState(false);
   const [selectedDealIds, setSelectedDealIds] = useState<number[]>([]);
   const [redeemStep, setRedeemStep] = useState<
     null | "completeOrder" | "enterSubtotal" | "enterExtra"
@@ -668,9 +787,6 @@ export function ScannerSearchGuestPanel({
       setGuestDealTab("all");
       setPurchaseStep(null);
       setPendingDealAmount(null);
-      setPreviousRedemptions([]);
-      setPreviousRedemptionsMeta(null);
-      setPreviousRedemptionsPage(1);
       idempotencyKeyRef.current = "";
 
       try {
@@ -694,50 +810,6 @@ export function ScannerSearchGuestPanel({
     },
     [businessId, activeQuery],
   );
-
-  useEffect(() => {
-    if (!selectedProfile) {
-      setPreviousRedemptions([]);
-      setPreviousRedemptionsMeta(null);
-      return;
-    }
-
-    let cancelled = false;
-    const loadPreviousRedemptions = async () => {
-      setLoadingPreviousRedemptions(true);
-      try {
-        const result = await getGuestPreviousRedemptions(
-          businessId,
-          selectedProfile.customerId,
-          previousRedemptionsPage,
-          GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE,
-        );
-        if (!cancelled) {
-          setPreviousRedemptions(result.data);
-          setPreviousRedemptionsMeta(result.meta);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setPreviousRedemptions([]);
-          setPreviousRedemptionsMeta(null);
-          setErrorMessage(
-            err instanceof Error
-              ? err.message
-              : "Could not load previously redeemed rewards.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingPreviousRedemptions(false);
-        }
-      }
-    };
-
-    void loadPreviousRedemptions();
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, selectedProfile, previousRedemptionsPage]);
 
   const activeDeals = useMemo(
     () => (selectedProfile?.activeDeals ?? []).map(normalizeDeal),
@@ -1014,6 +1086,8 @@ export function ScannerSearchGuestPanel({
 
   const hideScannerTabs =
     showTable || selectedProfile != null || loadingProfile;
+  const isSearchHero =
+    !showTable && !selectedProfile && !loadingProfile;
   useEffect(() => {
     onHideScannerTabsChange?.(hideScannerTabs);
     return () => onHideScannerTabsChange?.(false);
@@ -1213,7 +1287,13 @@ export function ScannerSearchGuestPanel({
         />
       ) : null}
 
-    <div className="flex min-h-0 w-full flex-1 flex-col">
+    <div
+      className={
+        isSearchHero
+          ? "w-full shrink-0 2xl:my-auto"
+          : "flex min-h-0 w-full flex-1 flex-col"
+      }
+    >
       {showTable ? (
         <article className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#f8fafc]">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8edf5] bg-white px-4 py-4 sm:px-6">
@@ -1389,7 +1469,7 @@ export function ScannerSearchGuestPanel({
           ) : null}
         </article>
       ) : selectedProfile || loadingProfile ? (
-        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#f4f8ff]">
           {loadingProfile ? (
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
               <Loader2
@@ -1414,11 +1494,26 @@ export function ScannerSearchGuestPanel({
               transition={{ duration: 0.32, ease: standardEase }}
               className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
             >
-              <div className="relative shrink-0 border-b border-[#eef2f7] bg-white px-5 py-3.5 sm:px-7">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="m-0 text-[0.8rem] font-bold text-[#0e182b]">
-                    Guest profile
-                  </p>
+              <div className="relative shrink-0 overflow-hidden border-b border-[#dbeafe]/80 bg-white px-5 py-4 sm:px-7 sm:py-5">
+                <div
+                  className="pointer-events-none absolute -top-10 right-0 size-40 rounded-full bg-[#e8f1ff]/70 blur-2xl"
+                  aria-hidden
+                />
+                <div className="relative flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-3.5">
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[#1777f2] ring-1 ring-[#dbeafe]">
+                      <UserRound className="size-5" strokeWidth={2.1} aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="m-0 text-[1.35rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.45rem]">
+                        Guest Profile
+                      </h2>
+                      <p className="m-0 mt-1 text-[0.82rem] font-medium text-slate-500">
+                        View guest details and attach a business deal for
+                        redemption.
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -1429,12 +1524,9 @@ export function ScannerSearchGuestPanel({
                       setSelectedFunnelIds([]);
                       setPurchaseStep(null);
                       setPendingDealAmount(null);
-                      setPreviousRedemptions([]);
-                      setPreviousRedemptionsMeta(null);
-                      setPreviousRedemptionsPage(1);
                       idempotencyKeyRef.current = "";
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-2 text-[0.72rem] font-bold text-slate-700 transition hover:bg-[#f8fafc]"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3.5 py-2.5 text-[0.78rem] font-bold text-[#0e182b] shadow-[0_4px_14px_rgba(14,24,43,0.04)] transition hover:border-[#1777f2]/35 hover:bg-[#e8f1ff] hover:text-[#1777f2]"
                   >
                     <ArrowLeft className="size-3.5" aria-hidden />
                     Back to results
@@ -1442,58 +1534,87 @@ export function ScannerSearchGuestPanel({
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease: standardEase }}
-                  className="border-b border-[#eef2f7] px-5 py-5 sm:px-7"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-3.5">
-                      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#1777f2] text-[0.95rem] font-extrabold text-white">
-                        {guestInitials(selectedProfile.customerName)}
-                      </span>
-                      <div className="min-w-0">
-                        <h2 className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#0e182b]">
-                          {selectedProfile.customerName}
-                        </h2>
-                        <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500">
-                          {selectedProfile.email}
-                          {selectedProfile.phone
-                            ? ` · ${selectedProfile.phone}`
-                            : ""}
-                        </p>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f4f8ff]">
+                <div className="space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-7">
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: standardEase }}
+                    className="overflow-hidden rounded-[1.35rem] border border-[#e2e8f0] bg-white px-5 py-4 shadow-[0_12px_32px_rgba(14,24,43,0.06)] sm:px-6 sm:py-5"
+                  >
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between xl:gap-6">
+                      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:gap-5">
+                        <div className="flex min-w-0 items-center gap-3.5">
+                          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,#1777f2_0%,#3b82f6_100%)] text-[0.95rem] font-extrabold text-white shadow-[0_10px_24px_rgba(23,119,242,0.28)] ring-[3px] ring-[#dbeafe]">
+                            {guestInitials(selectedProfile.customerName)}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="m-0 truncate text-[1.15rem] font-extrabold tracking-tight text-[#0e182b] sm:text-[1.25rem]">
+                              {selectedProfile.customerName}
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div
+                          className="hidden h-12 w-px shrink-0 bg-[#e2e8f0] lg:block"
+                          aria-hidden
+                        />
+
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-white text-[#1777f2]">
+                              <Mail className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
+                                {selectedProfile.email || "No email"}
+                              </p>
+                              <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
+                                Email
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#dbeafe] bg-white text-[#1777f2]">
+                              <Phone className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="m-0 truncate text-[0.84rem] font-semibold text-[#0e182b]">
+                                {selectedProfile.phone?.trim() || "No phone"}
+                              </p>
+                              <p className="m-0 mt-0.5 text-[0.68rem] font-medium text-slate-400">
+                                Phone
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center xl:justify-end">
+                        <GuestStatCard
+                          icon={Tag}
+                          label="guest deals"
+                          value={activeDeals.length}
+                          tone="blue"
+                        />
+                        <GuestStatCard
+                          icon={CreditCard}
+                          label="paid"
+                          value={prepaidDeals.length}
+                          tone="purple"
+                          showDivider
+                        />
+                        <GuestStatCard
+                          icon={Gift}
+                          label="redeemed"
+                          value={selectedProfile.previouslyRedeemedCount}
+                          tone="green"
+                          showDivider
+                        />
                       </div>
                     </div>
+                  </motion.div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.76rem] font-semibold text-slate-600">
-                      <span>
-                        <span className="tabular-nums text-[#0e182b]">
-                          {activeDeals.length}
-                        </span>{" "}
-                        guest deals
-                      </span>
-                      <span className="text-slate-300">·</span>
-                      <span>
-                        <span className="tabular-nums text-[#0e182b]">
-                          {prepaidDeals.length}
-                        </span>{" "}
-                        paid
-                      </span>
-                      <span className="text-slate-300">·</span>
-                      <span>
-                        <span className="tabular-nums text-[#0e182b]">
-                          {previousRedemptionsMeta?.total ??
-                            selectedProfile.previouslyRedeemedCount}
-                        </span>{" "}
-                        redeemed
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
                   <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
                     <motion.section
                       initial={{ opacity: 0, y: 14 }}
@@ -1503,31 +1624,27 @@ export function ScannerSearchGuestPanel({
                         delay: 0.06,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white"
+                      className="flex h-full min-h-[22rem] flex-col overflow-hidden rounded-[1.25rem] border border-[#e2e8f0] bg-white shadow-[0_12px_32px_rgba(14,24,43,0.05)]"
                     >
                       <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
-                        <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0f172a]">
-                          Guest deals
-                        </h3>
-                        <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                          Redeem deals already on this guest.
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f1ff] text-[#1777f2]">
+                            <Tag className="size-4.5" strokeWidth={2.1} aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0e182b]">
+                              Guest deals
+                            </h3>
+                            <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                              Redeem deals already on this guest.
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5">
                         {activeDeals.length === 0 ? (
-                          <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
-                            <Wallet
-                              className="mx-auto size-6 text-slate-300"
-                              aria-hidden
-                            />
-                            <p className="m-0 mt-2.5 text-[0.84rem] font-semibold text-slate-600">
-                              No active deals on this guest yet
-                            </p>
-                            <p className="m-0 mt-1 text-[0.72rem] font-medium text-slate-400">
-                              Attach a business deal to get started.
-                            </p>
-                          </div>
+                          <GuestDealsEmptyState />
                         ) : (
                           <>
                             <div
@@ -1618,7 +1735,7 @@ export function ScannerSearchGuestPanel({
                                     onClick={() =>
                                       setRedeemStep("completeOrder")
                                     }
-                                    className="cursor-pointer rounded-lg bg-[#1777f2] px-4 py-2 text-[0.8rem] font-bold text-white transition hover:bg-[#1569e0] disabled:opacity-50"
+                                    className="cursor-pointer rounded-xl bg-[#1777f2] px-4 py-2.5 text-[0.8rem] font-bold text-white transition hover:bg-[#1569e0] disabled:opacity-50"
                                   >
                                     {confirmingRedemption
                                       ? "Redeeming…"
@@ -1640,21 +1757,40 @@ export function ScannerSearchGuestPanel({
                         delay: 0.12,
                         ease: standardEase,
                       }}
-                      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white"
+                      className="flex h-full min-h-[22rem] flex-col overflow-hidden rounded-[1.25rem] border border-[#e2e8f0] bg-white shadow-[0_12px_32px_rgba(14,24,43,0.05)]"
                     >
                       <div className="shrink-0 border-b border-[#eef2f7] px-4 py-4 sm:px-5">
-                        <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0f172a]">
-                          Business deals
-                        </h3>
-                        <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                          Published campaigns you can attach.
-                        </p>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1777f2] ring-1 ring-[#dbeafe]">
+                              <Store className="size-4.5" strokeWidth={2.1} aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="m-0 text-[1rem] font-extrabold tracking-tight text-[#0e182b]">
+                                Business Deals
+                              </h3>
+                              <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
+                                Published campaigns you can attach to this
+                                guest.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f1ff] px-2.5 py-1 text-[0.7rem] font-bold tabular-nums text-[#1777f2] ring-1 ring-[#dbeafe]">
+                            <Megaphone className="size-3.5" aria-hidden />
+                            {availableBusinessDeals.length} campaign
+                            {availableBusinessDeals.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 sm:px-5">
                         {availableBusinessDeals.length > 0 ? (
                           <div className="flex min-h-0 flex-1 flex-col">
-                            <ul className="min-h-0 flex-1 divide-y divide-[#f1f5f9] overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
+                            <ul
+                              className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]"
+                              role="radiogroup"
+                              aria-label="Business deals"
+                            >
                               {availableBusinessDeals.map((deal) => (
                                 <BusinessDealCheckboxRow
                                   key={deal.id}
@@ -1685,15 +1821,17 @@ export function ScannerSearchGuestPanel({
                                   }
                                   setPurchaseStep("confirm");
                                 }}
-                                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1777f2] px-4 py-3 text-[0.86rem] font-bold text-white shadow-[0_8px_20px_rgba(23,119,242,0.25)] transition hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1777f2] px-4 py-3.5 text-[0.88rem] font-bold text-white shadow-[0_10px_24px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0] disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                Attach selected deal
-                                <ChevronRight className="size-4" aria-hidden />
+                                {purchasing
+                                  ? "Attaching…"
+                                  : "Attach selected deal"}
+                                <ArrowRight className="size-4" aria-hidden />
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
+                          <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
                             <p className="m-0 text-[0.84rem] font-semibold text-slate-600">
                               {publishedBusinessDealCount === 0
                                 ? "No published deals for this business."
@@ -1709,179 +1847,14 @@ export function ScannerSearchGuestPanel({
                       </div>
                     </motion.section>
                   </div>
-
-                  {(previousRedemptionsMeta?.total ??
-                    selectedProfile.previouslyRedeemedCount) > 0 ||
-                  loadingPreviousRedemptions ? (
-                    <motion.section
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.38,
-                        delay: 0.16,
-                        ease: standardEase,
-                      }}
-                      className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-4">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff] text-[#1777f2]">
-                            <History className="size-[1.05rem]" aria-hidden />
-                          </span>
-                          <div className="min-w-0">
-                            <h3 className="m-0 text-[1.02rem] font-extrabold tracking-tight text-[#0f172a]">
-                              Previously redeemed
-                            </h3>
-                            <p className="m-0 mt-0.5 text-[0.74rem] font-medium text-slate-500">
-                              Past rewards this guest has already used.
-                            </p>
-                          </div>
-                        </div>
-                        <span className="rounded-full bg-[#1777f2] px-3 py-1.5 text-[0.72rem] font-bold tabular-nums text-white shadow-[0_6px_16px_rgba(23,119,242,0.28)]">
-                          {previousRedemptionsMeta?.total ??
-                            selectedProfile.previouslyRedeemedCount}{" "}
-                          redeemed
-                        </span>
-                      </div>
-
-                      <div className="overflow-x-auto overscroll-x-contain">
-                        <table className="w-full min-w-[32rem] border-collapse">
-                          <thead>
-                            <tr className="border-b border-[#e8edf5] bg-[#f8fafc]">
-                              <th className={`${thClass} w-12`}>
-                                <TableColumnHeader
-                                  label="#"
-                                  iconClassName={TABLE_HEAD_ICON_CLASS}
-                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
-                                />
-                              </th>
-                              <th className={thClass}>
-                                <TableColumnHeader
-                                  icon={Gift}
-                                  label="Campaign"
-                                  iconClassName={TABLE_HEAD_ICON_CLASS}
-                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
-                                />
-                              </th>
-                              <th className={thClass}>
-                                <TableColumnHeader
-                                  icon={History}
-                                  label="Redeemed at"
-                                  iconClassName={TABLE_HEAD_ICON_CLASS}
-                                  labelClassName={TABLE_HEAD_LABEL_CLASS}
-                                />
-                              </th>
-                              <th className={`${thClass} w-28 text-right`}>
-                                <span className={TABLE_HEAD_LABEL_CLASS}>
-                                  Status
-                                </span>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {loadingPreviousRedemptions &&
-                            previousRedemptions.length === 0 ? (
-                              <tr>
-                                <td colSpan={4} className="px-6 py-10 text-center">
-                                  <Loader2
-                                    className="mx-auto size-5 animate-spin text-[#1777f2]"
-                                    aria-hidden
-                                  />
-                                  <p className="mt-2 text-sm font-medium text-slate-500">
-                                    Loading redeemed rewards…
-                                  </p>
-                                </td>
-                              </tr>
-                            ) : null}
-
-                            {!loadingPreviousRedemptions &&
-                            previousRedemptions.length === 0 ? (
-                              <tr>
-                                <td
-                                  colSpan={4}
-                                  className="px-6 py-8 text-center text-sm font-medium text-slate-500"
-                                >
-                                  No previously redeemed rewards.
-                                </td>
-                              </tr>
-                            ) : null}
-
-                            {previousRedemptions.map((item, index) => {
-                              const rowNumber =
-                                ((previousRedemptionsMeta?.page ??
-                                  previousRedemptionsPage) -
-                                  1) *
-                                  (previousRedemptionsMeta?.limit ??
-                                    GUEST_PREVIOUS_REDEMPTIONS_PAGE_SIZE) +
-                                index +
-                                1;
-                              return (
-                                <tr
-                                  key={`${item.campaignName}-${item.redeemedAt}-${rowNumber}`}
-                                  className="border-b border-[#f1f5f9] transition-colors last:border-0 hover:bg-[#f8fafc]"
-                                >
-                                  <td className={tdClass}>
-                                    <span className="text-xs font-semibold tabular-nums text-slate-400">
-                                      {rowNumber}
-                                    </span>
-                                  </td>
-                                  <td className={tdClass}>
-                                    <span className="inline-flex items-center gap-2 font-extrabold text-[#07111f]">
-                                      <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef5ff] text-[#1777f2]">
-                                        <Gift className="size-3.5" aria-hidden />
-                                      </span>
-                                      {item.campaignName}
-                                    </span>
-                                  </td>
-                                  <td className={tdClass}>
-                                    {item.redeemedAt ? (
-                                      <span className="font-medium text-slate-600">
-                                        {formatDateTimeShort(item.redeemedAt)}
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-300">—</span>
-                                    )}
-                                  </td>
-                                  <td className={`${tdClass} text-right`}>
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-emerald-700 ring-1 ring-emerald-100">
-                                      <CheckCircle2
-                                        className="size-3"
-                                        aria-hidden
-                                      />
-                                      Used
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {previousRedemptionsMeta &&
-                      previousRedemptionsMeta.totalPages > 1 ? (
-                        <div className="border-t border-[#e8edf5] px-5 py-3 sm:px-7">
-                          <OffsetPagination
-                            page={previousRedemptionsMeta.page}
-                            totalPages={previousRedemptionsMeta.totalPages}
-                            total={previousRedemptionsMeta.total}
-                            limit={previousRedemptionsMeta.limit}
-                            loading={loadingPreviousRedemptions}
-                            onPageChange={setPreviousRedemptionsPage}
-                            itemLabel="rewards"
-                          />
-                        </div>
-                      ) : null}
-                    </motion.section>
-                  ) : null}
                 </div>
               </div>
             </motion.div>
           ) : null}
         </div>
       ) : (
-        <div className="w-full overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
-          <div className={scannerPageWrapClass}>
+        <div className="w-full shrink-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
+          <div className={`${scannerPageWrapClass} w-full`}>
             {!selectedProfile &&
             !loadingProfile &&
             activeQuery.length === 0 &&

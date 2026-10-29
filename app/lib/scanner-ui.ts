@@ -31,7 +31,7 @@ export const scannerCardHeaderClass =
   "flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-5 py-3.5 sm:px-6";
 
 export const scannerMainGridClass =
-  "grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,0.95fr)] lg:items-start lg:gap-7 sm:px-7 sm:py-7";
+  "grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)_minmax(0,1fr)] lg:items-start lg:gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_minmax(0,1fr)] sm:px-7 sm:py-7";
 
 export const scannerTwoColGridClass =
   "grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] lg:items-start lg:gap-7 sm:px-7 sm:py-7";
@@ -43,7 +43,7 @@ export const scannerEyebrowClass =
   "m-0 text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[#1777f2]";
 
 export const scannerCenterStageClass =
-  "relative mx-auto w-full max-w-md overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_22px_48px_rgba(11,31,58,0.35)]";
+  "relative mx-auto w-full max-w-[18rem] overflow-hidden rounded-[1.35rem] border border-[#1e3a5f] bg-[#0b1f3a] shadow-[0_22px_48px_rgba(11,31,58,0.35)] xl:max-w-[20rem]";
 
 export const scannerWorkflowCardClass =
   "relative rounded-2xl border border-[#e2e8f0] bg-white px-4 py-4";

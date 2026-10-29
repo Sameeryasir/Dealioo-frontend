@@ -812,7 +812,7 @@ export function ScannerScanCodePanel({
         />
       ) : null}
 
-      <div className={scannerPageWrapClass}>
+      <div className={`${scannerPageWrapClass} w-full shrink-0`}>
         {guestNotInDatabase ? (
           <GuestNotInDatabasePanel
             onCreateGuest={onCreateGuest}
@@ -908,7 +908,7 @@ export function ScannerScanCodePanel({
                   </div>
                 </div>
 
-                <div className="flex min-w-0 flex-col items-center">
+                <div className="flex min-w-0 max-w-full flex-col items-center overflow-hidden">
                   <ScannerCameraStage
                     active={scanState === "scanning"}
                     reducedMotion={preferReducedMotion}

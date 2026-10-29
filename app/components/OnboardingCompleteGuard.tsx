@@ -10,12 +10,13 @@ import {
   invalidateOnboardingStatusCache,
 } from "@/app/services/onboarding/get-onboarding-status";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [allowed, setAllowed] = useState(false);
+  const passedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,11 +33,18 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
       }
 
       if (!hasAuthSession()) {
+        passedRef.current = false;
         if (!cancelled) redirectToLogin();
         return;
       }
 
       if (isInvitedTeamUser()) {
+        passedRef.current = true;
+        if (!cancelled) setAllowed(true);
+        return;
+      }
+
+      if (passedRef.current) {
         if (!cancelled) setAllowed(true);
         return;
       }
@@ -47,6 +55,7 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
         if (cancelled) return;
 
         if (!hasAuthSession()) {
+          passedRef.current = false;
           redirectToLogin();
           return;
         }
@@ -68,8 +77,10 @@ export function OnboardingCompleteGuard({ children }: { children: ReactNode }) {
           return;
         }
 
+        passedRef.current = true;
         if (!cancelled) setAllowed(true);
       } catch {
+        passedRef.current = false;
         if (!cancelled) {
           redirectToLogin();
         }

@@ -1,5 +1,7 @@
 "use client";
 
+import { ScannerCreateGuestPanel } from "@/app/components/business/ScannerCreateGuestPanel";
+import { ScannerSearchGuestPanel } from "@/app/components/business/ScannerSearchGuestPanel";
 import { type ScanningTabId } from "@/app/lib/scanning-routes";
 import { scannerShellClass } from "@/app/lib/scanner-ui";
 import { ScanLine, Search, UserPlus } from "lucide-react";
@@ -18,47 +20,12 @@ const SCANNER_TABS: Array<{
   { id: "create", label: "New Guest", icon: UserPlus },
 ];
 
-function ScannerTabLoading({ label }: { label: string }) {
-  return (
-    <div
-      className="flex min-h-[14rem] items-center justify-center text-sm text-slate-500"
-      aria-busy="true"
-      aria-label={label}
-    >
-      {label}
-    </div>
-  );
-}
-
 const ScannerScanCodePanel = dynamic(
   () =>
     import("@/app/components/business/ScannerScanCodePanel").then(
       (mod) => mod.ScannerScanCodePanel,
     ),
-  {
-    ssr: false,
-    loading: () => <ScannerTabLoading label="Loading scanner…" />,
-  },
-);
-const ScannerSearchGuestPanel = dynamic(
-  () =>
-    import("@/app/components/business/ScannerSearchGuestPanel").then(
-      (mod) => mod.ScannerSearchGuestPanel,
-    ),
-  {
-    ssr: false,
-    loading: () => <ScannerTabLoading label="Loading guest search…" />,
-  },
-);
-const ScannerCreateGuestPanel = dynamic(
-  () =>
-    import("@/app/components/business/ScannerCreateGuestPanel").then(
-      (mod) => mod.ScannerCreateGuestPanel,
-    ),
-  {
-    ssr: false,
-    loading: () => <ScannerTabLoading label="Loading new guest form…" />,
-  },
+  { ssr: false },
 );
 
 function ScannerNavTab({
@@ -111,6 +78,7 @@ export function BusinessQrScannerPanel({
               aria-label="Scanner navigation"
             >
               <div className="flex flex-wrap items-center gap-2" role="tablist">
+
                 {SCANNER_TABS.map(({ id, label, icon }) => (
                   <ScannerNavTab
                     key={id}
@@ -127,8 +95,8 @@ export function BusinessQrScannerPanel({
           <div
             className={
               activeTab === "search"
-                ? "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8fafc] p-0"
-                : "rd-premium-panel__body min-h-0 flex-1 !block overflow-y-auto overscroll-contain bg-[#f8fafc] px-4 py-4 sm:px-5 sm:py-5"
+                ? "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8fafc] p-0 2xl:justify-center"
+                : "rd-premium-panel__body flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-[#f8fafc] px-4 py-4 sm:px-5 sm:py-5 2xl:justify-center"
             }
             role="tabpanel"
           >
