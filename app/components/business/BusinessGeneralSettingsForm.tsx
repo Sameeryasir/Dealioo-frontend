@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { BusinessProfileEditModal } from "@/app/components/business/BusinessProfileEditModal";
 import { BusinessDetailRow } from "@/app/components/business/business-profile/BusinessDetailRow";
 import { BusinessProfileSkeleton } from "@/app/components/business/business-profile/BusinessProfileSkeleton";
+import { ProfileCompletionRing } from "@/app/components/business/business-profile/ProfileCompletionRing";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
@@ -11,25 +12,16 @@ import { isValidOptionalHttpsWebsiteUrl } from "@/app/lib/website-url";
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   Building2,
   Camera,
+  Check,
   ChevronRight,
   FileText,
-  Globe,
-  Link2,
-  Mail,
   MapPin,
-  Megaphone,
   Pencil,
-  Phone,
-  Settings2,
   Sparkles,
-  Users,
   UtensilsCrossed,
-  Wallet,
   Zap,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -198,20 +190,47 @@ export function BusinessGeneralSettingsForm({
 
   const isBusinessActive = business?.owner?.isActive !== false && Boolean(business);
 
-  const locationLine = [
-    form.city.trim() || null,
-    form.state.trim() || null,
-    `${form.branchCount} ${
-      Number(form.branchCount) === 1 ? "branch" : "branches"
-    }`,
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  const profileCompletion = useMemo(() => {
+    const items = [
+      {
+        id: "basic",
+        label: "Basic information",
+        done: Boolean(form.name.trim() && logoSrc),
+      },
+      {
+        id: "contact",
+        label: "Contact details",
+        done: Boolean(form.phoneNumber.trim() && form.email.trim()),
+      },
+      {
+        id: "details",
+        label: "Business details",
+        done: Boolean(form.websiteUrl.trim() && form.description.trim()),
+      },
+      {
+        id: "location",
+        label: "Location information",
+        done: Boolean(
+          form.city.trim() &&
+            form.state.trim() &&
+            form.country.trim() &&
+            form.postalCode.trim() &&
+            Number.parseInt(form.branchCount, 10) >= 1,
+        ),
+      },
+    ];
+    const doneCount = items.filter((item) => item.done).length;
+    const percent = Math.round((doneCount / items.length) * 100);
+    return { items, percent, complete: percent === 100 };
+  }, [form, logoSrc]);
 
+  const descriptionText = form.description.trim();
   const locationBadge = [form.city.trim(), form.state.trim()]
     .filter(Boolean)
     .join(", ");
-
+  const branchLabel = `${form.branchCount} ${
+    Number(form.branchCount) === 1 ? "branch" : "branches"
+  }`;
   const businessTypeLabel = displayOrDash(business?.businessType ?? "");
   const websiteHref = form.websiteUrl.trim();
   const websiteValid =
@@ -262,21 +281,27 @@ export function BusinessGeneralSettingsForm({
     </section>
   );
 
-  const profileMain = (
-    <>
+  const profileHeader = (
       <section
-        className={`relative overflow-visible ${cardClass} px-4 py-3.5 sm:px-5 sm:py-4`}
+        className={`relative overflow-hidden ${cardClass} px-4 py-3 sm:px-5 sm:py-3.5`}
       >
-        <span
-          className="pointer-events-none absolute -right-12 -top-16 size-40 rounded-full bg-[#1464ff]/[0.06] blur-3xl"
-          aria-hidden
-        />
+        <div className="relative mb-3 min-w-0">
+          <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#1464ff]">
+            — Business profile
+          </p>
+          <h1 className="m-0 mt-0.5 text-[1.35rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.5rem]">
+            {previewMeta.title}
+          </h1>
+          <p className="m-0 mt-0.5 text-[0.82rem] text-[#7183a4]">
+            {previewMeta.subtitle}
+          </p>
+        </div>
 
-        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
+        <div className="relative grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center lg:gap-5">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
             <div
               id="business-settings-logo"
-              className="relative size-[5.75rem] shrink-0 xl:size-[6.5rem]"
+              className="relative size-[4.75rem] shrink-0 xl:size-[5.25rem]"
             >
               <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-[#e8edf5]">
                 {logoSrc ? (
@@ -288,7 +313,7 @@ export function BusinessGeneralSettingsForm({
                   />
                 ) : (
                   <Camera
-                    className="size-8 text-slate-300"
+                    className="size-7 text-slate-300"
                     strokeWidth={1.75}
                     aria-hidden
                   />
@@ -298,22 +323,22 @@ export function BusinessGeneralSettingsForm({
                 type="button"
                 onClick={openEditModal}
                 aria-label="Update business logo"
-                className="absolute bottom-0 right-0 flex size-7 items-center justify-center rounded-full bg-[#09b66f] text-white shadow-[0_4px_10px_rgba(9,182,111,0.3)] ring-2 ring-white transition hover:brightness-105"
+                className="absolute bottom-0 right-0 flex size-6 items-center justify-center rounded-full bg-[#09b66f] text-white shadow-[0_4px_10px_rgba(9,182,111,0.3)] ring-2 ring-white transition hover:brightness-105"
               >
-                <Camera className="size-3.5" strokeWidth={2.25} aria-hidden />
+                <Camera className="size-3" strokeWidth={2.25} aria-hidden />
               </button>
             </div>
 
-            <div className="min-w-0 flex-1 pt-0.5">
-              <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[#7183a4]">
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#7183a4]">
                 Business name
               </p>
-              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
-                <h2 className="m-0 truncate text-[1.35rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.5rem]">
+              <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
+                <h2 className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.3rem]">
                   {displayName}
                 </h2>
                 {isBusinessActive ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[0.68rem] font-bold text-[#15803d] ring-1 ring-[#bbf7d0]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[0.65rem] font-bold text-[#15803d] ring-1 ring-[#bbf7d0]">
                     <span
                       className="size-1.5 rounded-full bg-[#22c55e]"
                       aria-hidden
@@ -321,7 +346,7 @@ export function BusinessGeneralSettingsForm({
                     Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[0.68rem] font-bold text-amber-700 ring-1 ring-amber-200">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold text-amber-700 ring-1 ring-amber-200">
                     <span
                       className="size-1.5 rounded-full bg-amber-500"
                       aria-hidden
@@ -330,50 +355,75 @@ export function BusinessGeneralSettingsForm({
                   </span>
                 )}
               </div>
-
-              <p
-                id="business-settings-branch"
-                className="m-0 mt-1.5 flex min-w-0 items-center gap-1.5 truncate text-[0.82rem] font-medium text-[#7183a4]"
-              >
-                <MapPin className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                <span className="min-w-0 truncate">{locationLine || "—"}</span>
-              </p>
-
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {businessTypeLabel !== "—" ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#eef2f7] px-2 py-0.5 text-[0.68rem] font-semibold text-[#344564]">
-                    <UtensilsCrossed className="size-3" strokeWidth={2.25} aria-hidden />
-                    {businessTypeLabel}
-                  </span>
-                ) : null}
-                {locationBadge ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#eef2f7] px-2 py-0.5 text-[0.68rem] font-semibold text-[#344564]">
-                    <MapPin className="size-3" strokeWidth={2.25} aria-hidden />
-                    {locationBadge}
-                  </span>
-                ) : null}
-              </div>
+              {descriptionText ? (
+                <p className="m-0 mt-1 line-clamp-1 text-[0.82rem] leading-snug text-[#7183a4]">
+                  {descriptionText}
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={openEditModal}
-            className="inline-flex h-9 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,#2f6bff_0%,#1464ff_100%)] px-3 text-[0.8rem] font-semibold text-white shadow-[0_8px_18px_rgba(20,100,255,0.22)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1464ff] sm:w-auto"
-          >
-            <Pencil className="size-3.5" strokeWidth={2.25} aria-hidden />
-            Edit Profile
-            <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
-          </button>
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <UtensilsCrossed
+                  className="size-3.5 shrink-0 text-[#1464ff]"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <p className="m-0 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-[#94a3b8]">
+                  Type
+                </p>
+              </div>
+              <p className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]">
+                {businessTypeLabel}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <MapPin
+                  className="size-3.5 shrink-0 text-[#1464ff]"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <p className="m-0 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-[#94a3b8]">
+                  Location
+                </p>
+              </div>
+              <p className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]">
+                {locationBadge || "—"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <Building2
+                  className="size-3.5 shrink-0 text-[#1464ff]"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <p className="m-0 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-[#94a3b8]">
+                  Branches
+                </p>
+              </div>
+              <p
+                id="business-settings-branch"
+                className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]"
+              >
+                {branchLabel}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
+  );
 
+  const profileDetails = (
       <section
         ref={detailsRef}
         id="business-details"
-        className={`scroll-mt-24 ${cardClass} px-5 py-5 sm:px-6 sm:py-6`}
+        className={`scroll-mt-24 flex h-full min-h-0 flex-col ${cardClass} px-6 py-7 sm:px-8 sm:py-9`}
       >
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <header className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1464ff]">
               <FileText className="size-5" strokeWidth={2.25} aria-hidden />
@@ -397,80 +447,60 @@ export function BusinessGeneralSettingsForm({
           </button>
         </header>
 
-        <div className="mt-2 grid grid-cols-1 gap-x-8 md:grid-cols-2">
-          <div className="min-w-0">
+        <div className="mt-2 grid min-h-0 flex-1 grid-cols-1 gap-x-8 md:grid-cols-2">
+          <div className="flex min-h-0 min-w-0 flex-col">
             <BusinessDetailRow
-              icon={Building2}
-              tone="blue"
               label="Business name"
               htmlFor="business-settings-name"
               value={displayOrDash(form.name)}
             />
             <BusinessDetailRow
-              icon={Wallet}
-              tone="amber"
               label="Currency"
               htmlFor="business-settings-currency"
               value={displayOrDash(business?.currency ?? "")}
             />
             <BusinessDetailRow
-              icon={Mail}
-              tone="purple"
               label="Email address"
               htmlFor="business-settings-email"
               value={displayOrDash(form.email)}
               href={emailHref}
             />
             <BusinessDetailRow
-              icon={MapPin}
-              tone="green"
               label="City"
               htmlFor="business-settings-city"
               value={displayOrDash(form.city)}
             />
             <BusinessDetailRow
-              icon={Globe}
-              tone="sky"
               label="Country"
               htmlFor="business-settings-country"
               value={displayOrDash(form.country)}
               showDivider={false}
             />
           </div>
-          <div className="min-w-0">
+          <div className="flex min-h-0 min-w-0 flex-col">
             <BusinessDetailRow
-              icon={UtensilsCrossed}
-              tone="orange"
               label="Business type"
               htmlFor="business-settings-type"
               value={businessTypeLabel}
             />
             <BusinessDetailRow
-              icon={Phone}
-              tone="teal"
               label="Phone number"
               htmlFor="business-settings-phone"
               value={displayOrDash(form.phoneNumber)}
               href={phoneHref}
             />
             <BusinessDetailRow
-              icon={Link2}
-              tone="indigo"
               label="Website"
               htmlFor="business-settings-website"
               value={displayOrDash(websiteHref)}
               href={websiteValid ? websiteHref : null}
             />
             <BusinessDetailRow
-              icon={MapPin}
-              tone="pink"
               label="State"
               htmlFor="business-settings-state"
               value={displayOrDash(form.state)}
             />
             <BusinessDetailRow
-              icon={Building2}
-              tone="rose"
               label="Postal code"
               htmlFor="business-settings-address"
               value={displayOrDash(form.postalCode)}
@@ -480,8 +510,6 @@ export function BusinessGeneralSettingsForm({
         </div>
 
       </section>
-
-    </>
   );
 
   return (
@@ -492,7 +520,7 @@ export function BusinessGeneralSettingsForm({
         onClose={() => setEditOpen(false)}
       />
 
-      {previewSection === "integrations" ? null : (
+      {previewSection === "members" ? (
         <header className="relative mb-4 shrink-0 pt-1">
           <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.7rem]">
             {previewMeta.title}
@@ -501,78 +529,126 @@ export function BusinessGeneralSettingsForm({
             {previewMeta.subtitle}
           </p>
         </header>
-      )}
+      ) : null}
 
       <div
-        className={`grid min-w-0 gap-4 pb-4 ${
-          isProfileView
-            ? "xl:grid-cols-[minmax(0,1fr)_16.5rem]"
-            : "min-h-0 flex-1"
+        className={`flex min-w-0 flex-col gap-4 pb-4 ${
+          isProfileView ? "" : "min-h-0 flex-1"
         }`}
       >
-        <div className="flex min-w-0 flex-col gap-4">
-          {isProfileView ? profileMain : previewMain}
-        </div>
-
         {isProfileView ? (
-          <aside className="flex min-w-0 flex-col gap-4">
-            <section className={`${cardClass} px-4 py-4 sm:px-5`}>
-              <header className="flex items-center gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f1ff] text-[#1464ff]">
-                  <Zap className="size-3.5" strokeWidth={2.25} aria-hidden />
-                </span>
-                <h3 className="m-0 text-[0.86rem] font-bold text-[#101a35]">
-                  Quick actions
-                </h3>
-              </header>
-              <div className="mt-3 space-y-2.5">
-                <QuickActionRow
-                  href={businessSettingsHref(businessId, "members")}
-                  icon={Users}
-                  tone="green"
-                  title="Manage members"
-                />
-                <QuickActionRow
-                  href={businessSettingsHref(businessId, "integrations")}
-                  icon={Link2}
-                  tone="pink"
-                  title="Integrations"
-                />
-              </div>
-            </section>
+          <>
+            {profileHeader}
+            <div className="grid min-w-0 items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_16.5rem]">
+              {profileDetails}
+              <aside className="flex h-full min-w-0 flex-col gap-3">
+                <section className={`shrink-0 ${cardClass} px-3.5 py-3 sm:px-4`}>
+                  <header className="flex items-center gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f1ff] text-[#1464ff]">
+                      <Zap className="size-3.5" strokeWidth={2.25} aria-hidden />
+                    </span>
+                    <h3 className="m-0 text-[0.82rem] font-bold text-[#101a35]">
+                      Quick actions
+                    </h3>
+                  </header>
+                  <div className="mt-2 space-y-0.5">
+                    <QuickActionRow
+                      href={businessSettingsHref(businessId, "members")}
+                      title="Manage members"
+                    />
+                    <QuickActionRow
+                      href={businessSettingsHref(businessId, "integrations")}
+                      title="Integrations"
+                    />
+                  </div>
+                </section>
 
-            <section className={`${cardClass} px-4 py-4 sm:px-5`}>
-              <header className="flex items-center gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#8b5cf6]">
-                  <Sparkles className="size-3.5" strokeWidth={2.25} aria-hidden />
-                </span>
-                <h3 className="m-0 text-[0.86rem] font-bold text-[#101a35]">
-                  Business summary
-                </h3>
-              </header>
-              <div className="mt-3 space-y-2">
-                <SummaryStatRow
-                  icon={Megaphone}
-                  tone="blue"
-                  label="Total campaigns"
-                  value={formatCount(totalCampaigns)}
-                />
-                <SummaryStatRow
-                  icon={Users}
-                  tone="purple"
-                  label="Total customers"
-                  value={formatCount(totalCustomers)}
-                />
-                <SummaryStatRow
-                  icon={Settings2}
-                  tone="orange"
-                  label="Active automations"
-                  value={formatCount(activeAutomations)}
-                />
-              </div>
-            </section>
-          </aside>
-        ) : null}
+                <section className={`shrink-0 ${cardClass} px-3.5 py-3 sm:px-4`}>
+                  <header className="flex items-center gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#8b5cf6]">
+                      <Sparkles
+                        className="size-3.5"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    </span>
+                    <h3 className="m-0 text-[0.82rem] font-bold text-[#101a35]">
+                      Business summary
+                    </h3>
+                  </header>
+                  <div className="mt-2 space-y-0.5">
+                    <SummaryStatRow
+                      label="Total campaigns"
+                      value={formatCount(totalCampaigns)}
+                    />
+                    <SummaryStatRow
+                      label="Total customers"
+                      value={formatCount(totalCustomers)}
+                    />
+                    <SummaryStatRow
+                      label="Active automations"
+                      value={formatCount(activeAutomations)}
+                    />
+                  </div>
+                </section>
+
+                <section className="relative mt-auto flex min-h-[11.5rem] flex-1 flex-col overflow-hidden rounded-[1.15rem] border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-3.5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.045)] sm:px-4 sm:py-5">
+                  <header className="relative flex shrink-0 items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcfce7] text-[#09b66f]">
+                        <Check
+                          className="size-3.5"
+                          strokeWidth={2.75}
+                          aria-hidden
+                        />
+                      </span>
+                      <h3 className="m-0 truncate text-[0.82rem] font-bold text-[#101a35]">
+                        Profile completion
+                      </h3>
+                    </div>
+                    {profileCompletion.complete ? (
+                      <span className="inline-flex shrink-0 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[0.62rem] font-bold text-[#15803d] ring-1 ring-[#bbf7d0]">
+                        All set!
+                      </span>
+                    ) : null}
+                  </header>
+
+                  <div className="relative mt-3 flex min-h-0 flex-1 items-center gap-3">
+                    <ProfileCompletionRing
+                      percent={profileCompletion.percent}
+                      size={72}
+                    />
+                    <ul className="m-0 flex min-h-0 min-w-0 flex-1 list-none flex-col justify-evenly gap-1.5 p-0">
+                      {profileCompletion.items.map((item) => (
+                        <li key={item.id} className="flex items-center gap-1.5">
+                          <span
+                            className={`flex size-3.5 shrink-0 items-center justify-center rounded-full ${
+                              item.done
+                                ? "bg-[#09b66f] text-white"
+                                : "bg-[#e2e8f0] text-transparent"
+                            }`}
+                            aria-hidden
+                          >
+                            <Check className="size-2" strokeWidth={3} />
+                          </span>
+                          <span
+                            className={`truncate text-[0.7rem] font-semibold ${
+                              item.done ? "text-[#101a35]" : "text-[#94a3b8]"
+                            }`}
+                          >
+                            {item.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </>
+        ) : (
+          previewMain
+        )}
       </div>
     </div>
   );
@@ -580,31 +656,17 @@ export function BusinessGeneralSettingsForm({
 
 function QuickActionRow({
   href,
-  icon: Icon,
-  tone,
   title,
 }: {
   href: string;
-  icon: LucideIcon;
-  tone: "green" | "pink";
   title: string;
 }) {
-  const toneClass =
-    tone === "green"
-      ? "bg-[#e8f8ef] text-[#22c55e]"
-      : "bg-[#fde8f0] text-[#e11d48]";
-
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-xl bg-transparent px-1 py-2 no-underline transition hover:bg-[#f8faff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1464ff]"
+      className="flex items-center gap-2 rounded-xl bg-transparent px-1 py-1.5 no-underline transition hover:bg-[#f8faff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1464ff]"
     >
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${toneClass}`}
-      >
-        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1 truncate text-[0.8rem] font-semibold text-[#101a35]">
+      <span className="min-w-0 flex-1 truncate text-[0.78rem] font-semibold text-[#101a35]">
         {title}
       </span>
       <ChevronRight
@@ -617,29 +679,14 @@ function QuickActionRow({
 }
 
 function SummaryStatRow({
-  icon: Icon,
-  tone,
   label,
   value,
 }: {
-  icon: LucideIcon;
-  tone: "blue" | "purple" | "orange";
   label: string;
   value: string;
 }) {
-  const toneMap = {
-    blue: "bg-[#e8f1ff] text-[#1464ff]",
-    purple: "bg-[#f3e8ff] text-[#8b5cf6]",
-    orange: "bg-[#fff1e6] text-[#f97316]",
-  } as const;
-
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-transparent px-1 py-2">
-      <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${toneMap[tone]}`}
-      >
-        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
-      </span>
+    <div className="flex items-center gap-2.5 rounded-xl bg-transparent px-1 py-1.5">
       <span className="min-w-0 flex-1 truncate text-[0.8rem] font-semibold text-[#101a35]">
         {label}
       </span>
