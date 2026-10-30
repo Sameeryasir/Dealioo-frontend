@@ -4,7 +4,7 @@ import {
   LandingPricing,
   LandingSpotlightBand,
 } from "@/app/components/landing/LandingEditorialSections";
-import { LandingAuthEntry } from "@/app/components/landing/LandingAuthEntry";
+// import { LandingAuthEntry } from "@/app/components/landing/LandingAuthEntry";
 import { LandingHero } from "@/app/components/landing/LandingHero";
 import { LandingIntegrationsBar } from "@/app/components/landing/LandingIntegrationsBar";
 import { Reveal, ScrollProgress } from "@/app/components/landing/LandingMotionParts";
@@ -238,6 +238,7 @@ export function LandingPageContent() {
 
         <LandingAboutUs />
 
+        {/* Register / create-account CTA — hidden for now
         <section
           id="account"
           className="landing-auth-cta-section scroll-mt-16 bg-white py-10 sm:py-12 md:scroll-mt-28"
@@ -247,6 +248,7 @@ export function LandingPageContent() {
             <LandingAuthEntry />
           </Reveal>
         </section>
+        */}
       </main>
 
       <footer className="landing-footer relative z-10 border-t py-10 sm:py-12">

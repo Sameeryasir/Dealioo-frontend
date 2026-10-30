@@ -8,7 +8,7 @@ export type LoginBrandPanelProps = {
   signupHref: string;
 };
 
-export function LoginBrandPanel({ signupHref }: LoginBrandPanelProps) {
+export function LoginBrandPanel({ signupHref: _signupHref }: LoginBrandPanelProps) {
   return (
     <aside className="auth-signup-brand-panel" aria-label="Sign in to Dealioo">
       <div className="auth-signup-brand-panel-inner">
@@ -32,8 +32,8 @@ export function LoginBrandPanel({ signupHref }: LoginBrandPanelProps) {
 
         <div className="auth-signup-brand-actions">
           <p className="auth-signup-brand-login">Don&apos;t have an account?</p>
-          <Link href={signupHref} className="auth-signup-brand-cta">
-            Sign up free
+          <Link href="/book-meeting" className="auth-signup-brand-cta">
+            Book a meeting
           </Link>
         </div>
       </div>

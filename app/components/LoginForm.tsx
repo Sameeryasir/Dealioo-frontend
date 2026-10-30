@@ -681,8 +681,11 @@ export default function LoginForm({
 
         <footer className="auth-signup-card-footer">
           Don&apos;t have an account?{" "}
-          <Link href={signupHref} className="font-semibold text-brand-primary hover:underline">
-            Sign up free
+          <Link
+            href="/book-meeting"
+            className="font-semibold text-brand-primary hover:underline"
+          >
+            Book a meeting
           </Link>
         </footer>
       </div>

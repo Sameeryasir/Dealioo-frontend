@@ -533,7 +533,7 @@ const LANDING_VISIBLE_PLAN_IDS = new Set(["growth-expert", "enterprise"]);
 export function LandingPricing() {
   const reduced = useReducedMotion();
   const { plans, loading } = useSubscriptionPlans();
-  const [billing, setBilling] = useState<BillingCycle>("annual");
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
   const signupHref = useMemo(
     () => appendBillingQuery(landingSignupHref(), billing),
     [billing],
