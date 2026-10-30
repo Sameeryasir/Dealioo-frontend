@@ -23,7 +23,7 @@ import {
   MousePointerClick,
   Star,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const PRODUCT_CAPABILITIES = [
   {
@@ -532,12 +532,32 @@ const LANDING_VISIBLE_PLAN_IDS = new Set(["growth-expert", "enterprise"]);
 
 export function LandingPricing() {
   const reduced = useReducedMotion();
-  const { plans, loading } = useSubscriptionPlans();
+  const [plansEnabled, setPlansEnabled] = useState(false);
+  const { plans, loading } = useSubscriptionPlans({ enabled: plansEnabled });
   const [billing, setBilling] = useState<BillingCycle>("monthly");
   const signupHref = useMemo(
     () => appendBillingQuery(landingSignupHref(), billing),
     [billing],
   );
+
+  useEffect(() => {
+    if (plansEnabled) return;
+    const node = document.getElementById("pricing");
+    if (!node) {
+      setPlansEnabled(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setPlansEnabled(true);
+        observer.disconnect();
+      },
+      { rootMargin: "280px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [plansEnabled]);
   const visiblePlans = useMemo(
     () =>
       plans

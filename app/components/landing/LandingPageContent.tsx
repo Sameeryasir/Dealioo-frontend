@@ -1,19 +1,8 @@
 "use client";
 
-import {
-  LandingPricing,
-  LandingSpotlightBand,
-} from "@/app/components/landing/LandingEditorialSections";
-// import { LandingAuthEntry } from "@/app/components/landing/LandingAuthEntry";
 import { LandingHero } from "@/app/components/landing/LandingHero";
 import { LandingIntegrationsBar } from "@/app/components/landing/LandingIntegrationsBar";
-import { Reveal, ScrollProgress } from "@/app/components/landing/LandingMotionParts";
-import {
-  LandingAboutUs,
-  LandingBuiltForGrowth,
-  LandingHowItWorks,
-  LandingWhyDealioo,
-} from "@/app/components/landing/LandingStorySections";
+import { ScrollProgress } from "@/app/components/landing/LandingMotionParts";
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
 import { landingLoginHref, landingSignupHref } from "@/app/components/landing/landing-auth";
 import { useLandingPageEntry } from "@/app/components/landing/useLandingPageEntry";
@@ -23,15 +12,59 @@ import {
   trackProductLead,
   trackProductSectionViewed,
 } from "@/app/lib/product-meta-pixel";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, X } from "lucide-react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const LANDING_LOGO_SRC = "/black-logo.png";
 const LANDING_LOGO_WIDTH = 562;
 const LANDING_LOGO_HEIGHT = 144;
-import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+
+const LandingHowItWorks = dynamic(
+  () =>
+    import("@/app/components/landing/LandingStorySections").then((m) => ({
+      default: m.LandingHowItWorks,
+    })),
+  { loading: () => null },
+);
+const LandingSpotlightBand = dynamic(
+  () =>
+    import("@/app/components/landing/LandingEditorialSections").then((m) => ({
+      default: m.LandingSpotlightBand,
+    })),
+  { loading: () => null },
+);
+const LandingBuiltForGrowth = dynamic(
+  () =>
+    import("@/app/components/landing/LandingStorySections").then((m) => ({
+      default: m.LandingBuiltForGrowth,
+    })),
+  { loading: () => null },
+);
+const LandingPricing = dynamic(
+  () =>
+    import("@/app/components/landing/LandingEditorialSections").then((m) => ({
+      default: m.LandingPricing,
+    })),
+  { loading: () => null },
+);
+const LandingWhyDealioo = dynamic(
+  () =>
+    import("@/app/components/landing/LandingStorySections").then((m) => ({
+      default: m.LandingWhyDealioo,
+    })),
+  { loading: () => null },
+);
+const LandingAboutUs = dynamic(
+  () =>
+    import("@/app/components/landing/LandingStorySections").then((m) => ({
+      default: m.LandingAboutUs,
+    })),
+  { loading: () => null },
+);
 
 export function LandingPageContent() {
   const router = useRouter();

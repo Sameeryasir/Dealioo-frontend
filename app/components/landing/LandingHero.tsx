@@ -1,11 +1,27 @@
 "use client";
 
-import { LandingLoopSimulator } from "@/app/components/landing/LandingLoopSimulator";
 import { headlineLine, easeOut } from "@/app/components/landing/landing-motion";
 import { trackProductButtonClick, trackProductLead } from "@/app/lib/product-meta-pixel";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarDays } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+
+const LandingLoopSimulator = dynamic(
+  () =>
+    import("@/app/components/landing/LandingLoopSimulator").then((m) => ({
+      default: m.LandingLoopSimulator,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="landing-hero-simulator min-h-[16rem] w-full rounded-2xl bg-[#f4f7fb]"
+        aria-hidden
+      />
+    ),
+  },
+);
 
 function HeroAudienceLine({ reduced }: { reduced: boolean | null }) {
   return (
