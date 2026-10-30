@@ -25,6 +25,7 @@ import {
 } from "@/app/lib/business-settings-routes";
 import { DASHBOARD_KPI_ICON } from "@/app/lib/dashboard-brand-tones";
 import { logoutSession } from "@/app/services/auth/logout";
+import { BusinessProfileSkeleton } from "@/app/components/business/business-profile/BusinessProfileSkeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BusinessGeneralSettingsForm = dynamic(
@@ -32,7 +33,7 @@ const BusinessGeneralSettingsForm = dynamic(
     import("@/app/components/business/BusinessGeneralSettingsForm").then(
       (mod) => mod.BusinessGeneralSettingsForm,
     ),
-  { ssr: false },
+  { ssr: false, loading: () => <BusinessProfileSkeleton /> },
 );
 const BusinessIntegrationsPanel = dynamic(
   () =>
@@ -201,7 +202,7 @@ export function BusinessSettingsPanel({
         className="rd-premium rd-premium--fill business-profile-page"
         aria-label={sectionTitles[activeSection]}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-0.5 py-0.5 sm:px-1">
+        <div className="flex min-h-0 flex-1 flex-col overflow-visible px-0.5 py-0.5 sm:px-1">
           <BusinessGeneralSettingsForm
             businessId={businessId}
             activeSection={activeSection}
