@@ -13059,24 +13059,27 @@ body:has(.rd-shell--app) {
   padding-bottom: 0;
 }
 
-/* Business profile settings: allow natural vertical scroll so the header is not cropped. */
+.rd-main-scroll:has(> .rd-premium--fill) > .rd-premium--fill {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Business profile: fill the viewport (no short “second screen” gap), but grow+scroll when content is taller. */
 .rd-main-scroll:has(> .business-profile-page) {
+  display: flex;
+  flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: 0.75rem;
 }
 
-.rd-main-scroll:has(> .business-profile-page) > .business-profile-page {
-  min-height: 0;
+.rd-main-scroll:has(> .business-profile-page) > .business-profile-page.rd-premium--fill {
+  flex: 1 0 auto;
+  min-height: 100%;
   height: auto;
   max-height: none;
   overflow: visible;
-}
-
-.rd-main-scroll:has(> .rd-premium--fill) > .rd-premium--fill {
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
 }
 
 @media (min-width: 640px) {

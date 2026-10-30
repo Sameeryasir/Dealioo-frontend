@@ -202,7 +202,7 @@ export function BusinessSettingsPanel({
         className="rd-premium rd-premium--fill business-profile-page"
         aria-label={sectionTitles[activeSection]}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-visible px-0.5 py-0.5 sm:px-1">
+        <div className="flex min-h-full flex-1 flex-col overflow-visible px-0.5 py-0.5 sm:px-1">
           <BusinessGeneralSettingsForm
             businessId={businessId}
             activeSection={activeSection}

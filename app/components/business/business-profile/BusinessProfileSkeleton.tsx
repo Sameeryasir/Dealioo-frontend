@@ -166,7 +166,7 @@ export function BusinessProfileSkeleton() {
             </div>
           </section>
 
-          <aside className="flex min-w-0 flex-col gap-3 self-start">
+          <aside className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:flex-col">
             <section className={`shrink-0 ${cardClass} px-3.5 py-3 sm:px-4`}>
               <header className="flex items-center gap-2">
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f1ff] text-[#1464ff]">
@@ -195,6 +195,22 @@ export function BusinessProfileSkeleton() {
                 <SideRowSkeleton label="Total campaigns" trailing />
                 <SideRowSkeleton label="Total customers" trailing />
                 <SideRowSkeleton label="Active automations" trailing />
+              </div>
+            </section>
+
+            <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.15rem] border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-3.5 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.045)] sm:col-span-2 sm:px-4 xl:mt-auto">
+              <header className="flex items-center gap-2">
+                <Skeleton funnel className="size-7 shrink-0 rounded-full" />
+                <Skeleton funnel className="h-3.5 w-28 rounded" />
+              </header>
+              <div className="mt-3 flex items-center gap-3">
+                <Skeleton funnel className="size-16 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton funnel className="h-3 w-full rounded" />
+                  <Skeleton funnel className="h-3 w-5/6 rounded" />
+                  <Skeleton funnel className="h-3 w-4/5 rounded" />
+                  <Skeleton funnel className="h-3 w-3/4 rounded" />
+                </div>
               </div>
             </section>
           </aside>

@@ -283,16 +283,16 @@ export function BusinessGeneralSettingsForm({
 
   const profileHeader = (
       <section
-        className={`relative overflow-hidden ${cardClass} px-4 py-3 sm:px-5 sm:py-3.5`}
+        className={`relative overflow-hidden ${cardClass} px-3.5 py-3 sm:px-5 sm:py-3.5`}
       >
         <div className="relative mb-3 min-w-0">
           <p className="m-0 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#1464ff]">
             — Business profile
           </p>
-          <h1 className="m-0 mt-0.5 text-[1.35rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.5rem]">
+          <h1 className="m-0 mt-0.5 text-[1.25rem] font-extrabold tracking-tight text-[#101a35] sm:text-[1.35rem] xl:text-[1.5rem]">
             {previewMeta.title}
           </h1>
-          <p className="m-0 mt-0.5 text-[0.82rem] text-[#7183a4]">
+          <p className="m-0 mt-0.5 text-[0.8rem] text-[#7183a4] sm:text-[0.82rem]">
             {previewMeta.subtitle}
           </p>
         </div>
@@ -301,7 +301,7 @@ export function BusinessGeneralSettingsForm({
           <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
             <div
               id="business-settings-logo"
-              className="relative size-[4.75rem] shrink-0 xl:size-[5.25rem]"
+              className="relative size-[4.25rem] shrink-0 sm:size-[4.75rem] xl:size-[5.25rem]"
             >
               <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-[#e8edf5]">
                 {logoSrc ? (
@@ -334,7 +334,7 @@ export function BusinessGeneralSettingsForm({
                 Business name
               </p>
               <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
-                <h2 className="m-0 truncate text-[1.2rem] font-extrabold tracking-tight text-[#101a35] xl:text-[1.3rem]">
+                <h2 className="m-0 max-w-full truncate text-[1.1rem] font-extrabold tracking-tight text-[#101a35] sm:text-[1.2rem] xl:text-[1.3rem]">
                   {displayName}
                 </h2>
                 {isBusinessActive ? (
@@ -356,7 +356,7 @@ export function BusinessGeneralSettingsForm({
                 )}
               </div>
               {descriptionText ? (
-                <p className="m-0 mt-1 line-clamp-1 text-[0.82rem] leading-snug text-[#7183a4]">
+                <p className="m-0 mt-1 line-clamp-2 text-[0.8rem] leading-snug text-[#7183a4] sm:line-clamp-1 sm:text-[0.82rem]">
                   {descriptionText}
                 </p>
               ) : null}
@@ -364,7 +364,7 @@ export function BusinessGeneralSettingsForm({
           </div>
 
           <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-2.5 py-2 sm:px-3 sm:py-2.5">
               <div className="flex items-center gap-1.5">
                 <UtensilsCrossed
                   className="size-3.5 shrink-0 text-[#1464ff]"
@@ -375,11 +375,11 @@ export function BusinessGeneralSettingsForm({
                   Type
                 </p>
               </div>
-              <p className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]">
+              <p className="m-0 mt-1 truncate text-[0.78rem] font-bold text-[#101a35] sm:text-[0.8rem]">
                 {businessTypeLabel}
               </p>
             </div>
-            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-2.5 py-2 sm:px-3 sm:py-2.5">
               <div className="flex items-center gap-1.5">
                 <MapPin
                   className="size-3.5 shrink-0 text-[#1464ff]"
@@ -390,11 +390,11 @@ export function BusinessGeneralSettingsForm({
                   Location
                 </p>
               </div>
-              <p className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]">
+              <p className="m-0 mt-1 truncate text-[0.78rem] font-bold text-[#101a35] sm:text-[0.8rem]">
                 {locationBadge || "—"}
               </p>
             </div>
-            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-3 py-2.5">
+            <div className="rounded-xl border border-[#e8edf5] bg-[#f8faff] px-2.5 py-2 sm:px-3 sm:py-2.5">
               <div className="flex items-center gap-1.5">
                 <Building2
                   className="size-3.5 shrink-0 text-[#1464ff]"
@@ -407,7 +407,7 @@ export function BusinessGeneralSettingsForm({
               </div>
               <p
                 id="business-settings-branch"
-                className="m-0 mt-1 truncate text-[0.8rem] font-bold text-[#101a35]"
+                className="m-0 mt-1 truncate text-[0.78rem] font-bold text-[#101a35] sm:text-[0.8rem]"
               >
                 {branchLabel}
               </p>
@@ -421,18 +421,18 @@ export function BusinessGeneralSettingsForm({
       <section
         ref={detailsRef}
         id="business-details"
-        className={`scroll-mt-24 flex h-full min-h-0 flex-col ${cardClass} px-6 py-7 sm:px-8 sm:py-9`}
+        className={`scroll-mt-24 flex min-h-0 flex-col ${cardClass} px-4 py-4 sm:px-6 sm:py-6 xl:h-full xl:px-8 xl:py-9`}
       >
         <header className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1464ff]">
-              <FileText className="size-5" strokeWidth={2.25} aria-hidden />
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1464ff] sm:size-10">
+              <FileText className="size-4 sm:size-5" strokeWidth={2.25} aria-hidden />
             </span>
             <div className="min-w-0">
-              <h3 className="m-0 text-[1.05rem] font-bold text-[#101a35]">
+              <h3 className="m-0 text-[1rem] font-bold text-[#101a35] sm:text-[1.05rem]">
                 Business details
               </h3>
-              <p className="m-0 mt-0.5 text-[0.8rem] text-[#7183a4]">
+              <p className="m-0 mt-0.5 text-[0.78rem] text-[#7183a4] sm:text-[0.8rem]">
                 Core information about your business
               </p>
             </div>
@@ -440,14 +440,14 @@ export function BusinessGeneralSettingsForm({
           <button
             type="button"
             onClick={openEditModal}
-            className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-[#bfdbfe] bg-white px-3.5 text-[0.82rem] font-semibold text-[#1464ff] transition hover:bg-[#eff6ff]"
+            className="inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[#bfdbfe] bg-white px-3.5 text-[0.82rem] font-semibold text-[#1464ff] transition hover:bg-[#eff6ff] sm:w-auto"
           >
             <Pencil className="size-3.5" strokeWidth={2.25} aria-hidden />
             Edit Details
           </button>
         </header>
 
-        <div className="mt-2 grid min-h-0 flex-1 grid-cols-1 gap-x-8 md:grid-cols-2">
+        <div className="mt-2 grid min-h-0 flex-1 grid-cols-1 gap-x-8 sm:grid-cols-2">
           <div className="flex min-h-0 min-w-0 flex-col">
             <BusinessDetailRow
               label="Business name"
@@ -513,7 +513,7 @@ export function BusinessGeneralSettingsForm({
   );
 
   return (
-    <div className="business-profile-fit flex min-h-0 w-full min-w-0 flex-col bg-[#f1f5fb]/40">
+    <div className="business-profile-fit flex min-h-full w-full min-w-0 flex-col bg-[#f1f5fb]/40">
       <BusinessProfileEditModal
         open={editOpen}
         businessId={businessId}
@@ -539,9 +539,9 @@ export function BusinessGeneralSettingsForm({
         {isProfileView ? (
           <>
             {profileHeader}
-            <div className="grid min-w-0 items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_16.5rem]">
+            <div className="grid min-w-0 items-stretch gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_16.5rem]">
               {profileDetails}
-              <aside className="flex h-full min-w-0 flex-col gap-3">
+              <aside className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:h-full xl:flex-col">
                 <section className={`shrink-0 ${cardClass} px-3.5 py-3 sm:px-4`}>
                   <header className="flex items-center gap-2">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f1ff] text-[#1464ff]">
@@ -592,7 +592,7 @@ export function BusinessGeneralSettingsForm({
                   </div>
                 </section>
 
-                <section className="relative mt-auto flex min-h-[11.5rem] flex-1 flex-col overflow-hidden rounded-[1.15rem] border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-3.5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.045)] sm:px-4 sm:py-5">
+                <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.15rem] border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-3.5 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.045)] sm:col-span-2 sm:px-4 sm:py-4 xl:mt-auto xl:min-h-[11.5rem] xl:flex-1 xl:py-5">
                   <header className="relative flex shrink-0 items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcfce7] text-[#09b66f]">
@@ -616,7 +616,7 @@ export function BusinessGeneralSettingsForm({
                   <div className="relative mt-3 flex min-h-0 flex-1 items-center gap-3">
                     <ProfileCompletionRing
                       percent={profileCompletion.percent}
-                      size={72}
+                      size={64}
                     />
                     <ul className="m-0 flex min-h-0 min-w-0 flex-1 list-none flex-col justify-evenly gap-1.5 p-0">
                       {profileCompletion.items.map((item) => (

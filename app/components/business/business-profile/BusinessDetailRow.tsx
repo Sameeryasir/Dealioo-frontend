@@ -40,15 +40,15 @@ export function BusinessDetailRow({
 
   return (
     <div
-      className={`flex min-h-0 min-w-0 flex-1 items-center py-3.5 ${
+      className={`flex min-h-0 min-w-0 flex-1 items-center py-3 sm:py-3.5 ${
         showDivider ? "border-b border-[#eef2f7]" : ""
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[0.72rem] font-semibold text-[#7183a4]">
+        <p className="m-0 text-[0.7rem] font-semibold text-[#7183a4] sm:text-[0.72rem]">
           {label}
         </p>
-        <div className="mt-1">{valueNode}</div>
+        <div className="mt-1 break-words">{valueNode}</div>
       </div>
     </div>
   );
