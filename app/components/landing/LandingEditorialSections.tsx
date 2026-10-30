@@ -17,7 +17,6 @@ import Image from "next/image";
 import {
   ArrowRight,
   BarChart3,
-  Check,
   CreditCard,
   Crown,
   Loader2,
@@ -88,17 +87,6 @@ const CTA_CHIPS = [
 
 const SPOTLIGHT_POINTING_SRC = "/pointing.png";
 
-function PricingFeatureCheck() {
-  return (
-    <span
-      className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-brand-retain"
-      aria-hidden
-    >
-      <Check className="size-2 text-white" strokeWidth={3.5} />
-    </span>
-  );
-}
-
 function PricingPlanFeatures({ plan }: { plan: PricingPlan }) {
   if ("featureGroups" in plan && plan.featureGroups) {
     return (
@@ -108,15 +96,9 @@ function PricingPlanFeatures({ plan }: { plan: PricingPlan }) {
             <p className="landing-pricing-feature-group-label mb-1 inline-flex rounded-full bg-[#eef2ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#5b6b8c]">
               {group.label}
             </p>
-            <ul className="mt-1 space-y-1">
+            <ul className="mt-1 list-disc space-y-1 pl-4 text-[12px] leading-snug text-brand-navy marker:text-brand-muted">
               {group.items.map((feature) => (
-                <li
-                  key={feature}
-                  className="flex items-start gap-1.5 text-[12px] leading-snug text-brand-navy"
-                >
-                  <PricingFeatureCheck />
-                  {feature}
-                </li>
+                <li key={feature}>{feature}</li>
               ))}
             </ul>
           </div>
@@ -126,15 +108,9 @@ function PricingPlanFeatures({ plan }: { plan: PricingPlan }) {
   }
 
   return (
-    <ul className="mt-2 space-y-1">
+    <ul className="mt-2 list-disc space-y-1 pl-4 text-[12px] leading-snug text-brand-navy marker:text-brand-muted">
       {(plan.features ?? []).map((feature) => (
-        <li
-          key={feature}
-          className="flex items-start gap-1.5 text-[12px] leading-snug text-brand-navy"
-        >
-          <PricingFeatureCheck />
-          {feature}
-        </li>
+        <li key={feature}>{feature}</li>
       ))}
     </ul>
   );
@@ -615,7 +591,7 @@ export function LandingPricing() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.45 }}
-          className="landing-pricing-card-shell mx-auto mt-5 w-full max-w-[62rem] sm:mt-6"
+          className="landing-pricing-card-shell mx-auto mt-5 w-full max-w-[52rem] sm:mt-6"
         >
           {loading ? (
             <div className="flex min-h-[20rem] items-center justify-center py-12">
@@ -664,30 +640,37 @@ export function LandingPricing() {
 
                     <div className="relative z-[1] flex flex-wrap items-center gap-2">
                       {plan.badge ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold tracking-wide text-white shadow-[0_4px_12px_rgba(24,119,242,0.25)]">
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide text-white"
+                          style={
+                            isExpertPlan
+                              ? {
+                                  backgroundColor: BRAND_COLORS.blue,
+                                  boxShadow: "0 4px 12px rgba(24, 119, 242, 0.28)",
+                                }
+                              : {
+                                  backgroundColor: BRAND_COLORS.pink,
+                                  boxShadow: "0 4px 12px rgba(225, 48, 108, 0.28)",
+                                }
+                          }
+                        >
                           <BadgeIcon className="size-3 fill-current" aria-hidden />
                           {plan.badge}
                         </span>
                       ) : null}
                     </div>
 
-                    {/* Promo shown as text under the name (no circle badge). */}
                     <div className="relative z-[1] mt-2">
                       <h3 className="text-[1.2rem] font-extrabold tracking-tight text-brand-navy sm:text-[1.3rem]">
                         {plan.name}
                       </h3>
-                      {promoLabel ? (
-                        <p className="mt-0.5 text-[12px] font-bold uppercase tracking-wide text-brand-convert">
-                          {promoLabel}
-                        </p>
-                      ) : null}
                       <p className="mt-0.5 text-[12px] leading-snug text-brand-muted">
                         {plan.tagline}
                       </p>
                     </div>
 
                     <div className="relative z-[1] mt-3 min-h-[2.75rem]">
-                      <div className="flex flex-wrap items-end gap-x-2 gap-y-0.5">
+                      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
                         {originalPrice ? (
                           <span
                             className="landing-pricing-original-price text-sm font-semibold tracking-tight text-[#94a3b8]"
@@ -702,6 +685,11 @@ export function LandingPricing() {
                         {tier.period ? (
                           <span className="pb-0.5 text-[13px] font-medium text-brand-muted">
                             {tier.period}
+                          </span>
+                        ) : null}
+                        {promoLabel ? (
+                          <span className="landing-pricing-discount-tag mb-0.5 inline-flex items-center rounded-md bg-gradient-to-r from-[#e11d48] to-[#f43f5e] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-[0_6px_14px_rgba(225,29,72,0.35)]">
+                            {promoLabel}
                           </span>
                         ) : null}
                       </div>
@@ -720,23 +708,26 @@ export function LandingPricing() {
                     <div className="relative z-[1] flex-1">
                       <PricingPlanFeatures plan={displayPlan} />
                     </div>
-                    <motion.a
-                      href={planCtaHref}
-                      whileHover={reduced ? undefined : { scale: 1.01, y: -1 }}
-                      whileTap={reduced ? undefined : { scale: 0.99 }}
-                      className="relative z-[1] mt-4 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] text-[13px] font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.32)]"
-                      onClick={() => {
-                        trackProductButtonClick(plan.cta || "Plan CTA", `pricing_${plan.id}`);
-                        trackProductLead(
-                          isTalkToUsCta
-                            ? `talk_to_us_pricing_${plan.id}`
-                            : `signup_cta_pricing_${plan.id}`,
-                        );
-                      }}
-                    >
-                      {plan.cta}
-                      <ArrowRight className="size-4" strokeWidth={2.5} aria-hidden />
-                    </motion.a>
+                    {isTalkToUsCta ? (
+                      <div className="relative z-[1] mt-4 h-10 shrink-0" aria-hidden />
+                    ) : (
+                      <motion.a
+                        href={planCtaHref}
+                        whileHover={reduced ? undefined : { scale: 1.01, y: -1 }}
+                        whileTap={reduced ? undefined : { scale: 0.99 }}
+                        className="relative z-[1] mt-4 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1877f2] to-[#0f5ed7] text-[13px] font-bold text-white shadow-[0_10px_22px_rgba(24,119,242,0.32)]"
+                        onClick={() => {
+                          trackProductButtonClick(
+                            plan.cta || "Plan CTA",
+                            `pricing_${plan.id}`,
+                          );
+                          trackProductLead(`signup_cta_pricing_${plan.id}`);
+                        }}
+                      >
+                        {plan.cta}
+                        <ArrowRight className="size-4" strokeWidth={2.5} aria-hidden />
+                      </motion.a>
+                    )}
                   </motion.div>
                 </Reveal>
               );

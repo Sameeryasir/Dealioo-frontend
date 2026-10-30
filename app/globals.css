@@ -2495,7 +2495,7 @@ body {
 
   @media (min-width: 1280px) {
     .landing-pricing-section > .brand-landing-section {
-      max-width: min(62rem, calc(100vw - 1.5rem));
+      max-width: min(52rem, calc(100vw - 1.5rem));
       padding-left: 0.75rem;
       padding-right: 0.75rem;
     }
