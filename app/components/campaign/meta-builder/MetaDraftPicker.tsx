@@ -97,6 +97,31 @@ function objectiveLabel(draft: MetaCampaignDraft): string | null {
     .join(" ");
 }
 
+function isExpiredMetaCdnUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const isMetaHost =
+      host.includes("fbcdn.net") ||
+      host.includes("facebook.com") ||
+      host.endsWith("fbsbx.com");
+    if (!isMetaHost) return false;
+    const oe = parsed.searchParams.get("oe");
+    if (!oe) return false;
+    const expSec = Number.parseInt(oe, 16);
+    if (!Number.isFinite(expSec)) return false;
+    return Date.now() / 1000 > expSec - 60;
+  } catch {
+    return false;
+  }
+}
+
+function pagePictureUrl(pageId: string | undefined | null): string | null {
+  const id = pageId?.trim() ?? "";
+  if (!/^\d+$/.test(id)) return null;
+  return `https://graph.facebook.com/${id}/picture?type=large`;
+}
+
 function draftThumb(draft: MetaCampaignDraft): string | null {
   const creative = draft.adCreativeData;
   const raw =
@@ -104,8 +129,41 @@ function draftThumb(draft: MetaCampaignDraft): string | null {
     creative?.thumbnailUrl?.trim() ||
     creative?.carouselCards?.[0]?.imageUrl?.trim() ||
     "";
-  if (!raw) return null;
-  return resolveMetaImageUrl(raw) || raw;
+  if (raw) {
+    const resolved = resolveMetaImageUrl(raw) || raw;
+    if (resolved && !isExpiredMetaCdnUrl(resolved)) {
+      return resolved;
+    }
+  }
+  return pagePictureUrl(creative?.facebookPageId) || null;
+}
+
+function DraftThumbAvatar({
+  src,
+  fallback,
+}: {
+  src: string | null;
+  fallback: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(src) && !failed;
+
+  return (
+    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f2ff] text-xs font-semibold text-[#1877f2]">
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src!}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        fallback
+      )}
+    </div>
+  );
 }
 
 function relativeTime(iso: string | null | undefined): string {
@@ -361,17 +419,11 @@ export function MetaDraftPicker({
                             <li key={draft.id} className="px-3 py-3">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                                  <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f2ff] text-xs font-semibold text-[#1877f2]">
-                                    {thumb ? (
-                                      <img
-                                        src={thumb}
-                                        alt=""
-                                        className="size-full object-cover"
-                                      />
-                                    ) : (
-                                      initial
-                                    )}
-                                  </div>
+                                  <DraftThumbAvatar
+                                    key={`${draft.id}-${thumb ?? "none"}`}
+                                    src={thumb}
+                                    fallback={initial}
+                                  />
                                   <div className="min-w-0">
                                   <p className="truncate text-sm font-medium text-[#07111f]">
                                     {draftDisplayName(draft)}
