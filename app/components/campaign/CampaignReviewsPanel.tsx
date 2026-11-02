@@ -66,31 +66,6 @@ function avatarTone(index: number): string {
   return AVATAR_TONES[index % AVATAR_TONES.length] ?? AVATAR_TONES[0];
 }
 
-const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease: standardEase },
-  },
-};
-
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.32, ease: standardEase },
-  },
-};
-
-const tableBodyStagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
-  },
-};
-
 type CampaignReviewsPanelProps = {
   embedded?: boolean;
   businessId: number;
@@ -572,21 +547,18 @@ function ReviewMobileCard({
 function ReviewsTableSection({
   reviews,
   rowOffset,
+  refreshing = false,
 }: {
   reviews: CampaignReviewRecord[];
   rowOffset: number;
+  refreshing?: boolean;
 }) {
   return (
-    <div>
+    <div className="table-scroll-shell" aria-busy={refreshing}>
       <div className="table-h-scroll hidden md:block">
-        <table className="w-full min-w-[52rem] border-collapse">
+        <table className="border-collapse">
           <thead>
-            <motion.tr
-              variants={tableHeaderReveal}
-              initial="hidden"
-              animate="show"
-              className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-            >
+            <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
               <th className={`${thClass} w-12`}>
                 <TableColumnHeader
                   label="#"
@@ -634,12 +606,12 @@ function ReviewsTableSection({
                   labelClassName={TABLE_HEAD_LABEL_CLASS}
                 />
               </th>
-            </motion.tr>
+            </tr>
           </thead>
-          <motion.tbody
-            variants={tableBodyStagger}
-            initial="hidden"
-            animate="show"
+          <tbody
+            className={`transition-opacity duration-200 ease-out ${
+              refreshing ? "opacity-40" : "opacity-100"
+            }`}
           >
             {reviews.map((review, index) => {
               const name = review.guestName || review.guestEmail || "Guest";
@@ -648,9 +620,8 @@ function ReviewsTableSection({
               const comment = review.comment?.trim() || "";
 
               return (
-                <motion.tr
+                <tr
                   key={review.id}
-                  variants={tableRowReveal}
                   className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                 >
                   <td className={tdClass}>
@@ -715,14 +686,18 @@ function ReviewsTableSection({
                       {formatDateTimeShort(review.submittedAt)}
                     </span>
                   </td>
-                </motion.tr>
+                </tr>
               );
             })}
-          </motion.tbody>
+          </tbody>
         </table>
       </div>
 
-      <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
+      <div
+        className={`flex flex-col gap-2.5 p-3.5 transition-opacity duration-200 ease-out md:hidden ${
+          refreshing ? "opacity-40" : "opacity-100"
+        }`}
+      >
         {reviews.map((review, index) => (
           <ReviewMobileCard
             key={review.id}
@@ -781,6 +756,7 @@ export function CampaignReviewsPanel({
     data: reviews,
     meta,
     loading,
+    refreshing,
     error,
     page,
     setPage,
@@ -820,14 +796,6 @@ export function CampaignReviewsPanel({
   const queryAlert =
     !showSkeleton && error && !queryAlertDismissed ? error : null;
   const alertMessage = exportAlert ?? queryAlert;
-
-  const clearReviewsFilters = () => {
-    setSearch("");
-    setRatingFilter(null);
-    setCalendarMode("month");
-    setMonthFilter(currentActivityMonthKey());
-    setDateFilter(currentActivityDateKey());
-  };
 
   const handleExport = useCallback(async () => {
     if (exporting) return;
@@ -917,40 +885,18 @@ export function CampaignReviewsPanel({
 
         {showNoRecords ? (
           <TableNoResultsEmptyState
-            icon={debouncedSearch || ratingFilter != null ? Search : Star}
-            title={
-              debouncedSearch
-                ? `No reviews match “${debouncedSearch}”`
-                : ratingFilter != null
-                  ? `No ${ratingFilter}★ reviews for this period`
-                  : "No reviews for this period"
-            }
-            description={
-              debouncedSearch || ratingFilter != null
-                ? "Try another search or star filter, or clear filters to reset."
-                : "No reviews in this month or day. Try another date, or clear filters to reset."
-            }
-            action={
-              <button
-                type="button"
-                onClick={clearReviewsFilters}
-                className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-              >
-                Clear filters
-              </button>
-            }
+            icon={Search}
+            title="No matching reviews"
+            description="Nothing matches this search, filter, or date. Try another day or month."
           />
         ) : null}
 
         {showTable ? (
-          <motion.div
-            key={`reviews-page-${page}`}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: standardEase }}
-          >
-            <ReviewsTableSection reviews={reviews} rowOffset={rowOffset} />
-          </motion.div>
+          <ReviewsTableSection
+            reviews={reviews}
+            rowOffset={rowOffset}
+            refreshing={refreshing}
+          />
         ) : null}
       </div>
 

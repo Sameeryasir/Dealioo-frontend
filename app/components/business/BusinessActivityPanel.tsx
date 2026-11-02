@@ -9,17 +9,14 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Activity,
-  ArrowUpRight,
   Calendar,
   CircleDollarSign,
   Gift,
   Layers,
   LayoutGrid,
-  MapPin,
   MessageSquare,
   Search,
   Store,
@@ -52,7 +49,6 @@ import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { useSidebarSectionLiveReload } from "@/app/hooks/use-sidebar-section-live-reload";
 import {
   getRestaurantActivityEvents,
-  getRestaurantActivitySummary,
   RESTAURANT_ACTIVITY_PAGE_SIZE,
   type ActivityEventType,
   type RestaurantActivityEvent,
@@ -89,31 +85,6 @@ const EVENT_FILTERS: {
   { id: "in_person", label: "In person", icon: Store, countKey: "totalInPerson" },
   { id: "message_sent", label: "Texts", icon: MessageSquare, countKey: "totalMessagesSent" },
 ];
-
-const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease: standardEase },
-  },
-};
-
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.32, ease: standardEase },
-  },
-};
-
-const tableBodyStagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
-  },
-};
 
 function activityDescription(event: RestaurantActivityEvent): string {
   const text = event.description?.trim();
@@ -434,67 +405,6 @@ function ActivityTableBodySkeleton() {
   );
 }
 
-function ActivityEmptyState({
-  baseHref,
-  embedded = false,
-}: {
-  baseHref: string;
-  embedded?: boolean;
-}) {
-  const createCampaignHref = `${baseHref}/campaigns`;
-
-  return (
-    <div
-      className={`flex flex-col items-center px-6 py-12 text-center sm:py-14 ${
-        embedded
-          ? "min-h-0 w-full flex-1 justify-center"
-          : activityCardClass
-      }`}
-    >
-      <div className="relative mb-5 flex size-28 items-center justify-center">
-        <span
-          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
-          aria-hidden
-        />
-        <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-[#f4f8ff] shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
-          <Activity
-            className="size-10 text-[#1877f2]"
-            strokeWidth={1.75}
-            aria-hidden
-          />
-        </span>
-        <span className="absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full border-2 border-white bg-[#16a34a] text-white shadow-md">
-          <MapPin className="size-4" strokeWidth={2.25} aria-hidden />
-        </span>
-      </div>
-
-      <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
-        No customer activity yet
-      </h2>
-      <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
-        Launch your first campaign to start tracking sign ups, payments, QR
-        check ins and return visits.
-      </p>
-
-      <Link
-        href={createCampaignHref}
-        className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-      >
-        Create Campaign
-        <ArrowUpRight className="size-3.5" strokeWidth={2.5} aria-hidden />
-      </Link>
-
-      <Link
-        href={baseHref}
-        className="mt-3 inline-flex items-center gap-1 text-[0.8rem] font-bold text-[#1877f2] no-underline transition hover:text-[#166fe5]"
-      >
-        Learn how Activity works
-        <ArrowUpRight className="size-3.5" strokeWidth={2.5} aria-hidden />
-      </Link>
-    </div>
-  );
-}
-
 function ActivityEventMobileCard({
   event,
   rowNumber,
@@ -544,8 +454,6 @@ export function BusinessActivityPanel({
   businessId: number;
 }) {
   const queryClient = useQueryClient();
-  const baseHref = `/business/${businessId}/dashboard`;
-
   const [page, setPage] = useState(1);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
   const [calendarMode, setCalendarMode] = useState<"month" | "day">("month");
@@ -609,28 +517,11 @@ export function BusinessActivityPanel({
         search: debouncedSearch || undefined,
       }),
     enabled: businessId > 0,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
-  });
-
-  const summaryQuery = useQuery({
-    queryKey: [
-      "business-activity-summary",
-      businessId,
-      periodRange.from,
-      periodRange.to,
-    ],
-    queryFn: () =>
-      getRestaurantActivitySummary(businessId, {
-        from: periodRange.from,
-        to: periodRange.to,
-      }),
-    enabled: businessId > 0,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
   });
 
   useSidebarSectionLiveReload(businessId, "activity", () => {
@@ -638,22 +529,17 @@ export function BusinessActivityPanel({
     void queryClient.invalidateQueries({
       queryKey: ["business-activity-events", businessId],
     });
-    void queryClient.invalidateQueries({
-      queryKey: ["business-activity-summary", businessId],
-    });
   });
 
   const events = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta ?? null;
-  const summary = summaryQuery.data ?? null;
-  const initialLoading =
-    (eventsQuery.isLoading && eventsQuery.data == null) ||
-    (summaryQuery.isLoading && summaryQuery.data == null);
+  const summary = eventsQuery.data?.counts ?? null;
+  const initialLoading = eventsQuery.isLoading && eventsQuery.data == null;
+  const fetchingResults =
+    eventsQuery.isFetching && !eventsQuery.isLoading && eventsQuery.data != null;
   const error = eventsQuery.error
     ? getApiErrorMessage(eventsQuery.error, "Could not load activity.")
-    : summaryQuery.error
-      ? getApiErrorMessage(summaryQuery.error, "Could not load activity.")
-      : null;
+    : null;
 
   const totalEvents = meta?.total ?? 0;
   const allEventsTotal = meta?.allEventsTotal ?? totalEvents;
@@ -677,9 +563,10 @@ export function BusinessActivityPanel({
   const showEmpty =
     !initialLoading && !error && !hasActiveFilters && allEventsTotal === 0;
   const showFilteredEmpty =
-    !initialLoading && !error && hasActiveFilters && totalEvents === 0;
+    !initialLoading && !error && !showEmpty && totalEvents === 0;
+  const showNoResults = showEmpty || showFilteredEmpty;
   const showTable = !error && events.length > 0;
-  const allCount = summary?.totalEvents ?? allEventsTotal;
+  const allCount = totalEvents;
 
   const activityHeader = (
     <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
@@ -779,14 +666,6 @@ export function BusinessActivityPanel({
       />
 
       <div className="rd-premium-page">
-        {showEmpty ? (
-          <article className={`${activityCardClass} rd-premium-panel`}>
-            {activityHeader}
-            <div className="rd-premium-panel__body rd-premium-panel__body--center">
-              <ActivityEmptyState baseHref={baseHref} embedded />
-            </div>
-          </article>
-        ) : (
           <article className={`${activityCardClass} rd-premium-panel`}>
             {activityHeader}
             <div
@@ -801,7 +680,7 @@ export function BusinessActivityPanel({
                   count={
                     filter.countKey != null
                       ? (summary?.[filter.countKey] ?? 0)
-                      : undefined
+                      : 0
                   }
                   active={eventFilter === filter.id}
                   onClick={() => setEventFilter(filter.id)}
@@ -811,7 +690,7 @@ export function BusinessActivityPanel({
 
             <div
               className={`rd-premium-panel__body${
-                showFilteredEmpty ? " rd-premium-panel__body--center" : ""
+                showNoResults ? " rd-premium-panel__body--center" : ""
               }`}
             >
               {initialLoading && events.length === 0 ? (
@@ -824,45 +703,23 @@ export function BusinessActivityPanel({
                 </motion.div>
               ) : null}
 
-              {showFilteredEmpty ? (
+              {showNoResults ? (
                 <TableNoResultsEmptyState
                   icon={Search}
                   title="No matching activity"
-                  description="Nothing matches this search, filter, or date. Try another day or month, or clear filters to reset."
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventFilter("all");
-                        setCalendarMode("month");
-                        setMonthFilter(currentActivityMonthKey());
-                        setDateFilter(currentActivityDateKey());
-                        setSearch("");
-                      }}
-                      className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                    >
-                      Clear filters
-                    </button>
-                  }
+                  description="Nothing matches this search, filter, or date. Try another day or month."
                 />
               ) : null}
 
               {showTable ? (
-                <motion.div
-                  key={`activity-page-${page}-${eventFilter}-${periodRange.from}-${periodRange.to}-${debouncedSearch}`}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: standardEase }}
+                <div
+                  className="table-scroll-shell"
+                  aria-busy={fetchingResults}
                 >
                   <div className="table-h-scroll hidden md:block">
-                    <table className="w-full min-w-[44rem] border-collapse">
+                    <table className="border-collapse">
                       <thead>
-                        <motion.tr
-                          variants={tableHeaderReveal}
-                          initial="hidden"
-                          animate="show"
-                          className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-                        >
+                        <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                           <th className={`${thClass} w-12`}>
                             <TableColumnHeader
                               label="#"
@@ -902,21 +759,21 @@ export function BusinessActivityPanel({
                               labelClassName={TABLE_HEAD_LABEL_CLASS}
                             />
                           </th>
-                        </motion.tr>
+                        </tr>
                       </thead>
-                      <motion.tbody
-                        variants={tableBodyStagger}
-                        initial="hidden"
-                        animate="show"
+                      <tbody
+                        key={`activity-rows-${page}-${eventFilter}-${periodRange.from}-${periodRange.to}-${debouncedSearch}`}
+                        className={`transition-opacity duration-200 ease-out ${
+                          fetchingResults ? "opacity-40" : "opacity-100"
+                        }`}
                       >
                         {events.map((event, index) => {
                           const rowNumber = rowOffset + index + 1;
                           const name = guestName(event);
 
                           return (
-                            <motion.tr
+                            <tr
                               key={event.id}
-                              variants={tableRowReveal}
                               className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                             >
                               <td className={tdClass}>
@@ -964,14 +821,18 @@ export function BusinessActivityPanel({
                                   {formatDateTimeShort(event.occurredAt)}
                                 </span>
                               </td>
-                            </motion.tr>
+                            </tr>
                           );
                         })}
-                      </motion.tbody>
+                      </tbody>
                     </table>
                   </div>
 
-                  <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
+                  <div
+                    className={`flex flex-col gap-2.5 p-3.5 transition-opacity duration-200 ease-out md:hidden ${
+                      fetchingResults ? "opacity-40" : "opacity-100"
+                    }`}
+                  >
                     {events.map((event, index) => (
                       <ActivityEventMobileCard
                         key={event.id}
@@ -981,7 +842,7 @@ export function BusinessActivityPanel({
                       />
                     ))}
                   </div>
-                </motion.div>
+                </div>
               ) : null}
             </div>
 
@@ -997,7 +858,7 @@ export function BusinessActivityPanel({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={initialLoading || page <= 1}
+                      disabled={initialLoading || fetchingResults || page <= 1}
                       onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                       className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -1008,7 +869,11 @@ export function BusinessActivityPanel({
                     </span>
                     <button
                       type="button"
-                      disabled={initialLoading || page >= meta.totalPages}
+                      disabled={
+                        initialLoading ||
+                        fetchingResults ||
+                        page >= meta.totalPages
+                      }
                       onClick={() =>
                         setPage((prev) =>
                           Math.min(meta.totalPages, prev + 1),
@@ -1023,7 +888,6 @@ export function BusinessActivityPanel({
               </div>
             ) : null}
           </article>
-        )}
       </div>
     </section>
   );

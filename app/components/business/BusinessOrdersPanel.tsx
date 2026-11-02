@@ -2,7 +2,6 @@
 
 import {
   Activity,
-  ArrowUpRight,
   Calendar,
   CircleDollarSign,
   Layers,
@@ -10,13 +9,11 @@ import {
   Megaphone,
   Package,
   Search,
-  TrendingUp,
   UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
@@ -73,9 +70,9 @@ const ordersCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
 
 const thClass =
-  "whitespace-nowrap px-4 py-3 text-left align-middle first:pl-5 last:pr-5";
+  "whitespace-nowrap px-4 py-3.5 text-left align-middle first:pl-5 last:pr-5 sm:px-5";
 const tdClass =
-  "px-4 py-3 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5";
+  "px-4 py-3.5 text-left align-middle text-sm text-slate-700 first:pl-5 last:pr-5 sm:px-5";
 
 type StatusFilter = "all" | "paid" | "not_paid";
 type DisplayPaymentStatus = "paid" | "pending" | "failed" | "refunded";
@@ -657,11 +654,13 @@ function FilterTab({
   active,
   label,
   icon: Icon,
+  count,
   onClick,
 }: {
   active: boolean;
   label: string;
   icon: LucideIcon;
+  count: number;
   onClick: () => void;
 }) {
   return (
@@ -676,6 +675,15 @@ function FilterTab({
     >
       <Icon className="size-3.5" strokeWidth={2.2} aria-hidden />
       {label}
+      <span
+        className={`rounded-full px-1.5 py-0.5 text-[0.65rem] font-bold ${
+          active
+            ? "bg-[#e8f2ff] text-[#1877f2]"
+            : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        {count}
+      </span>
       {active ? (
         <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#1877f2]" />
       ) : null}
@@ -753,56 +761,6 @@ function OrderEventMobileCard({
   );
 }
 
-function OrdersEmptyState({
-  campaignsHref,
-  embedded = false,
-}: {
-  campaignsHref: string;
-  embedded?: boolean;
-}) {
-  return (
-    <div
-      className={`flex flex-col items-center px-6 py-14 text-center sm:py-16 ${
-        embedded
-          ? "min-h-0 w-full flex-1 justify-center py-14 sm:py-16"
-          : ordersCardClass
-      }`}
-    >
-      <div className="relative mb-5 flex size-28 items-center justify-center">
-        <span
-          className="absolute inset-0 rounded-full bg-[#e8f2ff]/80 blur-xl"
-          aria-hidden
-        />
-        <span className="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-[#dbeafe] bg-[#f4f8ff] shadow-[0_12px_32px_rgba(24,119,242,0.12)]">
-          <TrendingUp
-            className="size-10 text-[#1877f2]"
-            strokeWidth={1.75}
-            aria-hidden
-          />
-        </span>
-        <span className="absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full border-2 border-white bg-[#e1306c] text-white shadow-md">
-          <Megaphone className="size-4" strokeWidth={2.25} aria-hidden />
-        </span>
-      </div>
-
-      <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
-        No funnel activity yet
-      </h2>
-      <p className="m-0 mt-2 max-w-sm text-[0.82rem] font-medium leading-relaxed text-slate-500">
-        Launch your first campaign to start tracking signups and payments.
-      </p>
-
-      <Link
-        href={campaignsHref}
-        className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#1877f2] px-4 py-2.5 text-[0.82rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe5]"
-      >
-        Create Campaign
-        <ArrowUpRight className="size-3.5" strokeWidth={2.5} aria-hidden />
-      </Link>
-    </div>
-  );
-}
-
 function formatTitleCase(value: string): string {
   return value
     .trim()
@@ -818,7 +776,6 @@ export function BusinessOrdersPanel({
   businessId: number;
 }) {
   const queryClient = useQueryClient();
-  const baseHref = `/business/${businessId}/dashboard`;
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -866,9 +823,9 @@ export function BusinessOrdersPanel({
         search: deferredSearchQuery,
       }),
     enabled: businessId > 0,
-    staleTime: 0,
+    staleTime: 60_000,
     gcTime: 5 * 60_000,
-    refetchOnMount: "always",
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
   });
@@ -881,6 +838,11 @@ export function BusinessOrdersPanel({
 
   const events = eventsQuery.data?.data ?? [];
   const meta = eventsQuery.data?.meta ?? null;
+  const statusCounts = eventsQuery.data?.counts ?? {
+    all: 0,
+    paid: 0,
+    not_paid: 0,
+  };
   const loading = eventsQuery.isLoading;
   const fetchingResults =
     eventsQuery.isFetching && !eventsQuery.isLoading;
@@ -918,9 +880,9 @@ export function BusinessOrdersPanel({
   const showEmpty =
     !loading && !error && !hasActiveFilters && allEventsTotal === 0;
   const showNoFilterResults =
-    !loading && !error && hasActiveFilters && totalEvents === 0;
+    !loading && !error && !showEmpty && totalEvents === 0;
   const showTable = !loading && !error && events.length > 0;
-  const allCount = allEventsTotal;
+  const allCount = totalEvents;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1034,17 +996,6 @@ export function BusinessOrdersPanel({
       />
 
       <div className="rd-premium-page">
-        {showEmpty ? (
-          <article className={`${ordersCardClass} rd-premium-panel`}>
-            {ordersHeader}
-            <div className="rd-premium-panel__body rd-premium-panel__body--center">
-              <OrdersEmptyState
-                campaignsHref={`${baseHref}/campaigns`}
-                embedded
-              />
-            </div>
-          </article>
-        ) : (
           <article className={`${ordersCardClass} rd-premium-panel`}>
             {ordersHeader}
             <div
@@ -1056,6 +1007,7 @@ export function BusinessOrdersPanel({
                   key={filter.id}
                   label={filter.label}
                   icon={filter.icon}
+                  count={statusCounts[filter.id] ?? 0}
                   active={statusFilter === filter.id}
                   onClick={() => {
                     startTransition(() => {
@@ -1069,7 +1021,9 @@ export function BusinessOrdersPanel({
 
             <div
               className={`rd-premium-panel__body${
-                showNoFilterResults ? " rd-premium-panel__body--center" : ""
+                showEmpty || showNoFilterResults
+                  ? " rd-premium-panel__body--center"
+                  : ""
               }`}
             >
               {loading && events.length === 0 ? (
@@ -1082,38 +1036,21 @@ export function BusinessOrdersPanel({
                 </motion.div>
               ) : null}
 
-              {showNoFilterResults ? (
+              {showEmpty || showNoFilterResults ? (
                 <TableNoResultsEmptyState
-                  icon={Package}
+                  icon={Search}
                   title="No matching orders"
-                  description="Nothing matches this search, status, or date. Try another period, or clear filters to reset."
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter("all");
-                        setCalendarMode("month");
-                        setMonthFilter(currentActivityMonthKey());
-                        setDateFilter(currentActivityDateKey());
-                        setSearchQuery("");
-                      }}
-                      className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                    >
-                      Clear filters
-                    </button>
-                  }
+                  description="Nothing matches this search, filter, or date. Try another day or month."
                 />
               ) : null}
 
               {showTable ? (
                 <div
-                  className={`min-w-0 transition-opacity duration-200 ease-out ${
-                    fetchingResults ? "opacity-55" : "opacity-100"
-                  }`}
+                  className="table-scroll-shell"
                   aria-busy={fetchingResults}
                 >
-                  <div className="table-h-scroll hidden md:block">
-                    <table className="w-max min-w-full border-collapse">
+                  <div className="table-inner-scroll hidden md:block">
+                    <table className="border-collapse">
                       <thead>
                         <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                           <th className={`${thClass} w-12`}>
@@ -1197,7 +1134,11 @@ export function BusinessOrdersPanel({
                           </th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody
+                        className={`transition-opacity duration-200 ease-out ${
+                          fetchingResults ? "opacity-40" : "opacity-100"
+                        }`}
+                      >
                         {events.map((event, index) => {
                           const rowNumber = rowOffset + index + 1;
                           const name = displayName(event);
@@ -1282,7 +1223,11 @@ export function BusinessOrdersPanel({
                     </table>
                   </div>
 
-                  <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
+                  <div
+                    className={`flex flex-col gap-2.5 p-3.5 transition-opacity duration-200 ease-out md:hidden ${
+                      fetchingResults ? "opacity-40" : "opacity-100"
+                    }`}
+                  >
                     {events.map((event, index) => (
                       <OrderEventMobileCard
                         key={event.rowKey ?? `event:${event.id}`}
@@ -1335,7 +1280,6 @@ export function BusinessOrdersPanel({
               </div>
             ) : null}
           </article>
-        )}
       </div>
     </section>
   );

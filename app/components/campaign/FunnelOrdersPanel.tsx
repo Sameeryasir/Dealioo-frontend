@@ -79,31 +79,6 @@ function guestInitial(email: string): string {
   return trimmed.charAt(0).toUpperCase();
 }
 
-const tableHeaderReveal = {
-  hidden: { opacity: 0, y: -10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease: standardEase },
-  },
-};
-
-const tableRowReveal = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.32, ease: standardEase },
-  },
-};
-
-const tableBodyStagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05, delayChildren: 0.06 },
-  },
-};
-
 function formatPaymentStatusLabel(status: string): string {
   const normalized = status.trim().toLowerCase();
   if (normalized === "paid" || normalized === "succeeded") return "Paid";
@@ -518,21 +493,18 @@ function OrderPaymentMobileCard({
 function OrdersTableSection({
   payments,
   rowOffset,
+  refreshing = false,
 }: {
   payments: FunnelPayment[];
   rowOffset: number;
+  refreshing?: boolean;
 }) {
   return (
-    <div>
-      <div className="table-h-scroll hidden md:block">
-        <table className="w-full min-w-[44rem] border-collapse">
+    <div className="table-scroll-shell" aria-busy={refreshing}>
+      <div className="table-inner-scroll hidden md:block">
+        <table className="border-collapse">
           <thead>
-            <motion.tr
-              variants={tableHeaderReveal}
-              initial="hidden"
-              animate="show"
-              className="border-b border-[#e8edf5] bg-[#f8fafc]/60"
-            >
+            <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
               <th className={`${thClass} w-12`}>
                 <TableColumnHeader
                   label="#"
@@ -573,21 +545,20 @@ function OrdersTableSection({
                 />
               </th>
               <th className={thActionsClass}>Actions</th>
-            </motion.tr>
+            </tr>
           </thead>
-          <motion.tbody
-            variants={tableBodyStagger}
-            initial="hidden"
-            animate="show"
+          <tbody
+            className={`transition-opacity duration-200 ease-out ${
+              refreshing ? "opacity-40" : "opacity-100"
+            }`}
           >
             {payments.map((payment, index) => {
               const email = payment.customerEmail?.trim() || "";
               const currency = (payment.currency || "usd").toUpperCase();
 
               return (
-                <motion.tr
+                <tr
                   key={payment.id}
-                  variants={tableRowReveal}
                   className="group border-b border-[#f1f5f9] transition-colors duration-150 last:border-0 hover:bg-[#e8f2ff]/70"
                 >
                   <td className={tdClass}>
@@ -635,14 +606,18 @@ function OrdersTableSection({
                   <td className={tdActionsClass}>
                     <OrderRowActions payment={payment} />
                   </td>
-                </motion.tr>
+                </tr>
               );
             })}
-          </motion.tbody>
+          </tbody>
         </table>
       </div>
 
-      <div className="flex flex-col gap-2.5 p-3.5 md:hidden">
+      <div
+        className={`flex flex-col gap-2.5 p-3.5 transition-opacity duration-200 ease-out md:hidden ${
+          refreshing ? "opacity-40" : "opacity-100"
+        }`}
+      >
         {payments.map((payment, index) => (
           <OrderPaymentMobileCard
             key={payment.id}
@@ -701,6 +676,7 @@ export function FunnelOrdersPanel({
     page,
     setPage,
     loading: isPaymentsLoading,
+    refreshing: isPaymentsRefreshing,
     error,
   } = useFunnelPayments(funnelId, periodRange);
 
@@ -732,13 +708,6 @@ export function FunnelOrdersPanel({
   const total = meta?.total ?? 0;
   const showTable = !showSkeleton && !error && payments.length > 0;
   const showCenteredEmpty = showNoFunnelMessage || showNoRecords;
-
-  const clearOrdersFilters = () => {
-    setSearch("");
-    setCalendarMode("month");
-    setMonthFilter(currentActivityMonthKey());
-    setDateFilter(currentActivityDateKey());
-  };
 
   const panelContent = (
     <article className={`${ordersCardClass} rd-premium-panel h-full min-h-0`}>
@@ -781,41 +750,18 @@ export function FunnelOrdersPanel({
 
         {showNoRecords ? (
           <TableNoResultsEmptyState
-            icon={debouncedSearch ? Search : ShoppingBag}
-            title={
-              debouncedSearch
-                ? `No orders match “${debouncedSearch}”`
-                : "No orders for this period"
-            }
-            description={
-              debouncedSearch
-                ? "Try another search, or clear filters to reset the date and search."
-                : "No orders in this month or day. Try another date, or clear filters to reset."
-            }
-            action={
-              <button
-                type="button"
-                onClick={clearOrdersFilters}
-                className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-              >
-                Clear filters
-              </button>
-            }
+            icon={Search}
+            title="No matching orders"
+            description="Nothing matches this search, filter, or date. Try another day or month."
           />
         ) : null}
 
         {showTable ? (
-          <motion.div
-            key={`orders-page-${page}`}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: standardEase }}
-          >
-            <OrdersTableSection
-              payments={payments}
-              rowOffset={rowOffset}
-            />
-          </motion.div>
+          <OrdersTableSection
+            payments={payments}
+            rowOffset={rowOffset}
+            refreshing={isPaymentsRefreshing}
+          />
         ) : null}
       </div>
 

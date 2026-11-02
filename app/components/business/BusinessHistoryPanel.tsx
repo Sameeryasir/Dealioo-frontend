@@ -381,10 +381,10 @@ export function BusinessHistoryPanel({
     queryKey: businessHistoryQueryKey(businessId, filters),
     queryFn: () => getBusinessHistory(businessId, filters),
     enabled: businessId > 0,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   });
 
@@ -397,7 +397,9 @@ export function BusinessHistoryPanel({
   const events = historyQuery.data?.data ?? [];
   const meta = historyQuery.data?.meta ?? null;
   const counts = historyQuery.data?.counts;
-  const loading = historyQuery.isLoading || historyQuery.isFetching;
+  const loading = historyQuery.isLoading && historyQuery.data == null;
+  const fetchingResults =
+    historyQuery.isFetching && !historyQuery.isLoading && historyQuery.data != null;
   const error = historyQuery.error
     ? getApiErrorMessage(historyQuery.error, "Could not load history.")
     : null;
@@ -582,33 +584,19 @@ export function BusinessHistoryPanel({
 
             {!loading && !error && total === 0 ? (
               <TableNoResultsEmptyState
-                icon={History}
-                title="No history for this period"
-                description="No workspace changes match this search, filter, or date. Try another day or month, or clear filters to reset."
-                action={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCategory("all");
-                      setCalendarMode("month");
-                      setMonthFilter(currentActivityMonthKey());
-                      setDateFilter(currentActivityDateKey());
-                      setSearch("");
-                    }}
-                    className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                  >
-                    Clear filters
-                  </button>
-                }
+                icon={Search}
+                title="No matching history"
+                description="Nothing matches this search, filter, or date. Try another day or month."
               />
             ) : null}
 
             {showTable ? (
-              // Wrapper keeps table full height so .rd-premium-panel__body can scroll
-              // (same pattern as Activity/Orders — avoid .table-h-scroll as direct flex child).
-              <div className="min-w-0">
+              <div
+                className="table-scroll-shell"
+                aria-busy={fetchingResults}
+              >
                 <div className="table-h-scroll hidden md:block">
-                  <table className="w-full min-w-[44rem] border-collapse">
+                  <table className="border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                         <th className={`${thClass} w-12`}>
@@ -652,7 +640,11 @@ export function BusinessHistoryPanel({
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody
+                      className={`transition-opacity duration-200 ease-out ${
+                        fetchingResults ? "opacity-40" : "opacity-100"
+                      }`}
+                    >
                       {events.map((event, index) => (
                         <HistoryRow
                           key={event.id}
@@ -664,7 +656,11 @@ export function BusinessHistoryPanel({
                     </tbody>
                   </table>
                 </div>
-                <ul className="m-0 list-none p-0 md:hidden">
+                <ul
+                  className={`m-0 list-none p-0 transition-opacity duration-200 ease-out md:hidden ${
+                    fetchingResults ? "opacity-40" : "opacity-100"
+                  }`}
+                >
                   {events.map((event, index) => {
                     const actor = event.actorName?.trim() || "Team";
                     const when = formatDateParts(event.occurredAt);
@@ -713,7 +709,7 @@ export function BusinessHistoryPanel({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={loading || page <= 1}
+                    disabled={loading || fetchingResults || page <= 1}
                     onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                     className="inline-flex cursor-pointer items-center rounded-full border border-[#e8edf5] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-[#1877f2]/30 hover:bg-[#f4f8ff] disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -724,7 +720,7 @@ export function BusinessHistoryPanel({
                   </span>
                   <button
                     type="button"
-                    disabled={loading || page >= totalPages}
+                    disabled={loading || fetchingResults || page >= totalPages}
                     onClick={() =>
                       setPage((prev) => Math.min(totalPages, prev + 1))
                     }

@@ -13442,6 +13442,7 @@ body:has(.rd-shell--app) {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -16333,46 +16334,50 @@ body:has(.rd-shell--app) {
   outline: none;
 }
 
-/* Always-visible horizontal scrollbar for wide data tables */
-.table-h-scroll {
+.table-h-scroll,
+.table-inner-scroll {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 0.35rem;
+  padding-bottom: 0.25rem;
   scrollbar-gutter: stable;
-  scrollbar-width: auto;
-  scrollbar-color: #64748b #e8edf5;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.table-h-scroll::-webkit-scrollbar {
+.table-h-scroll::-webkit-scrollbar,
+.table-inner-scroll::-webkit-scrollbar {
   -webkit-appearance: none;
-  height: 12px;
-  display: block;
+  height: 6px;
 }
 
-.table-h-scroll::-webkit-scrollbar-track {
-  background: #e8edf5;
+.table-h-scroll::-webkit-scrollbar-track,
+.table-inner-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-h-scroll::-webkit-scrollbar-thumb,
+.table-inner-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
   border-radius: 999px;
-  margin-inline: 4px;
 }
 
-.table-h-scroll::-webkit-scrollbar-thumb {
+.table-h-scroll::-webkit-scrollbar-thumb:hover,
+.table-inner-scroll::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
-  border-radius: 999px;
-  border: 2px solid #e8edf5;
-  min-width: 48px;
 }
 
-.table-h-scroll::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-.table-h-scroll > table {
-  width: max-content !important;
+.table-h-scroll > table,
+.table-inner-scroll > table {
+  width: max-content;
   min-width: 100%;
+  max-width: none;
   table-layout: auto;
 }
 
@@ -16510,14 +16515,41 @@ body:has(.rd-shell--app) {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
 }
 
 .rd-premium-panel__body:has(> .table-h-scroll),
-.rd-premium-panel__body:has(.table-h-scroll) {
+.rd-premium-panel__body:has(.table-h-scroll),
+.rd-premium-panel__body:has(> .table-inner-scroll),
+.rd-premium-panel__body:has(.table-inner-scroll),
+.rd-premium-panel__body:has(> .table-scroll-shell),
+.rd-premium-panel__body:has(.table-scroll-shell),
+.rd-premium-panel__body:has(> .orders-table-shell),
+.rd-premium-panel__body:has(.orders-table-shell) {
   overflow-x: hidden;
+}
+
+.table-scroll-shell,
+.orders-table-shell {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-scroll-shell > .table-h-scroll,
+.table-scroll-shell > .table-inner-scroll,
+.orders-table-shell > .table-h-scroll,
+.orders-table-shell > .table-inner-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .rd-premium-panel__body--center {

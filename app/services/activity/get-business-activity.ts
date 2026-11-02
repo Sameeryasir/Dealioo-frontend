@@ -96,6 +96,7 @@ export type PaginatedActivityResponse = {
     totalPages: number;
     allEventsTotal: number;
   };
+  counts?: ActivitySummary;
 };
 
 function appendActivityFilters(
@@ -154,7 +155,19 @@ export async function getRestaurantActivityEvents(
     );
   }
 
-  return (await res.json()) as PaginatedActivityResponse;
+  const json = (await res.json()) as PaginatedActivityResponse;
+  return {
+    ...json,
+    counts: json.counts ?? {
+      totalEvents: json.meta?.allEventsTotal ?? json.meta?.total ?? 0,
+      totalVisited: 0,
+      totalRedeemed: 0,
+      totalPrepaid: 0,
+      totalInPerson: 0,
+      totalSignedUp: 0,
+      totalMessagesSent: 0,
+    },
+  };
 }
 
 export async function getRestaurantActivitySummary(

@@ -125,8 +125,9 @@ function exportGuestsCsv(customers: BusinessCustomerRecord[]) {
 
 function CustomersTableSkeleton() {
   return (
-    <div className="table-h-scroll" aria-busy="true">
-      <table className="w-full min-w-[44rem] border-collapse">
+    <div className="table-scroll-shell" aria-busy="true">
+      <div className="table-h-scroll">
+      <table className="border-collapse">
         <thead>
           <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -167,6 +168,7 @@ function CustomersTableSkeleton() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -210,13 +212,21 @@ export function BusinessProgramCustomersPanel({
         from: periodRange.from,
         to: periodRange.to,
       }),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 
   const customers = customersQuery.data?.data ?? [];
   const meta = customersQuery.data?.meta;
   const totalPages = meta?.totalPages ?? 1;
   const total = meta?.total ?? 0;
+  const fetchingResults =
+    customersQuery.isFetching &&
+    !customersQuery.isLoading &&
+    customersQuery.data != null;
 
   const filteredCustomers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -370,36 +380,17 @@ export function BusinessProgramCustomersPanel({
               </div>
             ) : showEmpty ? (
               <TableNoResultsEmptyState
-                icon={Users}
-                title={
-                  search.trim()
-                    ? `No guests match “${search.trim()}”`
-                    : "No guests for this period"
-                }
-                description={
-                  search.trim()
-                    ? "Try another search, or clear filters to reset the date and search."
-                    : "No guests joined in this month or day. Try another date, or clear filters to reset."
-                }
-                action={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setCalendarMode("month");
-                      setMonthFilter(currentActivityMonthKey());
-                      setDateFilter(currentActivityDateKey());
-                    }}
-                    className="cursor-pointer rounded-full border border-[#1877f2] bg-transparent px-5 py-2.5 text-[0.82rem] font-bold text-[#1877f2] transition hover:bg-[#f4f8ff]"
-                  >
-                    Clear filters
-                  </button>
-                }
+                icon={Search}
+                title="No matching guests"
+                description="Nothing matches this search, filter, or date. Try another day or month."
               />
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div
+                className="table-scroll-shell min-h-0 flex-1"
+                aria-busy={fetchingResults}
+              >
                 <div className="table-h-scroll min-h-0 flex-1">
-                  <table className="w-full min-w-[44rem] border-collapse">
+                  <table className="border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                         <th className={thClass}>
@@ -452,7 +443,11 @@ export function BusinessProgramCustomersPanel({
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody
+                      className={`transition-opacity duration-200 ease-out ${
+                        fetchingResults ? "opacity-40" : "opacity-100"
+                      }`}
+                    >
                       {filteredCustomers.map((customer, index) => (
                         <tr
                           key={customer.id}

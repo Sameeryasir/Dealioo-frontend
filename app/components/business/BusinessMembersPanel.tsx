@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
+import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { InvitePermissionSections } from "@/app/components/business/BusinessPermissionsMatrix";
 import { Skeleton } from "@/app/components/skeleton";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
@@ -127,8 +128,9 @@ function memberStatusLabel(status: BusinessMemberListItem["status"]) {
 
 function MembersTableSkeleton() {
   return (
-    <div className="table-h-scroll" aria-busy="true" aria-label="Loading team">
-      <table className="w-full min-w-[40rem] border-collapse">
+    <div className="table-scroll-shell" aria-busy="true" aria-label="Loading team">
+      <div className="table-h-scroll">
+      <table className="border-collapse">
         <thead>
           <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -166,6 +168,7 @@ function MembersTableSkeleton() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -568,7 +571,10 @@ export function BusinessMembersPanel({
   const membersQuery = useQuery({
     queryKey: businessMemberQueryKeys.list(businessId, listOptions),
     queryFn: () => getBusinessMembers(businessId, listOptions),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
     enabled: membershipFetched && canViewTeam,
   });
@@ -749,6 +755,10 @@ export function BusinessMembersPanel({
   const members = membersQuery.data?.members ?? [];
   const meta = membersQuery.data?.meta;
   const isLoading = membersQuery.isLoading;
+  const fetchingResults =
+    membersQuery.isFetching &&
+    !membersQuery.isLoading &&
+    membersQuery.data != null;
   const loadError = membersQuery.isError
     ? getApiErrorMessage(membersQuery.error, "Could not load members.")
     : null;
@@ -931,17 +941,18 @@ export function BusinessMembersPanel({
               ) : null}
 
               {total === 0 ? (
-                <div className="px-5 py-12 text-center">
-                  <p className="m-0 text-sm font-semibold text-[#0f172a]">
-                    No people match your search
-                  </p>
-                  <p className="m-0 mt-1 text-xs text-slate-500">
-                    Try a different name, email, or role.
-                  </p>
-                </div>
+                <TableNoResultsEmptyState
+                  icon={Search}
+                  title="No matching members"
+                  description="Nothing matches this search. Try another name, email, or role."
+                />
               ) : (
-                <div className="table-h-scroll">
-                  <table className="w-full min-w-[40rem] border-collapse">
+                <div
+                  className="table-scroll-shell"
+                  aria-busy={fetchingResults}
+                >
+                  <div className="table-h-scroll">
+                  <table className="border-collapse">
                     <thead>
                       <tr className="border-b border-[#e8edf5] bg-[#f8fafc]/60">
                         <th className={thClass}>
@@ -978,7 +989,11 @@ export function BusinessMembersPanel({
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody
+                      className={`transition-opacity duration-200 ease-out ${
+                        fetchingResults ? "opacity-40" : "opacity-100"
+                      }`}
+                    >
                       {members.map((member) => {
                         const initials = memberInitials(member);
                         const isLoggedInMember =
@@ -1059,6 +1074,7 @@ export function BusinessMembersPanel({
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
 

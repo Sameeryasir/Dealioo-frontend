@@ -67,6 +67,12 @@ export type BusinessFunnelEvent = {
   restaurantVisitedAt?: string | null;
 };
 
+export type BusinessOrdersStatusCounts = {
+  all: number;
+  paid: number;
+  not_paid: number;
+};
+
 export type PaginatedBusinessFunnelEventsResponse = {
   data: BusinessFunnelEvent[];
   meta: {
@@ -78,6 +84,7 @@ export type PaginatedBusinessFunnelEventsResponse = {
     funnelCount: number;
     allEventsTotal: number;
   };
+  counts?: BusinessOrdersStatusCounts;
 };
 
 export async function getBusinessFunnelEvents(
@@ -140,6 +147,11 @@ export async function getBusinessFunnelEvents(
   // Keep campaign image on each row so React Query caches it with the orders list.
   return {
     ...payload,
+    counts: {
+      all: Number(payload.counts?.all ?? 0) || 0,
+      paid: Number(payload.counts?.paid ?? 0) || 0,
+      not_paid: Number(payload.counts?.not_paid ?? 0) || 0,
+    },
     data: (payload.data ?? []).map((event) => ({
       ...event,
       campaignImageUrl: event.campaignImageUrl?.trim() || null,
