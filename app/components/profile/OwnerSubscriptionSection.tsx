@@ -207,33 +207,75 @@ function formatInvoicePeriod(
     day: "numeric",
     month: "short",
   });
-  return `${startLabel} - ${formatShortDate(end.toISOString())}`;
+  return `${startLabel} – ${formatShortDate(end.toISOString())}`;
 }
 
 function BillingCard({
   title,
+  subtitle,
   icon: Icon,
   action,
+  flushBody = false,
   children,
 }: {
   title: string;
+  subtitle?: string;
   icon: typeof CreditCard;
   action?: ReactNode;
+  flushBody?: boolean;
   children: ReactNode;
 }) {
   return (
     <section className="dealioo-billing-card">
       <header className="dealioo-billing-card-head">
-        <h4 className="dealioo-billing-card-title">
+        <div className="dealioo-billing-card-title-wrap">
           <span className="dealioo-billing-card-title-icon">
-            <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+            <Icon className="size-5" strokeWidth={2.25} aria-hidden />
           </span>
-          {title}
-        </h4>
-        {action ? <div className="shrink-0">{action}</div> : null}
+          <div className="min-w-0">
+            <h4 className="dealioo-billing-card-title">{title}</h4>
+            {subtitle ? (
+              <p className="dealioo-billing-card-subtitle">{subtitle}</p>
+            ) : null}
+          </div>
+        </div>
+        {action ? <div className="shrink-0 self-center">{action}</div> : null}
       </header>
-      <div className="dealioo-billing-card-body">{children}</div>
+      <div
+        className={
+          flushBody
+            ? "dealioo-billing-card-body dealioo-billing-card-body--flush"
+            : "dealioo-billing-card-body"
+        }
+      >
+        {children}
+      </div>
     </section>
+  );
+}
+
+function BillingDetailRow({
+  label,
+  value,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="dealioo-billing-detail-row">
+      <p className="dealioo-billing-detail-label">{label}</p>
+      <p
+        className={
+          multiline
+            ? "dealioo-billing-detail-value dealioo-billing-detail-value--multiline"
+            : "dealioo-billing-detail-value"
+        }
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -794,7 +836,9 @@ export function OwnerSubscriptionSection({
       <div className="dealioo-billing-split">
         <BillingCard
           title="Payment method"
+          subtitle="Card on file for subscription renewals."
           icon={Shield}
+          flushBody
           action={
             <button
               type="button"
@@ -809,44 +853,26 @@ export function OwnerSubscriptionSection({
         >
           {paymentMethod ? (
             <>
-              <div className="flex items-center gap-4">
-                <div className="dealioo-billing-card-mini" aria-hidden>
-                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-white/85">
-                    {formatCardBrand(paymentMethod.brand)}
-                  </p>
-                  <p className="font-mono text-sm tracking-wide">
-                    •••• {paymentMethod.last4}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="dealioo-billing-value" style={{ margin: 0 }}>
-                      {formatCardLabel(paymentMethod)}
-                    </p>
-                    <span className="dealioo-billing-pill dealioo-billing-pill--success">
-                      Default
-                    </span>
-                  </div>
-                  {formatCardExpiry(paymentMethod) ? (
-                    <p className="dealioo-billing-hint">
-                      {formatCardExpiry(paymentMethod)}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              <p className="dealioo-billing-ok">
-                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
-                Your payment method is up to date.
-              </p>
+              <BillingDetailRow
+                label="Card"
+                value={formatCardLabel(paymentMethod)}
+              />
+              <BillingDetailRow
+                label="Expires"
+                value={formatCardExpiry(paymentMethod) || "Not set"}
+              />
+              <BillingDetailRow label="Status" value="Default · Up to date" />
             </>
           ) : (
-            <p className="dealioo-billing-hint">No card on file yet.</p>
+            <BillingDetailRow label="Card" value="No card on file yet" />
           )}
         </BillingCard>
 
         <BillingCard
           title="Billing information"
+          subtitle="Name, email, and address used on invoices."
           icon={UserRound}
+          flushBody
           action={
             <button
               type="button"
@@ -858,42 +884,40 @@ export function OwnerSubscriptionSection({
             </button>
           }
         >
-          <dl className="dealioo-billing-info-grid">
-            <div>
-              <dt className="dealioo-billing-kicker">Name</dt>
-              <dd className="dealioo-billing-value">
-                {billingDetails.name || "Not set"}
-              </dd>
-            </div>
-            <div>
-              <dt className="dealioo-billing-kicker">Email</dt>
-              <dd className="dealioo-billing-value break-all">
-                {billingDetails.email || "Not set"}
-              </dd>
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt className="dealioo-billing-kicker">Address</dt>
-              <dd className="dealioo-billing-value whitespace-pre-line">
-                {formatAddress(billingDetails.address)}
-              </dd>
-            </div>
-          </dl>
+          <BillingDetailRow
+            label="Name"
+            value={billingDetails.name || "Not set"}
+          />
+          <BillingDetailRow
+            label="Email"
+            value={billingDetails.email || "Not set"}
+          />
+          <BillingDetailRow
+            label="Address"
+            value={formatAddress(billingDetails.address)}
+            multiline
+          />
         </BillingCard>
       </div>
 
-      <BillingCard title="Invoice history" icon={FileText}>
+      <BillingCard
+        title="Invoice history"
+        subtitle="Past invoices for your Dealioo subscription."
+        icon={FileText}
+        flushBody
+      >
         {invoices.length === 0 ? (
-          <p className="dealioo-billing-hint">No invoices yet.</p>
+          <BillingDetailRow label="Invoices" value="No invoices yet" />
         ) : (
-          <div className="dealioo-billing-table-wrap">
-            <table className="dealioo-billing-table">
+          <div className="dealioo-billing-invoice-table-wrap">
+            <table className="dealioo-billing-invoice-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Plan & invoice</th>
+                  <th scope="col">Amount charged</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Download</th>
                 </tr>
               </thead>
               <tbody>
@@ -1416,32 +1440,34 @@ function InvoiceRow({
   return (
     <tr>
       <td>
-        <div className="flex items-start gap-2">
-          <CalendarDays className="mt-0.5 size-3.5 shrink-0 text-slate-400" aria-hidden />
-          <div>
-            <p className="font-semibold">{formatShortDate(invoice.createdAt)}</p>
-            <p className="dealioo-billing-hint">Invoice {invoiceId}</p>
-          </div>
-        </div>
+        <span className="dealioo-billing-invoice-date">
+          {formatShortDate(invoice.createdAt)}
+        </span>
       </td>
       <td>
-        <p className="font-semibold">
-          {planName} - {formatBillingCycle(billingCycle)}
+        <p className="dealioo-billing-invoice-title">
+          {planName} – {formatBillingCycle(billingCycle)}
         </p>
-        <p className="dealioo-billing-hint">
+        <p className="dealioo-billing-invoice-meta">
+          Invoice {invoiceId}
+          <span className="dealioo-billing-invoice-dot" aria-hidden>
+            ·
+          </span>
           {formatInvoicePeriod(invoice.createdAt, billingCycle)}
         </p>
       </td>
-      <td>
-        <span className="font-semibold">{invoice.amountFormatted}</span>
+      <td className="dealioo-billing-invoice-amount-cell">
+        <span className="dealioo-billing-invoice-amount">
+          {invoice.amountFormatted}
+        </span>
       </td>
-      <td>
+      <td className="dealioo-billing-invoice-status-cell">
         <span className="dealioo-billing-pill dealioo-billing-pill--success">
           <Check className="size-3" strokeWidth={2.5} aria-hidden />
           {formatStatus(invoice.status)}
         </span>
       </td>
-      <td>
+      <td className="dealioo-billing-invoice-actions-cell">
         <div className="dealioo-billing-actions">
           <button
             type="button"

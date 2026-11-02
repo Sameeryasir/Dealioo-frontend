@@ -3394,42 +3394,124 @@ body {
 
   .dealioo-billing-card {
     overflow: hidden;
-    border: 1px solid #eceff5;
-    border-radius: 16px;
+    border: 1px solid #e8edf5;
+    border-radius: 1rem;
     background: #fff;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+    box-shadow: 0 14px 40px rgba(14, 24, 43, 0.06);
   }
 
   .dealioo-billing-card-head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 1.15rem 1.35rem 0;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  @media (min-width: 640px) {
+    .dealioo-billing-card-head {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  .dealioo-billing-card-title-wrap {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .dealioo-billing-card-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
     margin: 0;
-    font-size: 0.98rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: #07111f;
+  }
+
+  .dealioo-billing-card-subtitle {
+    margin: 0.125rem 0 0;
+    font-size: 0.875rem;
+    color: #64748b;
   }
 
   .dealioo-billing-card-title-icon {
     display: flex;
-    width: 1.35rem;
-    height: 1.35rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    color: #6366f1;
+    border-radius: 0.75rem;
+    background: #1877f2;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(24, 119, 242, 0.25);
   }
 
   .dealioo-billing-card-body {
-    padding: 1rem 1.35rem 1.25rem;
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .dealioo-billing-card-body {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  .dealioo-billing-card-body--flush {
+    padding: 0;
+  }
+
+  .dealioo-billing-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid #eef2f7;
+    padding: 0.75rem 1rem;
+  }
+
+  .dealioo-billing-detail-row:last-child {
+    border-bottom: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dealioo-billing-detail-row {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+
+  .dealioo-billing-detail-label {
+    width: 9.75rem;
+    flex-shrink: 0;
+    margin: 0;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .dealioo-billing-detail-value {
+    min-width: 0;
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #07111f;
+  }
+
+  .dealioo-billing-detail-value--multiline {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: pre-line;
   }
 
   .dealioo-billing-ghost-btn {
@@ -3438,20 +3520,21 @@ body {
     align-items: center;
     gap: 0.35rem;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 0.75rem;
     background: #fff;
     padding: 0 0.8rem;
     font-size: 0.75rem;
     font-weight: 650;
     color: #334155;
     text-decoration: none;
+    cursor: pointer;
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
   .dealioo-billing-ghost-btn:hover {
-    border-color: #c7d2fe;
-    background: #f8faff;
-    color: #4338ca;
+    border-color: #bfdbfe;
+    background: #eef5ff;
+    color: #1877f2;
   }
 
   .dealioo-billing-renew-chip {
@@ -3633,41 +3716,103 @@ body {
     }
   }
 
-  .dealioo-billing-table-wrap {
+  .dealioo-billing-invoice-table-wrap {
+    width: 100%;
     overflow-x: auto;
   }
 
-  .dealioo-billing-table {
+  .dealioo-billing-invoice-table {
     width: 100%;
+    min-width: 44rem;
     border-collapse: collapse;
   }
 
-  .dealioo-billing-table th {
-    padding: 0.35rem 0.6rem 0.7rem;
+  .dealioo-billing-invoice-table th {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #eef2f7;
+    background: #f8fafc;
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-align: left;
     text-transform: uppercase;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .dealioo-billing-invoice-table td {
+    padding: 0.95rem 1rem;
+    border-bottom: 1px solid #eef2f7;
+    vertical-align: middle;
+  }
+
+  .dealioo-billing-invoice-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dealioo-billing-invoice-table th,
+    .dealioo-billing-invoice-table td {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+
+  .dealioo-billing-invoice-date {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .dealioo-billing-invoice-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+    color: #07111f;
+  }
+
+  .dealioo-billing-invoice-meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #64748b;
+  }
+
+  .dealioo-billing-invoice-dot {
+    margin: 0 0.35rem;
     color: #94a3b8;
   }
 
-  .dealioo-billing-table td {
-    padding: 0.85rem 0.6rem;
-    border-top: 1px solid #eef2f8;
-    vertical-align: middle;
-    font-size: 0.875rem;
-    color: #0f172a;
+  .dealioo-billing-invoice-amount-cell {
+    white-space: nowrap;
   }
 
-  .dealioo-billing-table td:last-child,
-  .dealioo-billing-table th:last-child {
-    text-align: right;
+  .dealioo-billing-invoice-amount {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #07111f;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dealioo-billing-invoice-status-cell {
+    white-space: nowrap;
+  }
+
+  .dealioo-billing-invoice-actions-cell {
+    width: 1%;
+    white-space: nowrap;
   }
 
   .dealioo-billing-actions {
-    display: flex;
-    justify-content: flex-end;
+    display: inline-flex;
+    flex-wrap: nowrap;
     gap: 0.45rem;
   }
 
