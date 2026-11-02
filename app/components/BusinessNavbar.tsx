@@ -24,7 +24,6 @@ const BusinessNotifications = dynamic(
 const ORG_DASHBOARD_HREF = "/dashboard";
 const PROFILE_HREF = "/dashboard/profile";
 
-const BUSINESS_DASHBOARD_HOME = /^\/business\/\d+\/dashboard\/?$/;
 const BUSINESS_AUTOMATIONS_LIST = /^\/business\/(\d+)\/dashboard\/automations\/?$/;
 const BUSINESS_AUTOMATION_DETAIL =
   /^\/business\/(\d+)\/dashboard\/automations\/\d+/;
@@ -47,11 +46,6 @@ export default function BusinessNavbar() {
   const normalizedPath = useMemo(
     () => normalizeBusinessPath(pathname ?? ""),
     [pathname],
-  );
-
-  const showSwitchBusiness = useMemo(
-    () => BUSINESS_DASHBOARD_HOME.test(normalizedPath),
-    [normalizedPath],
   );
 
   const automationBackHref = useMemo(() => {
@@ -141,16 +135,14 @@ export default function BusinessNavbar() {
             </button>
           )}
 
-          {showSwitchBusiness ? (
-            <Link
-              href={switchBusinessHref}
-              className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.78rem] font-semibold text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 sm:px-3 sm:text-[0.8125rem]"
-              aria-label="Switch business — back to all businesses"
-            >
-              <ArrowLeft className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-              <span className="truncate">Switch business</span>
-            </Link>
-          ) : null}
+          <Link
+            href={switchBusinessHref}
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-[#e8edf5] bg-white px-2.5 py-1.5 text-[0.78rem] font-semibold text-[#07111f] shadow-[0_4px_12px_rgba(15,23,42,0.04)] outline-none transition hover:border-[#1877f2]/30 hover:bg-[#e8f2ff] hover:text-[#1877f2] focus-visible:ring-2 focus-visible:ring-[#1877f2]/25 sm:px-3 sm:text-[0.8125rem]"
+            aria-label="Switch business — back to all businesses"
+          >
+            <ArrowLeft className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            <span className="truncate">Switch business</span>
+          </Link>
         </div>
 
         <div

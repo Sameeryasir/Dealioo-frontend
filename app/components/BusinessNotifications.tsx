@@ -603,7 +603,7 @@ export default function BusinessNotifications() {
                     <button
                       key={row.id}
                       type="button"
-                      className={`${styles.notifyItem} w-full cursor-pointer text-left transition hover:border-[#c7d7f5] hover:bg-[#f8fbff]`}
+                      className={`${styles.notifyItem} w-full cursor-pointer text-left`}
                       onClick={() => openSection(row)}
                     >
                       <div className={`${styles.notifyIcon} ${row.iconClass}`}>
