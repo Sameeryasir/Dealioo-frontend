@@ -14188,6 +14188,55 @@ body:has(.rd-shell--app) {
   color: var(--ad-spend-accent);
 }
 
+.funnel-overview-ad-spend-card--disconnected {
+  min-height: 11.5rem;
+}
+
+.funnel-overview-ad-spend-card__month--muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.funnel-overview-ad-spend-card__disconnected {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 1.15rem 1.25rem;
+  min-width: 0;
+}
+
+.funnel-overview-ad-spend-card__disconnected-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 9999px;
+  background: var(--ad-spend-accent-soft);
+  color: var(--ad-spend-accent);
+}
+
+.funnel-overview-ad-spend-card__disconnected-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.funnel-overview-ad-spend-card__disconnected-hint {
+  margin: 0;
+  max-width: 18rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #64748b;
+}
+
 .funnel-overview-ad-spend-card__month {
   display: inline-flex;
   align-items: center;

@@ -45,6 +45,7 @@ import { useCountUp } from "@/app/hooks/use-count-up";
 import { getRestaurantActivityMonthly } from "@/app/services/activity/get-business-activity";
 import { getBusinessMetaSpend } from "@/app/services/facebook/get-business-meta-spend";
 import { getBusinessGoogleSpend } from "@/app/services/google-ads/get-business-google-spend";
+import { useIntegrationsConnectionStatus } from "@/app/hooks/use-integrations-connection-status";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
@@ -399,12 +400,15 @@ export function BusinessActivityOverviewPanel({
     isPositiveInt(businessId) &&
     hasAuthSession();
 
+  const { statusReady: integrationsStatusReady, metaConnected, googleConnected } =
+    useIntegrationsConnectionStatus(businessId, adsSpendEnabled);
+
   const metaSpendQuery = useQuery({
     queryKey:
       businessId != null
         ? adsStatsQueryKeys.businessMetaSpend(businessId, adsInsightsPeriod)
         : adsStatsQueryKeys.metaDisabled(),
-    enabled: adsSpendEnabled,
+    enabled: adsSpendEnabled && integrationsStatusReady && metaConnected,
     staleTime: 60_000,
     queryFn: () => getBusinessMetaSpend(businessId!, adsInsightsPeriod),
   });
@@ -414,7 +418,7 @@ export function BusinessActivityOverviewPanel({
       businessId != null
         ? adsStatsQueryKeys.businessGoogleSpend(businessId, adsInsightsPeriod)
         : adsStatsQueryKeys.googleDisabled(),
-    enabled: adsSpendEnabled,
+    enabled: adsSpendEnabled && integrationsStatusReady && googleConnected,
     staleTime: 60_000,
     queryFn: () => getBusinessGoogleSpend(businessId!, adsInsightsPeriod),
   });
@@ -437,12 +441,16 @@ export function BusinessActivityOverviewPanel({
     "usd";
   const metaSpendLoading =
     adsSpendEnabled &&
-    metaSpendQuery.isPending &&
-    metaSpendQuery.data == null;
+    (!integrationsStatusReady ||
+      (metaConnected &&
+        metaSpendQuery.isPending &&
+        metaSpendQuery.data == null));
   const googleSpendLoading =
     adsSpendEnabled &&
-    googleSpendQuery.isPending &&
-    googleSpendQuery.data == null;
+    (!integrationsStatusReady ||
+      (googleConnected &&
+        googleSpendQuery.isPending &&
+        googleSpendQuery.data == null));
 
   const periodLabel =
     calendarMode === "day"
@@ -829,6 +837,8 @@ export function BusinessActivityOverviewPanel({
                 currency={adsSpendCurrency}
                 metaLoading={metaSpendLoading}
                 googleLoading={googleSpendLoading}
+                metaConnected={metaConnected}
+                googleConnected={googleConnected}
                 meta={{
                   spendCents: metaAdsSpendCents,
                   linkedCount:

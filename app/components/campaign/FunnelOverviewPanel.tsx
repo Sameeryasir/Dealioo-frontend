@@ -18,6 +18,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   AdSpendCard,
   AdSpendCardSkeleton,
+  AdSpendDisconnectedCard,
 } from "@/app/components/ads/AdSpendCards";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { OverviewPeriodFilter } from "@/app/components/campaign/overview/OverviewPeriodFilter";
@@ -65,6 +66,7 @@ import {
   type FunnelStatsMonthlyPoint,
 } from "@/app/services/funnel/get-funnel-stats-monthly";
 import { getDealioCampaignGoogleSpend } from "@/app/services/google-ads/get-dealio-campaign-google-spend";
+import { useIntegrationsConnectionStatus } from "@/app/hooks/use-integrations-connection-status";
 import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
@@ -677,6 +679,9 @@ export function FunnelOverviewPanel({
     isPositiveInt(campaignId) &&
     hasAuthSession();
 
+  const { statusReady: integrationsStatusReady, metaConnected, googleConnected } =
+    useIntegrationsConnectionStatus(businessId, adsSpendEnabled);
+
   const metaSpendQuery = useQuery({
     queryKey:
       businessId != null && campaignId != null
@@ -686,7 +691,7 @@ export function FunnelOverviewPanel({
             adsInsightsPeriod,
           )
         : adsStatsQueryKeys.metaDisabled(),
-    enabled: adsSpendEnabled,
+    enabled: adsSpendEnabled && integrationsStatusReady && metaConnected,
     staleTime: 60_000,
     queryFn: () =>
       getDealioCampaignMetaSpend(
@@ -705,7 +710,7 @@ export function FunnelOverviewPanel({
             adsInsightsPeriod,
           )
         : adsStatsQueryKeys.googleDisabled(),
-    enabled: adsSpendEnabled,
+    enabled: adsSpendEnabled && integrationsStatusReady && googleConnected,
     staleTime: 60_000,
     queryFn: () =>
       getDealioCampaignGoogleSpend(
@@ -739,12 +744,16 @@ export function FunnelOverviewPanel({
     null;
   const metaSpendLoading =
     adsSpendEnabled &&
-    metaSpendQuery.isPending &&
-    metaSpendQuery.data == null;
+    (!integrationsStatusReady ||
+      (metaConnected &&
+        metaSpendQuery.isPending &&
+        metaSpendQuery.data == null));
   const googleSpendLoading =
     adsSpendEnabled &&
-    googleSpendQuery.isPending &&
-    googleSpendQuery.data == null;
+    (!integrationsStatusReady ||
+      (googleConnected &&
+        googleSpendQuery.isPending &&
+        googleSpendQuery.data == null));
 
   const kpis = kpisQuery.data ?? null;
   const charts = chartsQuery.data ?? null;
@@ -1129,6 +1138,11 @@ export function FunnelOverviewPanel({
                   <motion.div className="h-full" variants={funnelPanelItem}>
                     {metaSpendLoading ? (
                       <AdSpendCardSkeleton accent="meta" />
+                    ) : !metaConnected ? (
+                      <AdSpendDisconnectedCard
+                        provider="Meta Ads"
+                        accent="meta"
+                      />
                     ) : (
                       <AdSpendCard
                         provider="Meta Ads"
@@ -1147,6 +1161,11 @@ export function FunnelOverviewPanel({
                   <motion.div className="h-full" variants={funnelPanelItem}>
                     {googleSpendLoading ? (
                       <AdSpendCardSkeleton accent="google" />
+                    ) : !googleConnected ? (
+                      <AdSpendDisconnectedCard
+                        provider="Google Ads"
+                        accent="google"
+                      />
                     ) : (
                       <AdSpendCard
                         provider="Google Ads"

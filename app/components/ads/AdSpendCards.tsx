@@ -3,7 +3,13 @@
 import { Skeleton } from "@/app/components/skeleton";
 import { OVERVIEW_AD_SOURCE_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { formatCents } from "@/app/lib/money";
-import { Eye, MousePointerClick, Percent, Radar } from "lucide-react";
+import {
+  Eye,
+  Link2Off,
+  MousePointerClick,
+  Percent,
+  Radar,
+} from "lucide-react";
 
 function AdSpendSparkline({ accent }: { accent: "meta" | "google" }) {
   const stroke =
@@ -181,12 +187,98 @@ export function AdSpendCard({
   );
 }
 
+export function AdSpendDisconnectedCard({
+  provider,
+  accent,
+}: {
+  provider: "Meta Ads" | "Google Ads";
+  accent: "meta" | "google";
+}) {
+  return (
+    <article
+      className={`funnel-overview-ad-spend-card funnel-overview-ad-spend-card--${accent} funnel-overview-ad-spend-card--disconnected`}
+      aria-label={`${provider} is not connected`}
+    >
+      <div className="funnel-overview-ad-spend-card__header">
+        <span className="funnel-overview-ad-spend-card__title">
+          {provider}
+        </span>
+        <span className="funnel-overview-ad-spend-card__month funnel-overview-ad-spend-card__month--muted">
+          Not connected
+        </span>
+      </div>
+      <div className="funnel-overview-ad-spend-card__disconnected">
+        <span
+          className="funnel-overview-ad-spend-card__disconnected-icon"
+          aria-hidden
+        >
+          <Link2Off className="size-5" strokeWidth={2.25} />
+        </span>
+        <p className="funnel-overview-ad-spend-card__disconnected-title">
+          {provider} is not connected
+        </p>
+        <p className="funnel-overview-ad-spend-card__disconnected-hint">
+          Connect it in Settings → Integrations to see spend here.
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function renderAdSpendSlot({
+  accent,
+  provider,
+  loading,
+  connected,
+  currency,
+  monthLabel,
+  metrics,
+}: {
+  accent: "meta" | "google";
+  provider: "Meta Ads" | "Google Ads";
+  loading: boolean;
+  connected: boolean;
+  currency: string;
+  monthLabel: string;
+  metrics: {
+    spendCents: number;
+    linkedCount: number;
+    impressions: number;
+    reach: number;
+    clicks: number;
+    ctr: number | null;
+  };
+}) {
+  if (loading) {
+    return <AdSpendCardSkeleton accent={accent} />;
+  }
+  if (!connected) {
+    return <AdSpendDisconnectedCard provider={provider} accent={accent} />;
+  }
+  return (
+    <AdSpendCard
+      provider={provider}
+      spendCents={metrics.spendCents}
+      currency={currency}
+      monthLabel={monthLabel}
+      linkedCount={metrics.linkedCount}
+      accent={accent}
+      impressions={metrics.impressions}
+      reach={metrics.reach}
+      clicks={metrics.clicks}
+      ctr={metrics.ctr}
+    />
+  );
+}
+
 export function AdSpendSection({
   monthLabel,
   subtitle,
   currency,
   metaLoading,
   googleLoading,
+  metaConnected = true,
+  googleConnected = true,
   meta,
   google,
 }: {
@@ -195,6 +287,8 @@ export function AdSpendSection({
   currency: string;
   metaLoading: boolean;
   googleLoading: boolean;
+  metaConnected?: boolean;
+  googleConnected?: boolean;
   meta: {
     spendCents: number;
     linkedCount: number;
@@ -223,40 +317,26 @@ export function AdSpendSection({
       </div>
       <div className="funnel-overview-ad-spend__grid">
         <div className="h-full">
-          {metaLoading ? (
-            <AdSpendCardSkeleton accent="meta" />
-          ) : (
-            <AdSpendCard
-              provider="Meta Ads"
-              spendCents={meta.spendCents}
-              currency={currency}
-              monthLabel={monthLabel}
-              linkedCount={meta.linkedCount}
-              accent="meta"
-              impressions={meta.impressions}
-              reach={meta.reach}
-              clicks={meta.clicks}
-              ctr={meta.ctr}
-            />
-          )}
+          {renderAdSpendSlot({
+            accent: "meta",
+            provider: "Meta Ads",
+            loading: metaLoading,
+            connected: metaConnected,
+            currency,
+            monthLabel,
+            metrics: meta,
+          })}
         </div>
         <div className="h-full">
-          {googleLoading ? (
-            <AdSpendCardSkeleton accent="google" />
-          ) : (
-            <AdSpendCard
-              provider="Google Ads"
-              spendCents={google.spendCents}
-              currency={currency}
-              monthLabel={monthLabel}
-              linkedCount={google.linkedCount}
-              accent="google"
-              impressions={google.impressions}
-              reach={google.reach}
-              clicks={google.clicks}
-              ctr={google.ctr}
-            />
-          )}
+          {renderAdSpendSlot({
+            accent: "google",
+            provider: "Google Ads",
+            loading: googleLoading,
+            connected: googleConnected,
+            currency,
+            monthLabel,
+            metrics: google,
+          })}
         </div>
       </div>
     </section>
