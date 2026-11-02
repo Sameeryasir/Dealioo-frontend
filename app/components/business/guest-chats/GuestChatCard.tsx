@@ -64,22 +64,24 @@ export const GuestChatCard = memo(function GuestChatCard({
           <div className="flex items-start justify-between gap-2">
             <p
               className={`truncate text-base tracking-tight text-zinc-900 ${
-                showUnread ? "font-extrabold" : "font-bold"
+                showUnread ? "font-semibold" : "font-medium"
               }`}
             >
               {name}
             </p>
             <div className="flex shrink-0 items-center gap-1.5">
               <time
-                className={`text-[13px] font-medium ${
-                  showUnread ? "text-[#1877f2]" : "text-zinc-400"
+                className={`text-[13px] ${
+                  showUnread
+                    ? "font-medium text-[#1877f2]"
+                    : "font-normal text-zinc-400"
                 }`}
               >
                 {formatDateTimeShort(row.lastMessageAt)}
               </time>
               {showUnread ? (
                 <span
-                  className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#1877f2] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
+                  className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#1877f2] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white"
                   aria-label={`${unreadLabel} unread messages`}
                 >
                   {unreadLabel}
@@ -89,8 +91,8 @@ export const GuestChatCard = memo(function GuestChatCard({
           </div>
 
           <p
-            className={`mt-1 line-clamp-1 text-sm leading-snug ${
-              showUnread ? "font-semibold text-zinc-800" : "text-zinc-600"
+            className={`mt-1 line-clamp-1 text-sm font-normal leading-snug ${
+              showUnread ? "text-zinc-700" : "text-zinc-500"
             }`}
           >
             {preview}

@@ -38,6 +38,11 @@ import {
   syncCustomerConversationMessages,
 } from "@/app/services/chat/get-business-conversation";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
+import {
+  getMockGuestChatMessages,
+  isMockGuestChatCustomerId,
+  MOCK_GUEST_CHAT_CUSTOMERS,
+} from "@/app/components/business/guest-chats/guest-chats-mock-data";
 
 function yieldToNextFrame(): Promise<void> {
   return new Promise((resolve) => {
@@ -360,6 +365,28 @@ export function useCustomerConversationQuery(
     fetchAndStoreRef.current = fetchAndStoreConversation;
     syncConversationRef.current = syncConversationFromApi;
   }, [fetchAndStoreConversation, syncConversationFromApi]);
+
+  useEffect(() => {
+    if (!isMockGuestChatCustomerId(customerId)) {
+      return;
+    }
+
+    const mockGuest = MOCK_GUEST_CHAT_CUSTOMERS.find(
+      (row) => row.customerId === customerId,
+    );
+    setConversation({
+      customerId,
+      customerName: mockGuest?.customerName ?? null,
+      customerEmail: mockGuest?.customerEmail ?? null,
+      messages: getMockGuestChatMessages(customerId),
+    });
+    setLoading(false);
+    setAwaitingCache(false);
+    setSyncing(false);
+    setHasOlderMessages(false);
+    setError(null);
+    messagesLoadedRef.current = true;
+  }, [customerId]);
 
   useEffect(() => {
     if (businessId < 1 || customerId < 1 || conversationId < 1) {

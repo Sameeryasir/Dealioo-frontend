@@ -16404,6 +16404,7 @@ body:has(.rd-shell--app) {
 .table-inner-scroll::-webkit-scrollbar {
   -webkit-appearance: none;
   height: 6px;
+  width: 6px;
 }
 
 .table-h-scroll::-webkit-scrollbar-track,
@@ -16599,6 +16600,7 @@ body:has(.rd-shell--app) {
 .orders-table-shell > .table-inner-scroll {
   flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .rd-premium-panel__body--center {

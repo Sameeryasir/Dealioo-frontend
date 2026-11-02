@@ -42,7 +42,7 @@ export function GuestChatConversationHeader({
           animated
         />
 
-        <h2 className="truncate text-base font-semibold tracking-tight text-[#07111f]">{name}</h2>
+        <h2 className="truncate text-base font-medium tracking-tight text-[#07111f]">{name}</h2>
       </div>
     </motion.div>
   );

@@ -8,12 +8,12 @@ export const adsCampaignsTable = {
   scroll: "table-h-scroll",
   table: "min-w-[820px] w-full border-collapse text-left text-sm",
 
-  theadRow: "border-b border-[#e8edf5] bg-[#f8fafc]/60",
+  theadRow: "border-b border-[#e8edf5]",
   thSelect:
-    "whitespace-nowrap px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 first:pl-5",
-  th: "whitespace-nowrap px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800",
+    "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 first:pl-5",
+  th: "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800",
   thActions:
-    "sticky right-0 z-[1] whitespace-nowrap bg-[#f8fafc]/60 px-4 py-3 pl-2 text-right align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 last:pr-5",
+    "sticky top-0 right-0 z-[2] whitespace-nowrap bg-[#f8fafc] px-4 py-3 pl-2 text-right align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 last:pr-5",
 
   row: "group cursor-pointer align-middle text-[#07111f] transition-colors duration-150 hover:bg-[#e8f2ff]/70",
   tdSelect: "border-b border-[#f1f5f9] px-4 py-3 text-left align-middle first:pl-5",

@@ -38,9 +38,9 @@ export function BusinessProfileHero({
   onEditLogo,
 }: BusinessProfileHeroProps) {
   return (
-    <section className={cardClass}>
-      <div className="border-b border-[#eef2f7] bg-white px-5 py-5 sm:px-6 sm:py-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className={`${cardClass} mt-2`}>
+      <div className="border-b border-[#eef2f7] bg-white px-5 py-4 sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div
               id="business-settings-logo"

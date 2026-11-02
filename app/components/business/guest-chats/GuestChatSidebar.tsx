@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type UIEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { LayoutGroup, motion } from "framer-motion";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
 import { GuestChatCard } from "./GuestChatCard";
@@ -9,6 +9,10 @@ import {
   GuestChatNoSearchResultsEmptyState,
   GuestChatNoThreadsEmptyState,
 } from "./GuestChatEmptyStates";
+import {
+  GuestChatFilterTabs,
+  type GuestChatListFilter,
+} from "./GuestChatFilterTabs";
 import { guestChatEase } from "./guest-chats-motion";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
 import { GuestChatSearchBar } from "./GuestChatSearchBar";
@@ -50,6 +54,24 @@ export function GuestChatSidebar({
   onLoadMore: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [listFilter, setListFilter] = useState<GuestChatListFilter>("all");
+
+  const unreadThreadCount = useMemo(
+    () =>
+      filteredRows.reduce(
+        (count, row) =>
+          count + ((unreadByCustomerId[row.customerId] ?? 0) > 0 ? 1 : 0),
+        0,
+      ),
+    [filteredRows, unreadByCustomerId],
+  );
+
+  const visibleRows = useMemo(() => {
+    if (listFilter !== "unread") return filteredRows;
+    return filteredRows.filter(
+      (row) => (unreadByCustomerId[row.customerId] ?? 0) > 0,
+    );
+  }, [filteredRows, listFilter, unreadByCustomerId]);
 
   useEffect(() => {
     if (!hasMore || loading || loadingMore || rows.length === 0) {
@@ -89,9 +111,15 @@ export function GuestChatSidebar({
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[#e8edf5] bg-white lg:w-[380px] lg:shrink-0">
       <div className="relative shrink-0 overflow-hidden border-b border-[#e8edf5] bg-white px-5 pb-3 pt-3">
         <div className="relative mb-3">
-          <h1 className="text-2xl font-bold tracking-tight text-[#07111f]">Guest Chats</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#07111f]">Guest Chats</h1>
         </div>
         <GuestChatSearchBar value={search} onChange={onSearchChange} />
+        <GuestChatFilterTabs
+          value={listFilter}
+          onChange={setListFilter}
+          allCount={filteredRows.length}
+          unreadCount={unreadThreadCount}
+        />
       </div>
 
       <GuestChatScrollArea
@@ -103,9 +131,13 @@ export function GuestChatSidebar({
           <GuestChatSidebarSkeleton />
         ) : error && rows.length === 0 ? (
           <GuestChatErrorEmptyState title="Could not load guests" description={error} />
-        ) : filteredRows.length === 0 ? (
+        ) : visibleRows.length === 0 ? (
           rows.length === 0 ? (
             <GuestChatNoThreadsEmptyState />
+          ) : listFilter === "unread" ? (
+            <p className="px-5 py-8 text-center text-sm text-zinc-500">
+              No unread conversations
+            </p>
           ) : hasMore || loadingMore ? (
             <p className="px-5 py-8 text-center text-sm text-zinc-500">
               Searching loaded guests…
@@ -116,7 +148,7 @@ export function GuestChatSidebar({
         ) : (
           <LayoutGroup id="guest-chat-sidebar">
             <div className="space-y-2 p-4">
-              {filteredRows.map((row) => (
+              {visibleRows.map((row) => (
                 <motion.div
                   key={row.customerId}
                   layout="position"

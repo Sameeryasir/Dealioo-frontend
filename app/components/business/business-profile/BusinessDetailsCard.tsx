@@ -164,15 +164,6 @@ export function BusinessDetailsCard({
           />
         </DetailPair>
 
-        <DetailPair fullWidth>
-          <BusinessDetailRow
-            label="City"
-            htmlFor="business-settings-city"
-            value={city}
-            wrap
-          />
-        </DetailPair>
-
         <DetailPair>
           <BusinessDetailRow
             label="Country"
@@ -183,6 +174,15 @@ export function BusinessDetailsCard({
             label="Postal code"
             htmlFor="business-settings-address"
             value={postalCode}
+          />
+        </DetailPair>
+
+        <DetailPair fullWidth>
+          <BusinessDetailRow
+            label="City"
+            htmlFor="business-settings-city"
+            value={city}
+            wrap
           />
         </DetailPair>
 

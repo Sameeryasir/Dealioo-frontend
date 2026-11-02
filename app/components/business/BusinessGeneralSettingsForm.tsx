@@ -271,7 +271,7 @@ export function BusinessGeneralSettingsForm({
   );
 
   return (
-    <div className="business-profile-fit flex min-h-full w-full min-w-0 flex-col">
+    <div className="business-profile-fit flex min-h-full w-full min-w-0 flex-1 flex-col">
       <BusinessProfileEditModal
         open={editOpen}
         businessId={businessId}
@@ -289,27 +289,25 @@ export function BusinessGeneralSettingsForm({
         </header>
       ) : null}
 
-      <div
-        className={`flex min-w-0 flex-col gap-5 pb-5 ${
-          isProfileView ? "" : "min-h-0 flex-1"
-        }`}
-      >
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 pb-5">
         {isProfileView ? (
           <>
-            <BusinessProfileHero
-              displayName={displayName}
-              descriptionText={descriptionText}
-              logoSrc={logoSrc}
-              isBusinessActive={isBusinessActive}
-              businessTypeLabel={businessTypeLabel}
-              locationBadge={locationBadge}
-              branchLabel={branchLabel}
-              onEdit={openEditModal}
-              onEditLogo={openEditModal}
-            />
+            <div className="shrink-0">
+              <BusinessProfileHero
+                displayName={displayName}
+                descriptionText={descriptionText}
+                logoSrc={logoSrc}
+                isBusinessActive={isBusinessActive}
+                businessTypeLabel={businessTypeLabel}
+                locationBadge={locationBadge}
+                branchLabel={branchLabel}
+                onEdit={openEditModal}
+                onEditLogo={openEditModal}
+              />
+            </div>
 
-            <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,20rem)]">
-              <div className="min-h-0 h-full min-w-0">
+            <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,20rem)]">
+              <div className="flex min-h-0 h-full min-w-0 flex-col">
                 <BusinessDetailsCard
                   detailsRef={detailsRef}
                   displayName={displayOrDash(form.name)}
@@ -330,7 +328,7 @@ export function BusinessGeneralSettingsForm({
                 />
               </div>
 
-              <div className="min-h-0 h-full min-w-0">
+              <div className="flex min-h-0 h-full min-w-0 flex-col">
                 <BusinessProfileSidePanel
                   businessId={businessId}
                   totalCampaigns={formatCount(totalCampaigns)}

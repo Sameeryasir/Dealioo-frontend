@@ -30,52 +30,64 @@ function automationSourceLabel(message: ConversationMessage): string | null {
 export type { GuestChatBubbleStackPosition };
 
 function BubbleTail({
-  position,
+  side,
   className,
 }: {
-  position: "bottom-right" | "bottom-left";
+  side: "left" | "right";
   className: string;
 }) {
-  if (position === "bottom-right") {
+  if (side === "left") {
     return (
-      <span
+      <svg
         aria-hidden
-        className={`pointer-events-none absolute bottom-0 -right-[6px] h-[13px] w-[13px] rounded-bl-[13px] ${className}`}
-      />
+        viewBox="0 0 8 13"
+        className={`pointer-events-none absolute bottom-0 -left-[7px] h-[13px] w-2 drop-shadow-[0_1px_0_rgba(15,23,42,0.06)] ${className}`}
+      >
+        <path
+          d="M8 0v10.5C6.2 10.5 2.8 11.4 0 13 1.4 8.8 3.5 3.6 8 0Z"
+          fill="currentColor"
+        />
+      </svg>
     );
   }
 
   return (
-    <span
+    <svg
       aria-hidden
-      className={`pointer-events-none absolute bottom-0 -left-[6px] h-[13px] w-[13px] rounded-br-[13px] ${className}`}
-    />
+      viewBox="0 0 8 13"
+      className={`pointer-events-none absolute bottom-0 -right-[7px] h-[13px] w-2 drop-shadow-[0_1px_0_rgba(15,23,42,0.06)] ${className}`}
+    >
+      <path
+        d="M0 0v10.5C1.8 10.5 5.2 11.4 8 13 6.6 8.8 4.5 3.6 0 0Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 
 function guestBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
   switch (stackPosition) {
     case "single":
-      return "rounded-[18px] rounded-bl-[4px]";
+      return "rounded-2xl rounded-bl-md";
     case "first":
-      return "rounded-[18px] rounded-bl-[6px]";
+      return "rounded-2xl rounded-bl-lg";
     case "middle":
-      return "rounded-[18px] rounded-tl-[6px] rounded-bl-[6px]";
+      return "rounded-2xl rounded-tl-lg rounded-bl-lg";
     case "last":
-      return "rounded-[18px] rounded-tl-[6px] rounded-bl-[4px]";
+      return "rounded-2xl rounded-tl-lg rounded-bl-md";
   }
 }
 
 function outboundBubbleRadius(stackPosition: GuestChatBubbleStackPosition): string {
   switch (stackPosition) {
     case "single":
-      return "rounded-[18px] rounded-br-[4px]";
+      return "rounded-2xl rounded-br-md";
     case "first":
-      return "rounded-[18px] rounded-br-[6px]";
+      return "rounded-2xl rounded-br-lg";
     case "middle":
-      return "rounded-[18px] rounded-tr-[6px] rounded-br-[6px]";
+      return "rounded-2xl rounded-tr-lg rounded-br-lg";
     case "last":
-      return "rounded-[18px] rounded-tr-[6px] rounded-br-[4px]";
+      return "rounded-2xl rounded-tr-lg rounded-br-md";
   }
 }
 
@@ -98,47 +110,43 @@ export function GuestChatMessageBubble({
     !isError && !isGuestMessage ? automationSourceLabel(message) : null;
   const isStackEnd = stackPosition === "single" || stackPosition === "last";
   const rowSpacing =
-    stackPosition === "first" || stackPosition === "middle" ? "mb-2" : "mb-4";
-
-  const guestBubbleBg =
-    "bg-[#1877f2] ring-1 ring-white/20";
-  const guestTailBg = "bg-[#0f5ed7]";
+    stackPosition === "first" || stackPosition === "middle" ? "mb-1.5" : "mb-3";
 
   const rowClass = isGuestMessage
     ? `flex w-full justify-start px-3 sm:px-4 ${rowSpacing}`
     : `flex w-full justify-end px-3 sm:px-4 ${rowSpacing}`;
 
-  const bubbleBg = isError
-    ? "bg-red-50"
-    : isGuestMessage
-      ? guestBubbleBg
-      : "bg-white";
-
   let bubbleClass =
-    "relative max-w-[min(28rem,82%)] overflow-hidden text-left px-3.5 py-2 shadow-sm sm:px-4 sm:py-2.5";
+    "relative max-w-[min(28rem,82%)] overflow-visible text-left px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.08)] sm:px-3.5 sm:py-2.5";
 
   if (isError) {
-    bubbleClass += " text-red-800 rounded-[18px]";
+    bubbleClass += " rounded-2xl bg-red-50 text-red-800 ring-1 ring-red-100";
   } else if (isGuestMessage) {
-    bubbleClass += ` text-white shadow-[0_8px_18px_rgba(24,119,242,0.32)] ${bubbleBg} ${guestBubbleRadius(stackPosition)}`;
+    bubbleClass += ` bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] ${guestBubbleRadius(stackPosition)}`;
   } else {
-    bubbleClass += ` text-zinc-800 bg-white ring-1 ring-[#e8edf5] ${outboundBubbleRadius(stackPosition)}`;
+    bubbleClass += ` bg-[#eef1f5] text-[#111827] ring-1 ring-black/[0.03] ${outboundBubbleRadius(stackPosition)}`;
   }
 
-  const textClass =
-    "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[15px] leading-[1.35] font-normal tracking-[-0.01em]";
+  const textClass = isGuestMessage
+    ? "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[15px] font-normal leading-[1.4] tracking-[-0.01em] text-white"
+    : "break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-[15px] font-normal leading-[1.4] tracking-[-0.01em] text-[#111827]";
+
   const timeClass = isGuestMessage
     ? "shrink-0 text-[11px] font-normal text-blue-100"
-    : "shrink-0 text-[11px] font-normal text-zinc-400/90";
+    : "shrink-0 text-[11px] font-normal text-zinc-400";
 
-  const tailPosition = isGuestMessage ? "bottom-left" : "bottom-right";
-  const tailClass = isGuestMessage ? guestTailBg : bubbleBg;
+  const linkClass = isGuestMessage
+    ? "font-medium text-blue-50 underline decoration-blue-200/80 underline-offset-2"
+    : "font-medium text-[#1877f2] underline decoration-[#1877f2]/30 underline-offset-2 transition hover:text-[#166fe0]";
 
   return (
     <div className={rowClass}>
       <article className={bubbleClass}>
         {isStackEnd && !isError ? (
-          <BubbleTail position={tailPosition} className={tailClass} />
+          <BubbleTail
+            side={isGuestMessage ? "left" : "right"}
+            className={isGuestMessage ? "text-[#1877f2]" : "text-[#eef1f5]"}
+          />
         ) : null}
 
         <div className="relative z-[1] min-w-0">
@@ -151,11 +159,7 @@ export function GuestChatMessageBubble({
             <LinkifiedText
               text={body}
               className={textClass}
-              linkClassName={
-                isGuestMessage
-                  ? "font-medium text-blue-50 underline decoration-blue-200/80 underline-offset-2"
-                  : "font-medium text-blue-600 underline decoration-blue-300/70 underline-offset-2 transition hover:text-blue-700"
-              }
+              linkClassName={linkClass}
             />
           ) : null}
           {passCta.ctaUrl ? (
@@ -163,14 +167,12 @@ export function GuestChatMessageBubble({
               href={passCta.ctaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`mt-2.5 inline-flex items-center justify-center rounded-lg bg-[#1877f2] px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-[#166fe5] ${body ? "" : "mt-0"}`}
+              className={`mt-2.5 inline-flex items-center justify-center rounded-lg bg-[#1877f2] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#166fe5] ${body ? "" : "mt-0"}`}
             >
               {passCta.ctaLabel || "View my pass"}
             </a>
           ) : null}
-          <div
-            className={`mt-1 flex ${isGuestMessage ? "justify-start" : "justify-end"}`}
-          >
+          <div className="mt-1.5 flex items-center justify-end">
             <time className={timeClass}>{formatTimeShort(message.sentAt)}</time>
           </div>
         </div>

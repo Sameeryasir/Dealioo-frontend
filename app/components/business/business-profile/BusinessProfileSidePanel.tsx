@@ -78,7 +78,7 @@ export function BusinessProfileSidePanel({
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-5 py-4 shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-5 py-4 shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
         <header className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#dcfce7] text-[#09b66f]">

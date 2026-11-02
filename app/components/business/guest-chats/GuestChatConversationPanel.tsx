@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatCustomer } from "@/app/services/chat/get-business-chat-customers";
+import { useBusinessTwilioPhoneNumbersQuery } from "@/app/hooks/use-business-twilio-phone-numbers-query";
 import { useCustomerConversationQuery } from "@/app/hooks/use-customer-conversation-query";
 import { useSendCustomerMessage } from "@/app/hooks/use-send-customer-message";
 import { GuestChatComposer } from "./GuestChatComposer";
@@ -14,6 +15,11 @@ import {
 import { getMessageStackPositions, groupMessagesByDay } from "./guest-chats-utils";
 import { GuestChatMessageBubble } from "./GuestChatMessageBubble";
 import { GuestChatScrollArea } from "./GuestChatScrollArea";
+import { GuestChatTwilioRequiredDialog } from "./GuestChatTwilioRequiredDialog";
+import {
+  markTwilioPromptDismissed,
+  wasTwilioPromptDismissed,
+} from "./guest-chat-twilio-prompt";
 import { peekStoredChatMessagesLatestPage } from "@/app/services/chat/chat-indexed-db";
 import {
   GuestChatMessagesSkeleton,
@@ -28,6 +34,49 @@ export function GuestChatConversationPanel({
   row: ChatCustomer;
   onBack?: () => void;
 }) {
+  const twilioQuery = useBusinessTwilioPhoneNumbersQuery(businessId, {
+    enabled: businessId > 0,
+  });
+  const twilioStatusLoading = twilioQuery.isPending || twilioQuery.isLoading;
+  const twilioConnected = useMemo(() => {
+    if (twilioStatusLoading) {
+      return false;
+    }
+    return (
+      Boolean(twilioQuery.selectedPhoneNumber?.trim()) ||
+      Boolean(twilioQuery.selectedPhoneSid?.trim())
+    );
+  }, [
+    twilioStatusLoading,
+    twilioQuery.selectedPhoneNumber,
+    twilioQuery.selectedPhoneSid,
+  ]);
+  const [twilioDialogOpen, setTwilioDialogOpen] = useState(false);
+  const twilioAutoPromptedRef = useRef(false);
+
+  useEffect(() => {
+    twilioAutoPromptedRef.current = false;
+    setTwilioDialogOpen(false);
+  }, [businessId]);
+
+  useEffect(() => {
+    if (
+      twilioStatusLoading ||
+      twilioConnected ||
+      twilioAutoPromptedRef.current ||
+      wasTwilioPromptDismissed(businessId)
+    ) {
+      return;
+    }
+    twilioAutoPromptedRef.current = true;
+    setTwilioDialogOpen(true);
+  }, [businessId, twilioConnected, twilioStatusLoading]);
+
+  const closeTwilioDialog = useCallback(() => {
+    markTwilioPromptDismissed(businessId);
+    setTwilioDialogOpen(false);
+  }, [businessId]);
+
   const {
     conversation,
     loading,
@@ -199,13 +248,33 @@ export function GuestChatConversationPanel({
         </GuestChatScrollArea>
 
         <GuestChatComposer
-          disabled={Boolean(error) || showMessageSkeleton}
+          disabled={
+            Boolean(error) ||
+            showMessageSkeleton ||
+            twilioStatusLoading ||
+            !twilioConnected
+          }
+          onDisabledActivate={
+            !twilioStatusLoading && !twilioConnected
+              ? () => setTwilioDialogOpen(true)
+              : null
+          }
           sending={sendMessage.isPending}
           onSend={async (body) => {
+            if (!twilioConnected) {
+              setTwilioDialogOpen(true);
+              return;
+            }
             await sendMessage.mutateAsync(body);
           }}
         />
       </div>
+
+      <GuestChatTwilioRequiredDialog
+        open={twilioDialogOpen}
+        businessId={businessId}
+        onClose={closeTwilioDialog}
+      />
     </div>
   );
 }

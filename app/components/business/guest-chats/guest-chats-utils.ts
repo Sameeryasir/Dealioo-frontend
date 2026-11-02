@@ -135,7 +135,6 @@ export function matchesSearch(row: ChatCustomer, query: string): boolean {
   return haystack.includes(needle);
 }
 
-/** Same initials colors as activity log / guest roster. */
 const GUEST_CHAT_AVATAR_TONES = [
   "bg-[#7c3aed]",
   "bg-[#16a34a]",
@@ -233,7 +232,6 @@ export function participantLabel(
   fallback: string,
 ): string {
   if (!participant) return fallback;
-  // Backend sends "business"; older cached rows may still say "restaurant".
   if (participant.type === "restaurant" || participant.type === "business") {
     return participant.name?.trim() || `Business #${participant.id}`;
   }
