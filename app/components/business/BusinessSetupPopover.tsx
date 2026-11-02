@@ -36,6 +36,7 @@ type BusinessSetupPopoverProps = {
   setup: BusinessSetup;
   children: ReactNode;
   canManageSetup?: boolean;
+  variant?: "card" | "banner";
 };
 
 const STEP_HINTS: Record<BusinessSetupStepId, string> = {
@@ -168,6 +169,7 @@ export function BusinessSetupPopover({
   setup,
   children,
   canManageSetup = true,
+  variant = "card",
 }: BusinessSetupPopoverProps) {
   const router = useRouter();
   const triggerId = useId();
@@ -393,10 +395,15 @@ export function BusinessSetupPopover({
       </div>
     ) : null;
 
+  const triggerClassName =
+    variant === "banner"
+      ? "org-biz-setup-reminder-trigger"
+      : "org-biz-card-bento-cell org-biz-card-progress-wrap org-biz-card-progress-wrap--interactive";
+
   return (
     <>
       <div
-        className="org-biz-card-bento-cell org-biz-card-progress-wrap org-biz-card-progress-wrap--interactive"
+        className={triggerClassName}
         role="button"
         tabIndex={0}
         aria-haspopup="dialog"

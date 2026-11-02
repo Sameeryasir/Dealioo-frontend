@@ -2,7 +2,6 @@
 
 import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
 import { useAuth } from "@/app/contexts/auth-context";
-import { hasAuthSession } from "@/app/lib/auth-session";
 import { fetchAuthenticatedOnboardingDestination } from "@/app/lib/onboarding-redirect";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,7 +17,7 @@ function HomeRouteFallback() {
 export function HomeRoute() {
   const router = useRouter();
   const { isAuthenticated, isAuthReady } = useAuth();
-  const [redirecting, setRedirecting] = useState(() => hasAuthSession());
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     if (!isAuthReady) return;
@@ -45,7 +44,7 @@ export function HomeRoute() {
     };
   }, [isAuthenticated, isAuthReady, router]);
 
-  if (isAuthenticated || redirecting) {
+  if (!isAuthReady || isAuthenticated || redirecting) {
     return <HomeRouteFallback />;
   }
 

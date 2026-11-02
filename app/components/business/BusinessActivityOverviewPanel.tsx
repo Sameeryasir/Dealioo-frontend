@@ -3,6 +3,7 @@
 import { AdSpendSection } from "@/app/components/ads/AdSpendCards";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { BusinessDashboardTopCampaigns } from "@/app/components/business/BusinessDashboardTopCampaigns";
+import { BusinessSetupReminder } from "@/app/components/business/BusinessSetupReminder";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import {
   buildCheckInsMonthlyData,
@@ -634,6 +635,7 @@ export function BusinessActivityOverviewPanel({
       </div>
 
       <div className="space-y-5 px-3 py-4 sm:px-4 sm:py-5">
+        <BusinessSetupReminder businessId={businessId} />
         {peakMonth ? (
           <aside
             className="flex items-center gap-3 px-0.5"
