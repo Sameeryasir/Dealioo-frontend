@@ -26,7 +26,6 @@ import {
   Loader2,
   Mail,
   Pencil,
-  Shield,
   UserRound,
 } from "lucide-react";
 import {
@@ -82,7 +81,7 @@ function ProfileDetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 border-b border-[#eef2f7] px-4 py-3 last:border-b-0 sm:px-5">
+    <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
       <p className="w-[9.75rem] shrink-0 whitespace-nowrap text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500">
         {label}
       </p>
@@ -702,43 +701,53 @@ export function OwnerProfileForm({
     onCancelEdit: handleCancelEdit,
   };
 
-  const pageEditForm = (
-    <ProfileContactSection presentation="page" {...contactSectionProps} />
-  );
-
-  const pageAccountDetails = (
+  const pageProfileDetails = (
     <div className={cardClass}>
       <div className="flex items-start gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
-          <Shield className="size-5" strokeWidth={2.25} aria-hidden />
+          <UserRound className="size-5" strokeWidth={2.25} aria-hidden />
         </span>
         <div className="min-w-0">
           <h3 className="m-0 text-base font-extrabold tracking-tight text-[#07111f]">
-            Account details
+            Profile details
           </h3>
           <p className="m-0 mt-0.5 text-sm text-slate-500">
-            Identity, access, and activity for your Dealioo account.
+            Contact info, identity, and account activity on Dealioo.
           </p>
         </div>
       </div>
-      <div className="flex flex-1 flex-col divide-y divide-[#eef2f7]">
-        <ProfileDetailRow label="Role" value={profile.role.name} />
-        <ProfileDetailRow
-          label="Sign-in method"
-          value={signInMethodLabel(profile.provider)}
-        />
-        <ProfileDetailRow
-          label="Businesses owned"
-          value={businessCountLabel}
-        />
-        <ProfileDetailRow
-          label="Member since"
-          value={formatProfileDate(profile.createdAt)}
-        />
-        <ProfileDetailRow
-          label="Last updated"
-          value={formatProfileDate(profile.updatedAt)}
-        />
+      <div className="flex flex-col">
+        <div className="grid grid-cols-1 border-b border-[#eef2f7] sm:grid-cols-2 sm:divide-x sm:divide-[#e2e8f0]">
+          <ProfileDetailRow label="Full name" value={displayValue(name)} />
+          <ProfileDetailRow label="Email" value={displayValue(email)} />
+        </div>
+        <div className="grid grid-cols-1 border-b border-[#eef2f7] sm:grid-cols-2 sm:divide-x sm:divide-[#e2e8f0]">
+          <ProfileDetailRow
+            label="Phone"
+            value={displayValue(phone, "Not set")}
+          />
+          <ProfileDetailRow label="Role" value={profile.role.name} />
+        </div>
+        <div className="grid grid-cols-1 border-b border-[#eef2f7] sm:grid-cols-2 sm:divide-x sm:divide-[#e2e8f0]">
+          <ProfileDetailRow
+            label="Sign-in method"
+            value={signInMethodLabel(profile.provider)}
+          />
+          <ProfileDetailRow
+            label="Businesses owned"
+            value={businessCountLabel}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x sm:divide-[#e2e8f0]">
+          <ProfileDetailRow
+            label="Member since"
+            value={formatProfileDate(profile.createdAt)}
+          />
+          <ProfileDetailRow
+            label="Last updated"
+            value={formatProfileDate(profile.updatedAt)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -879,10 +888,7 @@ export function OwnerProfileForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-stretch">
-            {pageAccountDetails}
-            {pageEditForm}
-          </div>
+          {pageProfileDetails}
 
           {isAdminOrSuperAdminUser() ? (
             <OwnerSubscriptionSection variant={variant} layout="page" />

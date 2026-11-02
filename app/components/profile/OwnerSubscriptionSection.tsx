@@ -25,7 +25,6 @@ import { upgradeUserSubscription } from "@/app/services/subscription/upgrade-use
 import { loadDealiooStripe } from "@/app/lib/load-dealioo-stripe";
 import {
   AlertCircle,
-  CalendarDays,
   Check,
   ChevronRight,
   CreditCard,
@@ -39,8 +38,6 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
-  Tag,
-  TrendingUp,
   UserRound,
   X,
 } from "lucide-react";
@@ -128,25 +125,6 @@ function formatShortDate(value: string | null | undefined): string {
     month: "short",
     year: "numeric",
   });
-}
-
-function formatRelativeFromNow(value: string | null | undefined): string | null {
-  if (!value?.trim()) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(date);
-  target.setHours(0, 0, 0, 0);
-  const days = Math.round((target.getTime() - today.getTime()) / 86_400_000);
-
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  if (days === -1) return "Yesterday";
-  if (days > 1 && days < 60) return `In ${days} days`;
-  if (days < -1 && days > -60) return `${Math.abs(days)} days ago`;
-  return null;
 }
 
 function formatBillingCycle(cycle: "monthly" | "annual"): string {
@@ -328,7 +306,6 @@ export function OwnerSubscriptionSection({
   const paymentMethod = overview?.paymentMethod ?? null;
   const billingDetails = overview?.billingDetails ?? emptyBillingDetails;
   const invoices = overview?.invoices ?? [];
-  const upcomingInvoice = overview?.upcomingInvoice ?? null;
   const planHighlights = useMemo(
     () =>
       resolvePlanHighlights(
@@ -715,13 +692,15 @@ export function OwnerSubscriptionSection({
 
       <BillingCard
         title="Current plan"
+        subtitle="Plan, price, and renewal for your Dealioo account."
         icon={Sparkles}
+        flushBody
         action={
           !subscription.cancelAtPeriodEnd &&
           !isPastDueStatus(subscription.status) ? (
             <span className="dealioo-billing-renew-chip">
               <Sparkles className="size-3.5" aria-hidden />
-              Your plan is active and will renew automatically
+              Renews automatically
             </span>
           ) : subscription.cancelAtPeriodEnd ? (
             <span className="dealioo-billing-pill dealioo-billing-pill--warn">
@@ -730,98 +709,45 @@ export function OwnerSubscriptionSection({
           ) : null
         }
       >
-        <div className="dealioo-billing-plan-grid">
-          <div className="dealioo-billing-metric">
-            <span className="dealioo-billing-metric-icon dealioo-billing-metric-icon--plan">
-              <TrendingUp className="size-4" strokeWidth={2.25} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="dealioo-billing-kicker">Plan</p>
-              <p className="dealioo-billing-value">{subscription.planName}</p>
-              <div className="dealioo-billing-pills">
-                <span className="dealioo-billing-pill dealioo-billing-pill--success">
-                  <Check className="size-3" strokeWidth={2.5} aria-hidden />
-                  {formatStatus(subscription.status)}
-                </span>
-                <span className="dealioo-billing-pill dealioo-billing-pill--cycle">
-                  {formatBillingCycle(subscription.billingCycle)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="dealioo-billing-metric">
-            <span className="dealioo-billing-metric-icon dealioo-billing-metric-icon--price">
-              <Tag className="size-4" strokeWidth={2.25} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="dealioo-billing-kicker">Price</p>
-              <p className="dealioo-billing-value">
-                {subscription.priceFormatted
-                  ? `${subscription.priceFormatted}/${subscription.billingCycle === "annual" ? "year" : "month"}`
-                  : formatBillingCycle(subscription.billingCycle)}
-              </p>
-              <p className="dealioo-billing-hint">
-                Billed {subscription.billingCycle === "annual" ? "annually" : "monthly"}
-              </p>
-            </div>
-          </div>
-          <div className="dealioo-billing-metric">
-            <span className="dealioo-billing-metric-icon dealioo-billing-metric-icon--date">
-              <CalendarDays className="size-4" strokeWidth={2.25} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="dealioo-billing-kicker">
-                {subscription.cancelAtPeriodEnd ? "Access until" : "Next billing"}
-              </p>
-              <p className="dealioo-billing-value">
-                {formatShortDate(
-                  subscription.cancelAtPeriodEnd
-                    ? subscription.cancellationDate ?? subscription.nextBillingDate
-                    : upcomingInvoice?.nextPaymentAttemptAt ??
-                        subscription.nextBillingDate,
-                )}
-              </p>
-              {upcomingInvoice && !subscription.cancelAtPeriodEnd ? (
-                <p className="dealioo-billing-hint dealioo-billing-hint--accent">
-                  About {upcomingInvoice.amountDueFormatted}
-                </p>
-              ) : formatRelativeFromNow(
-                  subscription.cancelAtPeriodEnd
-                    ? subscription.cancellationDate ?? subscription.nextBillingDate
-                    : subscription.nextBillingDate,
-                ) ? (
-                <p className="dealioo-billing-hint dealioo-billing-hint--accent">
-                  {formatRelativeFromNow(
-                    subscription.cancelAtPeriodEnd
-                      ? subscription.cancellationDate ??
-                        subscription.nextBillingDate
-                      : subscription.nextBillingDate,
-                  )}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <BillingDetailRow label="Plan" value={subscription.planName} />
+        <BillingDetailRow
+          label="Status"
+          value={formatStatus(subscription.status)}
+        />
+        <BillingDetailRow
+          label="Billing cycle"
+          value={formatBillingCycle(subscription.billingCycle)}
+        />
+        <BillingDetailRow
+          label="Price"
+          value={
+            subscription.priceFormatted
+              ? `${subscription.priceFormatted}/${
+                  subscription.billingCycle === "annual" ? "year" : "month"
+                }`
+              : formatBillingCycle(subscription.billingCycle)
+          }
+        />
 
         {planHighlights.length > 0 ? (
-          <ul className="mt-4 grid gap-1 sm:grid-cols-2">
-            {planHighlights.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-2 text-sm text-brand-navy"
-              >
-                <Check
-                  className="mt-0.5 size-3.5 shrink-0 text-emerald-600"
-                  strokeWidth={2.5}
-                  aria-hidden
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="dealioo-billing-plan-extras">
+            <p className="dealioo-billing-detail-label">Includes</p>
+            <ul className="dealioo-billing-plan-features">
+              {planHighlights.map((item) => (
+                <li key={item}>
+                  <Check
+                    className="mt-0.5 size-3.5 shrink-0 text-emerald-600"
+                    strokeWidth={2.5}
+                    aria-hidden
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
-        <p className="dealioo-billing-footer">
+        <p className="dealioo-billing-plan-note">
           <Globe className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           {subscription.cancelAtPeriodEnd
             ? `Cancellation is scheduled${
