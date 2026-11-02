@@ -7,7 +7,8 @@ type BusinessDetailRowProps = {
   value: ReactNode;
   htmlFor?: string;
   href?: string | null;
-  showDivider?: boolean;
+  wrap?: boolean;
+  className?: string;
 };
 
 export function BusinessDetailRow({
@@ -15,41 +16,44 @@ export function BusinessDetailRow({
   value,
   htmlFor,
   href,
-  showDivider = true,
+  wrap = false,
+  className = "",
 }: BusinessDetailRowProps) {
-  const valueNode =
-    href && typeof value === "string" && value !== "—" ? (
-      <a
-        id={htmlFor}
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="m-0 block break-words text-[0.9rem] font-normal text-[#1464ff] no-underline hover:underline"
-        title={value}
-      >
-        {value}
-      </a>
-    ) : (
-      <p
-        id={htmlFor}
-        className="m-0 break-words text-[0.9rem] font-normal text-[#101a35]"
-      >
-        {value}
-      </p>
-    );
+  const isLink =
+    Boolean(href) && typeof value === "string" && value !== "—" && value !== "";
+  const valueClass = wrap
+    ? "min-w-0 flex-1 break-words whitespace-pre-line text-sm font-medium leading-relaxed"
+    : "min-w-0 flex-1 truncate text-sm font-medium";
 
   return (
     <div
-      className={`flex min-h-0 min-w-0 flex-1 items-center py-3 sm:py-3.5 ${
-        showDivider ? "border-b border-[#eef2f7]" : ""
-      }`}
+      className={`flex min-w-0 gap-3 px-4 py-3 sm:px-5 ${
+        wrap ? "items-start" : "items-center"
+      } ${className}`}
     >
-      <div className="min-w-0 flex-1">
-        <p className="m-0 text-[0.7rem] font-semibold text-[#7183a4] sm:text-[0.72rem]">
-          {label}
-        </p>
-        <div className="mt-1 break-words">{valueNode}</div>
-      </div>
+      <p className="w-[8.5rem] shrink-0 whitespace-nowrap pt-0.5 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-slate-500 sm:w-[9.5rem]">
+        {label}
+      </p>
+      {isLink ? (
+        <a
+          id={htmlFor}
+          href={href!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${valueClass} text-[#1877f2] no-underline hover:underline`}
+          title={typeof value === "string" ? value : undefined}
+        >
+          {value}
+        </a>
+      ) : (
+        <div
+          id={htmlFor}
+          className={`${valueClass} text-[#07111f]`}
+          title={typeof value === "string" ? value : undefined}
+        >
+          {value}
+        </div>
+      )}
     </div>
   );
 }

@@ -31,10 +31,9 @@ import { updateBusiness } from "@/app/services/business/update-business";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  Building2,
   Camera,
-  Check,
   ExternalLink,
-  Lightbulb,
   Loader2,
   MapPin,
   X,
@@ -82,56 +81,15 @@ type FormSnapshot = {
   branchCount: string;
 };
 
-type NavId =
-  | "details"
-  | "contact"
-  | "address"
-  | "about";
-
-const NAV: {
-  id: NavId;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    id: "details",
-    label: "Business details",
-    hint: "Basic information",
-  },
-  {
-    id: "contact",
-    label: "Contact information",
-    hint: "How customers reach you",
-  },
-  {
-    id: "address",
-    label: "Business address",
-    hint: "Physical location",
-  },
-  {
-    id: "about",
-    label: "About your business",
-    hint: "Description & story",
-  },
-];
-
 const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 const ACCEPT_IMAGES = "image/png,image/jpeg,image/webp";
 const DESC_MAX = 500;
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-[#93C5FD] focus:ring-4 focus:ring-[#DBEAFE]";
+  "h-11 w-full rounded-xl border border-[#e2e8f0] bg-white px-3.5 text-sm font-medium text-[#07111f] outline-none transition placeholder:font-normal placeholder:text-slate-400 hover:border-[#cbd5e1] focus:border-[#1877f2] focus:ring-2 focus:ring-[#1877f2]/15";
 
-const labelClass = "m-0 mb-1.5 block text-[0.78rem] font-bold text-slate-700";
-
-function formatTitleCase(value: string): string {
-  return value
-    .trim()
-    .split(/[\s/_-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
+const labelClass =
+  "m-0 w-full shrink-0 pt-2.5 text-sm font-semibold text-[#07111f] sm:w-[9.5rem]";
 
 function isImageMime(mime: string): boolean {
   return mime === "image/png" || mime === "image/jpeg" || mime === "image/webp";
@@ -169,21 +127,13 @@ function snapshotFromBusiness(business: {
 
 function SectionCard({
   id,
-  title,
   children,
 }: {
   id: string;
-  title: string;
   children: ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      className="scroll-mt-4 rounded-2xl border border-[#E8EDF5] bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] sm:p-6"
-    >
-      <h3 className="m-0 mb-4 text-[1.05rem] font-extrabold tracking-tight text-[#0F172A]">
-        {title}
-      </h3>
+    <section id={id} className="scroll-mt-4">
       {children}
     </section>
   );
@@ -205,80 +155,23 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-4">
       <label htmlFor={htmlFor} className={labelClass}>
         {label}
         {required ? <span className="text-red-500"> *</span> : null}
       </label>
-      {children}
-      {hint && !error ? (
-        <p className="m-0 mt-1 text-[0.7rem] text-slate-400">{hint}</p>
-      ) : null}
-      {error ? (
-        <p className="m-0 mt-1 text-[0.7rem] text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function CompletionRing({ percent }: { percent: number }) {
-  const size = 88;
-  const stroke = 8;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.min(100, Math.max(0, percent));
-  const offset = c - (clamped / 100) * c;
-
-  return (
-    <div className="relative mx-auto size-[5.5rem]">
-      <svg width={size} height={size} className="-rotate-90" aria-hidden>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="#E8EDF5"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="#2F6BFF"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-extrabold tabular-nums text-[#0F172A]">
-          {clamped}%
-        </span>
+      <div className="min-w-0 flex-1">
+        {children}
+        {hint && !error ? (
+          <p className="m-0 mt-1 text-xs text-slate-400">{hint}</p>
+        ) : null}
+        {error ? (
+          <p className="m-0 mt-1 text-xs text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
-  );
-}
-
-function TipsCityscape() {
-  return (
-    <svg
-      viewBox="0 0 240 64"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-14 w-full opacity-70"
-      fill="none"
-      aria-hidden
-    >
-      <path d="M8 64V36l12-7 8 5v30H8Z" fill="#BFDBFE" />
-      <path d="M36 64V28l14-8 12 7v37H36Z" fill="#93C5FD" />
-      <path d="M70 64V22l18-11 16 9v44H70Z" fill="#60A5FA" opacity="0.55" />
-      <path d="M112 64V34l12-7 10 6v31h-22Z" fill="#A7F3D0" opacity="0.65" />
-      <path d="M140 64V26l16-9 14 8v39h-30Z" fill="#93C5FD" opacity="0.8" />
-      <path d="M178 64V40l10-6 8 5v25h-18Z" fill="#BFDBFE" />
-      <path d="M204 64V32l14-8 12 7v33h-26Z" fill="#60A5FA" opacity="0.45" />
-    </svg>
   );
 }
 
@@ -294,7 +187,6 @@ export function BusinessProfileEditModal({
   const queryClient = useQueryClient();
   const { data: business, isPending } = useBusinessByIdQuery(businessId);
   const [mounted, setMounted] = useState(false);
-  const [activeNav, setActiveNav] = useState<NavId>("details");
   const [form, setForm] = useState<FormSnapshot>({
     name: "",
     description: "",
@@ -342,7 +234,6 @@ export function BusinessProfileEditModal({
     setLogoFile(null);
     setLogoError(null);
     setFormError(null);
-    setActiveNav("details");
     mapPinManualRef.current = false;
     setMapPin(null);
     setLocationSearch("");
@@ -501,116 +392,37 @@ export function BusinessProfileEditModal({
     );
   }, [baseline, form, logoFile]);
 
-  const completion = useMemo(() => {
-    const checks = [
-      {
-        id: "details" as const,
-        label: "Business details",
-        done: Boolean(form.name.trim()),
-      },
-      {
-        id: "contact" as const,
-        label: "Contact information",
-        done: Boolean(
-          form.phoneNumber.trim() &&
-            isValidPhoneNumber(form.phoneNumber) &&
-            form.email.trim(),
-        ),
-      },
-      {
-        id: "address" as const,
-        label: "Business address",
-        done: Boolean(
-          form.city.trim() &&
-            form.state.trim() &&
-            form.postalCode.trim() &&
-            form.country.trim(),
-        ),
-      },
-      {
-        id: "about" as const,
-        label: "About your business",
-        done: Boolean(form.description.trim()),
-      },
-    ];
-    const doneCount = checks.filter((c) => c.done).length;
-    const percent = Math.round((doneCount / checks.length) * 100);
-    return { checks, percent };
-  }, [form]);
-
-  const getSaveBlockReason = useCallback((): {
-    message: string;
-    section: NavId;
-  } | null => {
-    if (!form.name.trim()) {
-      return {
-        message: "Please enter a business name.",
-        section: "details",
-      };
-    }
-    if (!form.businessType.trim()) {
-      return {
-        message: "Please select a business type.",
-        section: "details",
-      };
-    }
-    if (!form.currency.trim()) {
-      return {
-        message: "Please select a currency.",
-        section: "details",
-      };
-    }
+  const getSaveBlockReason = useCallback((): string | null => {
+    if (!form.name.trim()) return "Please enter a business name.";
+    if (!form.businessType.trim()) return "Please select a business type.";
+    if (!form.currency.trim()) return "Please select a currency.";
     if (!form.phoneNumber.trim() || !isValidPhoneNumber(form.phoneNumber)) {
-      return {
-        message: "Please enter a valid phone number.",
-        section: "contact",
-      };
+      return "Please enter a valid phone number.";
     }
     if (
       form.email.trim() &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
     ) {
-      return {
-        message: "Please enter a valid email address.",
-        section: "contact",
-      };
+      return "Please enter a valid email address.";
     }
     const websiteError = optionalHttpsWebsiteUrlMessage(
       withAutomaticHttps(form.websiteUrl),
     );
-    if (websiteError) {
-      return { message: websiteError, section: "contact" };
-    }
+    if (websiteError) return websiteError;
     const locationError = validateBusinessLocation({
       city: form.city,
       state: form.state,
       postalCode: form.postalCode,
       country: form.country,
     });
-    if (locationError) {
-      return { message: locationError, section: "address" };
-    }
+    if (locationError) return locationError;
     const branches = Number.parseInt(form.branchCount, 10);
     if (!Number.isFinite(branches) || branches < 1) {
-      return {
-        message: "Please enter at least 1 branch.",
-        section: "about",
-      };
+      return "Please enter at least 1 branch.";
     }
-    if (!hasChanges) {
-      return {
-        message: "No changes to save.",
-        section: "details",
-      };
-    }
+    if (!hasChanges) return "No changes to save.";
     return null;
   }, [form, hasChanges]);
-
-  const scrollToSection = (id: NavId) => {
-    setActiveNav(id);
-    const el = document.getElementById(`edit-profile-${id}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   const onLogoPick = (file: File | null, inputEl: HTMLInputElement | null) => {
     setLogoError(null);
@@ -641,9 +453,8 @@ export function BusinessProfileEditModal({
 
     const block = getSaveBlockReason();
     if (block) {
-      setFormError(block.message);
-      toast.error(block.message);
-      scrollToSection(block.section);
+      setFormError(block);
+      toast.error(block);
       return;
     }
 
@@ -687,180 +498,116 @@ export function BusinessProfileEditModal({
 
   const modal = (
     <div
-      className="fixed inset-0 z-[90] flex items-stretch justify-center bg-[#0F172A]/45 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[#07111f]/45 p-4 backdrop-blur-[2px] sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="business-profile-edit-title"
     >
-      <div className="flex h-full w-full max-w-[72rem] flex-col overflow-hidden bg-[#F4F7FB] shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:h-[min(92dvh,56rem)] sm:rounded-2xl sm:ring-1 sm:ring-black/5">
-        <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-[#E8EDF5] bg-white px-5 py-4 sm:px-6">
-          <div className="min-w-0">
-            <h2
-              id="business-profile-edit-title"
-              className="m-0 text-[1.35rem] font-extrabold tracking-tight text-[#0F172A] sm:text-[1.5rem]"
-            >
-              Business profile
-            </h2>
-            <p className="m-0 mt-1 text-sm text-slate-500">
-              Edit and update your business information
-            </p>
+      <div className="flex max-h-[min(92vh,840px)] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_28px_80px_rgba(14,24,43,0.28)] ring-1 ring-black/5">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef2f7] px-5 py-5 sm:px-6">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
+              <Building2 className="size-5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2
+                id="business-profile-edit-title"
+                className="m-0 text-lg font-extrabold tracking-tight text-[#07111f]"
+              >
+                Edit Business
+              </h2>
+              <p className="m-0 mt-1 text-sm text-slate-500">
+                Update your business information
+              </p>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={saving}
-              className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-semibold text-[#2F6BFF] transition hover:bg-[#F8FAFC] disabled:opacity-60"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving || isPending}
-              className="inline-flex h-10 min-w-[8.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#2F6BFF] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(47,107,255,0.28)] transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save changes"
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={saving}
-              className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition hover:bg-[#F1F5F9] hover:text-slate-600 sm:hidden"
-              aria-label="Close"
-            >
-              <X className="size-5" strokeWidth={2.25} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={saving}
+            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#e2e8f0] text-slate-500 transition hover:bg-slate-50 disabled:opacity-60"
+            aria-label="Close"
+          >
+            <X className="size-4" strokeWidth={2.25} />
+          </button>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[15.5rem_minmax(0,1fr)_15.5rem]">
-          <aside className="hidden min-h-0 flex-col border-r border-[#E8EDF5] bg-white lg:flex">
-            <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
-              {NAV.map((item) => {
-                const active = activeNav === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => scrollToSection(item.id)}
-                    className={`flex w-full cursor-pointer items-center rounded-xl px-3 py-2.5 text-left transition ${
-                      active
-                        ? "bg-[#EFF6FF] text-[#1D4ED8] ring-1 ring-[#BFDBFE]"
-                        : "text-slate-700 hover:bg-[#F8FAFC]"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[0.8rem] font-bold leading-tight">
-                        {item.label}
-                      </span>
-                      <span
-                        className={`mt-0.5 block text-[0.68rem] font-medium ${
-                          active ? "text-[#3B82F6]" : "text-slate-400"
-                        }`}
-                      >
-                        {item.hint}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-          </aside>
-          <div
-            ref={scrollRef}
-            className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5"
-          >
-            {isPending ? (
-              <div className="flex h-48 items-center justify-center text-slate-400">
-                <Loader2 className="size-7 animate-spin" aria-hidden />
-              </div>
-            ) : (
-              <div className="mx-auto flex max-w-3xl flex-col gap-4">
-                <SectionCard id="edit-profile-details" title="Business details">
-                  <div className="space-y-4">
-                    <div>
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          {isPending ? (
+            <div className="flex h-48 items-center justify-center text-slate-400">
+              <Loader2 className="size-7 animate-spin" aria-hidden />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-5">
+                <SectionCard id="edit-profile-details">
+                  <div className="space-y-5">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-4">
                       <p className={labelClass}>Business logo</p>
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept={ACCEPT_IMAGES}
-                        className="hidden"
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          onLogoPick(e.target.files?.[0] ?? null, e.target);
-                        }}
-                      />
-                      <div className="mt-1.5 flex items-start gap-4">
-                        <button
-                          type="button"
-                          onClick={() => logoInputRef.current?.click()}
-                          className="relative size-[5.5rem] shrink-0 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#DBEAFE]"
-                          aria-label="Upload business logo"
-                        >
-                          <span
-                            className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full ring-1 ring-[#e8edf5] shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${
-                              displayLogo ? "bg-[#f1f5f9]" : "bg-white"
-                            }`}
-                          >
-                            {displayLogo ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={displayLogo}
-                                alt=""
-                                className="size-full object-contain object-center p-1.5"
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center bg-white text-slate-400">
-                                <Camera
-                                  className="size-7"
-                                  strokeWidth={1.75}
-                                  aria-hidden
-                                />
-                              </span>
-                            )}
-                          </span>
-                          <span className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-[2.5px] border-white bg-[#2F6BFF] text-white shadow-md">
-                            <Camera className="size-3.5" strokeWidth={2.25} />
-                          </span>
-                        </button>
-                        <div className="min-w-0 flex-1 pt-1">
-                          <p className="m-0 text-[0.8rem] font-semibold text-slate-700">
-                            Recommended size
-                          </p>
-                          <p className="m-0 mt-1 text-[0.78rem] leading-relaxed text-slate-500">
-                            Use a square image, ideally{" "}
-                            <span className="font-semibold text-slate-700">
-                              512×512
-                            </span>{" "}
-                            or{" "}
-                            <span className="font-semibold text-slate-700">
-                              1024×1024
-                            </span>{" "}
-                            px (PNG, JPG, or WebP). Keep the logo centered with a
-                            little padding around it so nothing important gets
-                            cropped in the circle.
-                          </p>
+                      <div className="min-w-0 flex-1">
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept={ACCEPT_IMAGES}
+                          className="hidden"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            onLogoPick(e.target.files?.[0] ?? null, e.target);
+                          }}
+                        />
+                        <div className="flex items-center gap-4">
                           <button
                             type="button"
                             onClick={() => logoInputRef.current?.click()}
-                            className="mt-2.5 text-[0.78rem] font-semibold text-[#2F6BFF] transition hover:text-[#2563EB]"
+                            className="relative size-[5.5rem] shrink-0 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/30"
+                            aria-label="Upload business logo"
                           >
-                            {displayLogo ? "Replace image" : "Upload image"}
+                            <span
+                              className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full ring-4 ring-[#dbeafe] shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${
+                                displayLogo ? "bg-[#f1f5f9]" : "bg-white"
+                              }`}
+                            >
+                              {displayLogo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={displayLogo}
+                                  alt=""
+                                  className="size-full object-contain object-center p-1.5"
+                                />
+                              ) : (
+                                <span className="flex h-full w-full items-center justify-center bg-white text-slate-400">
+                                  <Camera
+                                    className="size-7"
+                                    strokeWidth={1.75}
+                                    aria-hidden
+                                  />
+                                </span>
+                              )}
+                            </span>
+                            <span className="absolute -bottom-0.5 -right-0.5 flex size-8 items-center justify-center rounded-full border-2 border-white bg-[#1877f2] text-white shadow-md">
+                              <Camera className="size-3.5" strokeWidth={2.25} />
+                            </span>
                           </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="m-0 text-sm font-semibold text-[#07111f]">
+                              Upload a square logo
+                            </p>
+                            <p className="m-0 mt-1 text-xs leading-relaxed text-slate-500">
+                              PNG, JPG, or WebP · ideally 512×512
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => logoInputRef.current?.click()}
+                              className="mt-2.5 text-sm font-semibold text-[#1877f2] transition hover:text-[#166fe0]"
+                            >
+                              {displayLogo ? "Replace image" : "Upload image"}
+                            </button>
+                          </div>
                         </div>
+                        {logoError ? (
+                          <p className="m-0 mt-1 text-xs text-red-600">
+                            {logoError}
+                          </p>
+                        ) : null}
                       </div>
-                      {logoError ? (
-                        <p className="m-0 mt-1 text-[0.7rem] text-red-600">
-                          {logoError}
-                        </p>
-                      ) : null}
                     </div>
 
                     <Field
@@ -878,7 +625,7 @@ export function BusinessProfileEditModal({
                       />
                     </Field>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-4">
                       <Field
                         label="Business type"
                         htmlFor="edit-business-type"
@@ -926,49 +673,26 @@ export function BusinessProfileEditModal({
                         </select>
                       </Field>
                     </div>
-
-                    <Field
-                      label="Business description"
-                      htmlFor="edit-business-description"
-                    >
-                      <div className="relative">
-                        <textarea
-                          id="edit-business-description"
-                          rows={4}
-                          maxLength={DESC_MAX}
-                          className={`${inputClass} h-auto min-h-[7rem] resize-none py-3 leading-relaxed`}
-                          value={form.description}
-                          onChange={(e) =>
-                            patchForm({ description: e.target.value })
-                          }
-                          placeholder="What makes your business stand out?"
-                        />
-                        <span className="pointer-events-none absolute bottom-2.5 right-3 text-[0.68rem] font-semibold tabular-nums text-slate-400">
-                          {form.description.length}/{DESC_MAX}
-                        </span>
-                      </div>
-                    </Field>
                   </div>
                 </SectionCard>
 
-                <SectionCard
-                  id="edit-profile-contact"
-                  title="Contact information"
-                >
+                <SectionCard id="edit-profile-contact">
                   <div className="space-y-4">
                     <Field
                       label="Phone number"
                       htmlFor="edit-business-phone"
                       required
                     >
-                      <div className="rounded-xl border border-[#E5E7EB] bg-white px-2 py-1 focus-within:border-[#93C5FD] focus-within:ring-4 focus-within:ring-[#DBEAFE]">
+                      <div
+                        className={`${inputClass} flex items-center !py-0 focus-within:border-[#1877f2] focus-within:ring-2 focus-within:ring-[#1877f2]/15`}
+                      >
                         <BookMeetingPhoneInput
                           value={form.phoneNumber}
                           onChange={(value) =>
                             patchForm({ phoneNumber: value })
                           }
                           variant="boxed"
-                          wrapClassName="!gap-1 [&_input]:!text-sm [&_input]:!font-medium"
+                          wrapClassName="!w-full !gap-2 [&_input]:!h-full [&_input]:!border-0 [&_input]:!bg-transparent [&_input]:!px-0 [&_input]:!py-0 [&_input]:!text-sm [&_input]:!font-medium [&_input]:!text-[#07111f] [&_input]:!outline-none [&_input]:!ring-0"
                         />
                       </div>
                     </Field>
@@ -1022,7 +746,7 @@ export function BusinessProfileEditModal({
                             href={websiteHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#2F6BFF] hover:bg-[#EFF6FF]"
+                            className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#1877f2] hover:bg-[#eff6ff]"
                             aria-label="Open website"
                           >
                             <ExternalLink
@@ -1036,9 +760,9 @@ export function BusinessProfileEditModal({
                   </div>
                 </SectionCard>
 
-                <SectionCard id="edit-profile-address" title="Business address">
+                <SectionCard id="edit-profile-address">
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-4">
                       <Field
                         label="City"
                         htmlFor="edit-business-address-city"
@@ -1105,9 +829,10 @@ export function BusinessProfileEditModal({
                       </Field>
                     </div>
 
-                    <div>
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-4">
                       <p className={labelClass}>Location on map</p>
-                      <p className="m-0 mb-2 text-[0.72rem] leading-snug text-slate-500">
+                      <div className="min-w-0 flex-1">
+                      <p className="m-0 mb-2 text-xs leading-snug text-slate-500">
                         {mapGeocoding
                           ? "Finding this address on the map…"
                           : mapPin
@@ -1186,14 +911,12 @@ export function BusinessProfileEditModal({
                         dropPinMode
                         onDropPin={handleMapDropPin}
                       />
+                      </div>
                     </div>
                   </div>
                 </SectionCard>
 
-                <SectionCard
-                  id="edit-profile-about"
-                  title="About your business"
-                >
+                <SectionCard id="edit-profile-about">
                   <Field
                     label="Business description"
                     htmlFor="edit-business-about-description"
@@ -1227,54 +950,34 @@ export function BusinessProfileEditModal({
                     <span>{formError}</span>
                   </div>
                 ) : null}
-              </div>
-            )}
-          </div>
-          <aside className="hidden min-h-0 flex-col gap-3 overflow-y-auto border-l border-[#E8EDF5] bg-[#F8FAFC] p-3 lg:flex">
-            <section className="rounded-2xl border border-[#E8EDF5] bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.03)]">
-              <CompletionRing percent={completion.percent} />
-              <p className="m-0 mt-2 text-center text-sm font-bold text-[#0F172A]">
-                {completion.percent >= 100
-                  ? "All set!"
-                  : completion.percent >= 70
-                    ? "Almost done!"
-                    : "Keep going"}
-              </p>
-              <ul className="m-0 mt-4 list-none space-y-2 p-0">
-                {completion.checks.map((item) => (
-                  <li key={item.id} className="flex items-center gap-2">
-                    {item.done ? (
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                        <Check className="size-3" strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <span className="size-5 shrink-0 rounded-full border border-dashed border-slate-300" />
-                    )}
-                    <span
-                      className={`text-[0.78rem] font-semibold ${
-                        item.done ? "text-slate-700" : "text-slate-400"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            </div>
+          )}
+        </div>
 
-            <section className="relative overflow-hidden rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 pb-14 pt-4">
-              <div className="relative z-[1] flex items-start gap-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-[#F59E0B] ring-1 ring-[#FDE68A]">
-                  <Lightbulb className="size-4" strokeWidth={2.25} />
-                </span>
-                <p className="m-0 text-[0.78rem] font-medium leading-relaxed text-[#1E3A8A]">
-                  Keep your business information up to date so customers and
-                  teammates always see the right details.
-                </p>
-              </div>
-              <TipsCityscape />
-            </section>
-          </aside>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#eef2f7] px-5 py-4 sm:px-6">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={saving}
+            className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-[#e2e8f0] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving || isPending}
+            className="inline-flex h-10 min-w-[8.5rem] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] transition hover:bg-[#166fe0] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save changes"
+            )}
+          </button>
         </div>
       </div>
     </div>
