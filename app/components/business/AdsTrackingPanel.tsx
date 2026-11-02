@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Save,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   GoogleAdsLogo,
   MetaLogo,
@@ -28,6 +29,10 @@ import {
   getBusinessTracking,
   saveBusinessTracking,
 } from "@/app/services/business/business-tracking";
+import {
+  getIntegrationsStatus,
+  integrationsStatusQueryKey,
+} from "@/app/services/integration-audit/get-integrations-status";
 
 type AdsTrackingPanelProps = {
   businessId: number;
@@ -103,6 +108,18 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+
+  const statusQuery = useQuery({
+    queryKey: integrationsStatusQueryKey(businessId),
+    queryFn: () => getIntegrationsStatus(businessId),
+    enabled: businessId > 0,
+    staleTime: 30_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const metaConnected = Boolean(statusQuery.data?.facebook.connected);
+  const googleConnected = Boolean(statusQuery.data?.googleAds.connected);
 
   const loadPixels = useCallback(
     (options?: { keepCurrentIfSet?: boolean; forceRefresh?: boolean }) => {
@@ -197,8 +214,21 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   useEffect(() => {
     let cancelled = false;
 
-    const cancelPixels = loadPixels({ keepCurrentIfSet: true });
-    const cancelGtm = loadGtmContainers({ keepCurrentIfSet: true });
+    const cancelPixels = metaConnected
+      ? loadPixels({ keepCurrentIfSet: true })
+      : (() => {
+          setPixels([]);
+          setPixelsError(null);
+          return () => {};
+        })();
+
+    const cancelGtm = googleConnected
+      ? loadGtmContainers({ keepCurrentIfSet: true })
+      : (() => {
+          setGtmContainers([]);
+          setGtmError(null);
+          return () => {};
+        })();
 
     void (async () => {
       let nextPixelId = "";
@@ -236,8 +266,8 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
 
       if (cancelled) return;
 
-      if (nextPixelId) setPixelId(nextPixelId);
-      if (nextGtmId) setGtmId(nextGtmId);
+      setPixelId(nextPixelId);
+      setGtmId(nextGtmId);
       setSignupConversionLabel(nextSignupConversionLabel);
       setPurchaseConversionLabel(nextPurchaseConversionLabel);
       setLeadConversionLabel(nextLeadConversionLabel);
@@ -260,7 +290,14 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
       cancelPixels();
       cancelGtm();
     };
-  }, [businessId, loadPixels, loadGtmContainers]);
+  }, [
+    businessId,
+    googleConnected,
+    loadGtmContainers,
+    loadPixels,
+    metaConnected,
+    statusQuery.isFetched,
+  ]);
 
   const pixelSelectOptions = useMemo(() => {
     return pixels.map((pixel) => ({
@@ -301,9 +338,6 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
   );
   const hasUnsavedChanges =
     hasLoadedSaved && !isSameTrackingForm(currentForm, savedForm);
-
-  const metaConnected = Boolean(pixelId.trim());
-  const gtmConnected = Boolean(gtmId.trim());
 
   useEffect(() => {
     if (!saveSuccess) return;
@@ -365,17 +399,19 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             logo={<MetaLogo className="size-6 shrink-0" />}
             title="Meta Pixel"
             connected={metaConnected}
+            hasSavedId={Boolean(pixelId.trim())}
             description="Track Meta events and conversions."
             refreshButton={
               <button
                 type="button"
                 onClick={() => {
+                  void statusQuery.refetch();
                   void loadPixels({
                     keepCurrentIfSet: true,
                     forceRefresh: true,
                   });
                 }}
-                disabled={pixelsLoading}
+                disabled={pixelsLoading || !metaConnected}
                 className={metaRefreshBtnClass}
               >
                 {pixelsLoading ? (
@@ -388,7 +424,25 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             }
             form={
               <>
-                {pixelsError ? (
+                {!metaConnected &&
+                statusQuery.isFetched &&
+                !pixelId.trim() ? (
+                  <div
+                    className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+                    role="alert"
+                  >
+                    <AlertTriangle
+                      className="mt-0.5 size-4 shrink-0"
+                      aria-hidden
+                    />
+                    <span>
+                      Meta is not connected. Connect Meta in Settings →
+                      Integrations, or enter a Pixel ID manually below.
+                    </span>
+                  </div>
+                ) : null}
+
+                {metaConnected && pixelsError ? (
                   <div
                     className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
                     role="alert"
@@ -441,7 +495,7 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                       placeholder="Meta Pixel ID"
                       className={`${fieldClass} mt-0 pr-10`}
                     />
-                    {metaConnected ? (
+                    {pixelId.trim() ? (
                       <CheckCircle2
                         className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-emerald-500"
                         strokeWidth={2.25}
@@ -462,18 +516,20 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             accent="google"
             logo={<GoogleAdsLogo className="size-6 shrink-0" />}
             title="Google Ads"
-            connected={gtmConnected}
+            connected={googleConnected}
+            hasSavedId={Boolean(gtmId.trim())}
             description="Track Google Ads conversions and performance."
             refreshButton={
               <button
                 type="button"
                 onClick={() => {
+                  void statusQuery.refetch();
                   void loadGtmContainers({
                     keepCurrentIfSet: true,
                     forceRefresh: true,
                   });
                 }}
-                disabled={gtmLoading}
+                disabled={gtmLoading || !googleConnected}
                 className={googleRefreshBtnClass}
               >
                 {gtmLoading ? (
@@ -486,7 +542,9 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
             }
             form={
               <>
-                {gtmError ? (
+                {!googleConnected &&
+                statusQuery.isFetched &&
+                !gtmId.trim() ? (
                   <div
                     className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
                     role="alert"
@@ -496,9 +554,25 @@ export function AdsTrackingPanel({ businessId }: AdsTrackingPanelProps) {
                       aria-hidden
                     />
                     <span>
-                      {gtmError} You can still enter a GTM ID manually below.
-                      Connect Google Ads in Settings if you want containers
-                      listed automatically.
+                      Google Ads is not connected. Connect Google Ads in
+                      Settings → Integrations, or enter a Google Ads tag ID
+                      manually below.
+                    </span>
+                  </div>
+                ) : null}
+
+                {googleConnected && gtmError ? (
+                  <div
+                    className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+                    role="alert"
+                  >
+                    <AlertTriangle
+                      className="mt-0.5 size-4 shrink-0"
+                      aria-hidden
+                    />
+                    <span>
+                      {gtmError} You can still enter a Google Ads tag ID
+                      manually below.
                     </span>
                   </div>
                 ) : null}
