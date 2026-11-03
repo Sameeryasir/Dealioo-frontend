@@ -22,8 +22,10 @@ export default function BusinessMetaAdsPage() {
     <section className="rd-premium rd-premium--fill" aria-label="Meta Ads">
       <div className="rd-premium-page campaign-immersive-page">
         <article className="campaign-immersive-shell rd-premium-panel">
-          <div className="campaign-immersive-tab-panel flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <CampaignAdsPanel embedded businessId={businessId} />
+          <div className="campaign-immersive-tab-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="funnel-overview-scroll">
+              <CampaignAdsPanel embedded businessId={businessId} />
+            </div>
           </div>
         </article>
       </div>

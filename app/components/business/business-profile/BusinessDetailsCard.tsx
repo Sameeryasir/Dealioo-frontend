@@ -1,11 +1,9 @@
 "use client";
 
 import { BusinessDetailRow } from "@/app/components/business/business-profile/BusinessDetailRow";
+import { profileSectionCardClass } from "@/app/components/business/business-profile/profile-ui";
 import { FileText } from "lucide-react";
 import type { ReactNode, Ref } from "react";
-
-const cardClass =
-  "flex h-full min-h-full flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 function cleanPart(value: string): string {
   const trimmed = value.trim();
@@ -94,9 +92,9 @@ export function BusinessDetailsCard({
     <section
       ref={detailsRef}
       id="business-details"
-      className={`scroll-mt-24 ${cardClass}`}
+      className={`scroll-mt-24 flex h-full min-h-full flex-col ${profileSectionCardClass}`}
     >
-      <div className="flex shrink-0 items-start gap-3 border-b border-[#eef2f7] px-5 py-[22px] sm:px-6 sm:py-[26px]">
+      <div className="flex shrink-0 items-start gap-3 border-b border-[#eef2f7] bg-[#f8faff] px-5 py-4 sm:px-6 sm:py-5">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
           <FileText className="size-5" strokeWidth={2.25} aria-hidden />
         </span>
@@ -110,7 +108,7 @@ export function BusinessDetailsCard({
         </div>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex flex-1 flex-col bg-white">
         <DetailPair>
           <BusinessDetailRow
             label="Business name"

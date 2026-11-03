@@ -202,7 +202,7 @@ export function BusinessSettingsPanel({
         className="rd-premium rd-premium--fill business-profile-page"
         aria-label={sectionTitles[activeSection]}
       >
-        <div className="flex min-h-full flex-1 flex-col overflow-visible px-0.5 py-0.5 sm:px-1">
+        <div className="rd-page-scroll flex min-h-0 flex-1 flex-col px-0">
           <BusinessGeneralSettingsForm
             businessId={businessId}
             activeSection={activeSection}
@@ -216,7 +216,7 @@ export function BusinessSettingsPanel({
   return (
     <section className="rd-premium rd-premium--fill" aria-label="Settings">
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(14.5rem,16.5rem)_minmax(0,1fr)] lg:items-stretch">
-        <aside className="relative flex flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+        <aside className="relative flex flex-col overflow-hidden rounded-none border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-none">
           <span
             className="pointer-events-none absolute -top-8 left-1/2 size-28 -translate-x-1/2 rounded-full bg-[#1877f2]/10 blur-3xl"
             aria-hidden
@@ -283,7 +283,7 @@ export function BusinessSettingsPanel({
           </Tabs>
         </aside>
 
-        <article className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+        <article className="relative flex min-h-0 flex-col overflow-hidden rounded-none border border-[#e8edf5] bg-white shadow-none">
           <header className="shrink-0 border-b border-[#e8edf5] bg-white px-5 py-4 sm:px-7 sm:py-5">
             <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#1877f2]">
               {section === "billing" || businessId == null

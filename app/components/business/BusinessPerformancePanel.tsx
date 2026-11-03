@@ -1932,8 +1932,8 @@ export function BusinessPerformancePanel({
   }, [chartData, monthRange.inProgress]);
 
   return (
-    <section className="rd-premium w-full" aria-label="Performance">
-      <div className="flex flex-col gap-4">
+    <section className="rd-premium rd-premium--fill w-full" aria-label="Performance">
+      <div className="rd-page-scroll flex flex-col gap-4 px-3 py-3 sm:px-4 sm:py-4">
         <header className={`${panelCardClass} px-4 py-4 sm:px-5`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">

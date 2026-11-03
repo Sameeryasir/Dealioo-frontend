@@ -6,6 +6,10 @@ import { BusinessDetailsCard } from "@/app/components/business/business-profile/
 import { BusinessProfileHero } from "@/app/components/business/business-profile/BusinessProfileHero";
 import { BusinessProfileSidePanel } from "@/app/components/business/business-profile/BusinessProfileSidePanel";
 import { BusinessProfileSkeleton } from "@/app/components/business/business-profile/BusinessProfileSkeleton";
+import {
+  profilePageCanvasClass,
+  profileSectionCardClass,
+} from "@/app/components/business/business-profile/profile-ui";
 import { useBusinessByIdQuery } from "@/app/hooks/use-business-by-id-query";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
@@ -94,9 +98,6 @@ const GENERAL_FOCUS_IDS: Record<string, string> = {
   address: "business-settings-address",
   branch: "business-settings-branch",
 };
-
-const cardClass =
-  "flex h-full flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 export function BusinessGeneralSettingsForm({
   businessId,
@@ -227,7 +228,9 @@ export function BusinessGeneralSettingsForm({
   }
 
   const previewMain = (
-    <section className={`flex min-h-0 flex-1 flex-col overflow-hidden ${cardClass}`}>
+    <section
+      className={`flex min-h-0 flex-1 flex-col ${profileSectionCardClass}`}
+    >
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#eef2f7] px-4 py-3 sm:px-5">
         <Link
           href={businessSettingsHref(businessId, "general")}
@@ -252,14 +255,14 @@ export function BusinessGeneralSettingsForm({
   );
 
   return (
-    <div className="business-profile-fit flex min-h-full w-full min-w-0 flex-1 flex-col">
+    <div className={profilePageCanvasClass}>
       <BusinessProfileEditModal
         open={editOpen}
         businessId={businessId}
         onClose={() => setEditOpen(false)}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 pb-5">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-5 sm:py-6 lg:px-6">
         {isProfileView ? (
           <>
             <div className="shrink-0">

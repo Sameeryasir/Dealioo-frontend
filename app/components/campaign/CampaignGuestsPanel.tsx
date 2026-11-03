@@ -50,7 +50,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 const guestsCardClass =
-  "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+  "overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 const thClass =
   "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle first:pl-5 last:pr-5";

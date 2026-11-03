@@ -71,7 +71,7 @@ function percentChange(
 }
 
 const overviewCardClass =
-  "relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
+  "relative flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 function OverviewKpiChange({
   changePercent,
@@ -578,7 +578,7 @@ export function BusinessActivityOverviewPanel({
   const periodLoading = periodQuery.isPending;
 
   return (
-    <article className={`${overviewCardClass} w-full`} aria-label="Business activity">
+    <article className={overviewCardClass} aria-label="Business activity">
       <span
         className="pointer-events-none absolute -top-10 right-8 size-32 rounded-full bg-[#1877f2]/10 blur-3xl"
         aria-hidden
@@ -588,6 +588,7 @@ export function BusinessActivityOverviewPanel({
         aria-hidden
       />
 
+      <div className="funnel-overview-scroll">
       <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-3 py-3.5 sm:px-4 sm:py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
@@ -931,6 +932,7 @@ export function BusinessActivityOverviewPanel({
             </section>
           </div>
       )}
+      </div>
       </div>
     </article>
   );

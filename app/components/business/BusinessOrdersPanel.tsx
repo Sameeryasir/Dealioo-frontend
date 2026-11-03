@@ -66,8 +66,7 @@ const ORDERS_TABLE_PAGE_SIZE = RESTAURANT_FUNNEL_EVENTS_PAGE_SIZE;
 const CAMPAIGN_IMAGE_PREVIEW_SIZE = 220;
 const CAMPAIGN_IMAGE_PREVIEW_GAP = 12;
 
-const ordersCardClass =
-  "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+const ordersCardClass = "overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 const thClass =
   "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle first:pl-5 last:pr-5 sm:px-5";

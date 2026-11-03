@@ -824,8 +824,21 @@ export function BusinessMembersPanel({
 
   return (
     <>
-      <section className={embedded ? "space-y-5" : "space-y-6"}>
-        <div className="relative overflow-hidden rounded-[1.45rem] border border-[#e8edf5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]">
+      <section
+        className={
+          embedded
+            ? "space-y-5"
+            : "rd-premium rd-premium--fill flex min-h-0 w-full flex-1 flex-col"
+        }
+      >
+        <div
+          className={
+            embedded
+              ? "relative overflow-hidden rounded-none border-0 bg-white shadow-none"
+              : "relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-none border-0 bg-white shadow-none"
+          }
+        >
+          <div className={embedded ? undefined : "rd-page-scroll"}>
           <div className="relative shrink-0 border-b border-[#f1f5f9] bg-white px-5 py-4 sm:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-3">
@@ -1117,6 +1130,7 @@ export function BusinessMembersPanel({
               ) : null}
             </>
           )}
+          </div>
         </div>
       </section>
 

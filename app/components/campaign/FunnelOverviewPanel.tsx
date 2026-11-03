@@ -70,7 +70,7 @@ import { useIntegrationsConnectionStatus } from "@/app/hooks/use-integrations-co
 import { useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
-  "relative overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
+  "relative overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 type AdSourceWinner = "meta" | "google" | "inStore" | "tie";
 
@@ -1386,7 +1386,7 @@ export function FunnelOverviewPanel({
         }}
       />
 
-      <div className="rd-premium-page flex min-h-0 w-full flex-1 flex-col px-3 py-4 sm:px-4 sm:py-5 lg:px-6">
+      <div className="rd-premium-page flex min-h-0 w-full flex-1 flex-col px-0 py-0">
         <article className={`${overviewCardClass} funnel-overview-root rd-premium-panel w-full min-w-0`}>
           <span
             className="pointer-events-none absolute -top-10 right-8 size-32 rounded-full bg-[#1877f2]/10 blur-3xl"

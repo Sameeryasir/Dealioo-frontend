@@ -1,6 +1,7 @@
 "use client";
 
 import { ProfileCompletionRing } from "@/app/components/business/business-profile/ProfileCompletionRing";
+import { profileSectionCardClass } from "@/app/components/business/business-profile/profile-ui";
 import { businessSettingsHref } from "@/app/lib/business-settings-routes";
 import {
   Check,
@@ -10,9 +11,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-
-const cardClass =
-  "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 type CompletionItem = {
   id: string;
@@ -41,7 +39,7 @@ export function BusinessProfileSidePanel({
 }: BusinessProfileSidePanelProps) {
   return (
     <aside className="flex h-full min-h-full min-w-0 flex-col gap-5">
-      <section className={`${cardClass} px-5 py-3 sm:px-5`}>
+      <section className={`${profileSectionCardClass} px-5 py-4 sm:px-5`}>
         <header className="flex items-center gap-2.5">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#eef5ff] text-[#1877f2]">
             <Zap className="size-3.5" strokeWidth={2.25} aria-hidden />
@@ -50,7 +48,7 @@ export function BusinessProfileSidePanel({
             Quick actions
           </h3>
         </header>
-        <div className="mt-1.5 space-y-0.5">
+        <div className="mt-2 space-y-0.5">
           <ActionRow
             href={businessSettingsHref(businessId, "members")}
             title="Manage members"
@@ -62,7 +60,7 @@ export function BusinessProfileSidePanel({
         </div>
       </section>
 
-      <section className={`${cardClass} px-5 py-3`}>
+      <section className={`${profileSectionCardClass} px-5 py-4`}>
         <header className="flex items-center gap-2.5">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#eef5ff] text-[#1877f2]">
             <Sparkles className="size-3.5" strokeWidth={2.25} aria-hidden />
@@ -71,15 +69,17 @@ export function BusinessProfileSidePanel({
             Business summary
           </h3>
         </header>
-        <div className="mt-1.5 space-y-0.5">
+        <div className="mt-2 space-y-0.5">
           <SummaryRow label="Total campaigns" value={totalCampaigns} />
           <SummaryRow label="Total customers" value={totalCustomers} />
           <SummaryRow label="Active automations" value={activeAutomations} />
         </div>
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#d7ede4] bg-[linear-gradient(145deg,#ffffff_0%,#f3fbf7_100%)] px-5 py-4 shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
-        <header className="flex items-center justify-between gap-2">
+      <section
+        className={`${profileSectionCardClass} flex min-h-0 flex-1 flex-col px-5 py-4`}
+      >
+        <header className="flex shrink-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#dcfce7] text-[#09b66f]">
               <Check className="size-3.5" strokeWidth={2.75} aria-hidden />
@@ -94,11 +94,12 @@ export function BusinessProfileSidePanel({
             </span>
           ) : null}
         </header>
+
         <div className="mt-4 flex items-center gap-4">
           <ProfileCompletionRing percent={completionPercent} size={72} />
           <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-2 p-0">
             {completionItems.map((item) => (
-              <li key={item.id} className="flex items-center gap-2">
+              <li key={item.id} className="flex items-center gap-2.5">
                 <span
                   className={`flex size-3.5 shrink-0 items-center justify-center rounded-full ${
                     item.done
@@ -110,7 +111,7 @@ export function BusinessProfileSidePanel({
                   <Check className="size-2" strokeWidth={3} />
                 </span>
                 <span
-                  className={`truncate text-[0.78rem] font-semibold ${
+                  className={`min-w-0 flex-1 text-[0.78rem] font-semibold leading-none ${
                     item.done ? "text-[#07111f]" : "text-[#94a3b8]"
                   }`}
                 >

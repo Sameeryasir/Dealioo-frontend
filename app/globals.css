@@ -12066,7 +12066,7 @@ body:has(.rd-shell--app) {
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  background: #eef2f7;
+  background: #ffffff;
 }
 
 .rd-topbar {
@@ -12443,13 +12443,13 @@ body:has(.rd-shell--app) {
   flex: 1 1 auto;
   overflow-x: hidden;
   overflow-y: auto;
-  background: #eef2f7;
-  padding: 0.4rem 0.35rem 1rem;
+  background: #ffffff;
+  padding: 0;
 }
 
 @media (min-width: 640px) {
   .rd-main-scroll {
-    padding: 0.5rem 0.5rem 1.25rem;
+    padding: 0;
   }
 }
 
@@ -13316,24 +13316,24 @@ body:has(.rd-shell--app) {
   width: 100%;
   max-width: none;
   margin-inline: 0;
-  padding: 0.1rem 0 0.75rem;
+  padding: 0;
 }
 
 @media (min-width: 640px) {
   .rd-premium {
-    padding: 0.15rem 0 1rem;
+    padding: 0;
   }
 }
 
 .rd-main-scroll--sidebar-collapsed {
-  padding-left: 0.45rem;
-  padding-right: 0.45rem;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 @media (min-width: 640px) {
   .rd-main-scroll--sidebar-collapsed {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
@@ -13356,9 +13356,10 @@ body:has(.rd-shell--app) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding-top: 0.25rem;
-  padding-left: var(--rd-main-gutter-inline);
-  padding-right: var(--rd-main-gutter-inline);
+  overflow: hidden;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
   padding-bottom: 0;
 }
 
@@ -13366,28 +13367,35 @@ body:has(.rd-shell--app) {
   min-height: 0;
   height: 100%;
   max-height: 100%;
+  overflow: hidden;
 }
 
-/* Business profile: fill the viewport (no short “second screen” gap), but grow+scroll when content is taller. */
+/* Business profile: same locked-height + inner scroll pattern as campaign dashboard. */
 .rd-main-scroll:has(> .business-profile-page) {
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-bottom: 0.75rem;
+  overflow: hidden;
+  padding-bottom: 0;
+  background: #f1f5f9;
 }
 
 .rd-main-scroll:has(> .business-profile-page) > .business-profile-page.rd-premium--fill {
-  flex: 1 0 auto;
-  min-height: 100%;
-  height: auto;
-  max-height: none;
-  overflow: visible;
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.business-profile-page > .rd-page-scroll,
+.business-profile-page .business-profile-fit {
+  background: #f1f5f9;
 }
 
 @media (min-width: 640px) {
   .rd-main-scroll:has(> .rd-premium--fill) {
-    padding-top: 0.35rem;
+    padding-top: 0;
   }
 }
 
@@ -13977,6 +13985,8 @@ body:has(.rd-shell--app) {
   overflow: hidden;
 }
 
+/* Shared page scroll — same behavior as campaign dashboard overview. */
+.rd-page-scroll,
 .funnel-overview-scroll {
   display: flex;
   min-height: 0;
@@ -13990,15 +14000,22 @@ body:has(.rd-shell--app) {
   scrollbar-gutter: stable;
 }
 
+.rd-page-scroll .rd-premium-panel__body,
 .funnel-overview-scroll .rd-premium-panel__body {
   flex: none;
   min-height: auto;
   overflow: visible;
 }
 
+.rd-page-scroll .rd-premium-panel__body--center,
 .funnel-overview-scroll .rd-premium-panel__body--center {
   flex: 1 1 auto;
   min-height: min(24rem, 60vh);
+}
+
+.rd-premium--fill > .rd-premium-page > .rd-premium-panel,
+.rd-premium--fill > .rd-page-scroll {
+  min-height: 0;
 }
 
 .campaign-immersive-panel,

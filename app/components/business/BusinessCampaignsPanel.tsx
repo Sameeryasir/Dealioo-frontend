@@ -63,8 +63,7 @@ const CAMPAIGNS_FETCH_LIMIT = 200;
 const CAMPAIGNS_GRID_PAGE_SIZE = CAMPAIGNS_PAGE_SIZE;
 const CAMPAIGNS_LOADING_SKELETON_COUNT = 3;
 
-const campaignsCardClass =
-  "overflow-hidden rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/[0.02]";
+const campaignsCardClass = "overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 const campaignsGridClass =
   "grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4";

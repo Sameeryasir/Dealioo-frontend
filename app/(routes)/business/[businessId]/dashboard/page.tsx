@@ -32,15 +32,13 @@ export default function BusinessDashboardPage() {
   if (isScannerUser()) return null;
 
   return (
-    <section className="rd-premium w-full" aria-label="Business dashboard">
-      <div className="flex w-full flex-col gap-4 sm:gap-[1.1rem]">
-        <section aria-label="Restaurant activity overview">
-          <BusinessActivityOverviewPanel
-            businessId={businessId}
-            businessName={restaurant?.name}
-            showTopCampaigns={canViewPerformance}
-          />
-        </section>
+    <section className="rd-premium rd-premium--fill w-full" aria-label="Business dashboard">
+      <div className="campaign-immersive-overview" aria-label="Restaurant activity overview">
+        <BusinessActivityOverviewPanel
+          businessId={businessId}
+          businessName={restaurant?.name}
+          showTopCampaigns={canViewPerformance}
+        />
       </div>
     </section>
   );

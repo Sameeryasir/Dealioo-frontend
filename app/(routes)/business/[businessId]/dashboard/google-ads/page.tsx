@@ -22,8 +22,10 @@ export default function BusinessGoogleAdsPage() {
     <section className="rd-premium rd-premium--fill" aria-label="Google Ads">
       <div className="rd-premium-page campaign-immersive-page">
         <article className="campaign-immersive-shell rd-premium-panel">
-          <div className="campaign-immersive-tab-panel flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <CampaignGoogleAdsPanel embedded businessId={businessId} />
+          <div className="campaign-immersive-tab-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="funnel-overview-scroll">
+              <CampaignGoogleAdsPanel embedded businessId={businessId} />
+            </div>
           </div>
         </article>
       </div>

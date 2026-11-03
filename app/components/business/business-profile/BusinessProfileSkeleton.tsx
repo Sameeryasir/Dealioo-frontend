@@ -1,19 +1,20 @@
 "use client";
 
+import {
+  profilePageCanvasClass,
+  profileSectionCardClass,
+} from "@/app/components/business/business-profile/profile-ui";
 import { Skeleton } from "@/app/components/skeleton";
-
-const cardClass =
-  "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 export function BusinessProfileSkeleton() {
   return (
     <div
-      className="business-profile-fit flex min-h-0 w-full min-w-0 flex-col"
+      className={profilePageCanvasClass}
       aria-busy="true"
       aria-label="Loading business profile"
     >
-      <div className="flex min-w-0 flex-col gap-5 pb-5">
-        <section className={cardClass}>
+      <div className="flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-5 sm:py-6 lg:px-6">
+        <section className={profileSectionCardClass}>
           <div className="border-b border-[#eef2f7] px-5 py-5 sm:px-6 sm:py-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
@@ -35,8 +36,8 @@ export function BusinessProfileSkeleton() {
         </section>
 
         <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,20rem)]">
-          <section className={`flex h-full flex-col ${cardClass}`}>
-            <div className="flex items-start gap-3 border-b border-[#eef2f7] px-5 py-4 sm:px-6">
+          <section className={`flex h-full flex-col ${profileSectionCardClass}`}>
+            <div className="flex items-start gap-3 border-b border-[#eef2f7] bg-[#f8faff] px-5 py-4 sm:px-6">
               <Skeleton className="size-10 shrink-0 rounded-xl bg-slate-100" />
               <div className="min-w-0 flex-1 space-y-2">
                 <Skeleton className="h-4 w-36 rounded bg-slate-100" />
@@ -58,25 +59,17 @@ export function BusinessProfileSkeleton() {
                 </div>
               </div>
             ))}
-            <div className="flex flex-1 flex-col gap-3 border-t border-[#eef2f7] bg-[#f8fafc]/70 px-5 py-5 sm:px-6">
-              <Skeleton className="h-3 w-28 rounded bg-slate-100" />
-              <Skeleton className="h-12 w-full rounded bg-slate-100" />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Skeleton className="h-20 w-full rounded-xl bg-slate-100" />
-                <Skeleton className="h-20 w-full rounded-xl bg-slate-100" />
-              </div>
-            </div>
           </section>
 
           <aside className="flex min-w-0 flex-col gap-5">
-            <section className={`${cardClass} px-5 py-4`}>
+            <section className={`${profileSectionCardClass} px-5 py-4`}>
               <Skeleton className="h-5 w-32 rounded bg-slate-100" />
               <div className="mt-3 space-y-2">
                 <Skeleton className="h-10 w-full rounded-xl bg-slate-100" />
                 <Skeleton className="h-10 w-full rounded-xl bg-slate-100" />
               </div>
             </section>
-            <section className={`${cardClass} px-5 py-4`}>
+            <section className={`${profileSectionCardClass} px-5 py-4`}>
               <Skeleton className="h-5 w-36 rounded bg-slate-100" />
               <div className="mt-3 space-y-2">
                 <Skeleton className="h-8 w-full rounded bg-slate-100" />
@@ -84,7 +77,7 @@ export function BusinessProfileSkeleton() {
                 <Skeleton className="h-8 w-full rounded bg-slate-100" />
               </div>
             </section>
-            <section className={`${cardClass} px-5 py-4`}>
+            <section className={`${profileSectionCardClass} px-5 py-4`}>
               <Skeleton className="h-5 w-40 rounded bg-slate-100" />
               <div className="mt-4 flex items-center gap-4">
                 <Skeleton className="size-[72px] shrink-0 rounded-full bg-slate-100" />

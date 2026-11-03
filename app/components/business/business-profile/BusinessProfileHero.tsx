@@ -1,5 +1,6 @@
 "use client";
 
+import { profileSectionCardClass } from "@/app/components/business/business-profile/profile-ui";
 import {
   Building2,
   Camera,
@@ -7,9 +8,6 @@ import {
   Pencil,
   UtensilsCrossed,
 } from "lucide-react";
-
-const cardClass =
-  "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
 
 const editButtonClass =
   "inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)] transition hover:bg-[#166fe0] active:scale-[0.98] sm:w-auto";
@@ -38,8 +36,8 @@ export function BusinessProfileHero({
   onEditLogo,
 }: BusinessProfileHeroProps) {
   return (
-    <section className={`${cardClass} mt-2`}>
-      <div className="border-b border-[#eef2f7] bg-white px-5 py-4 sm:px-6 sm:py-4">
+    <section className={profileSectionCardClass}>
+      <div className="border-b border-[#eef2f7] bg-white px-5 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div

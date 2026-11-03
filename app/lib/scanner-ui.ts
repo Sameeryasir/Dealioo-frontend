@@ -9,7 +9,7 @@ export const SCANNER_BORDER = "#e2e8f0";
 export const SCANNER_PAGE_BG = "#f4f8ff";
 
 export const scannerShellClass =
-  "rounded-[1.5rem] border border-[#e2e8f0] bg-white shadow-[0_12px_36px_rgba(14,24,43,0.06)]";
+  "overflow-hidden rounded-none border-0 bg-white shadow-none";
 
 export const scannerPrimaryBtnClass =
   "inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1777f2] px-5 py-2.5 text-[0.84rem] font-bold text-white shadow-[0_10px_24px_rgba(23,119,242,0.28)] transition hover:bg-[#1569e0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1777f2] disabled:cursor-not-allowed disabled:opacity-50";
