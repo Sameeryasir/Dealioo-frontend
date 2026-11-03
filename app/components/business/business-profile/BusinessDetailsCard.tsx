@@ -94,7 +94,7 @@ export function BusinessDetailsCard({
       id="business-details"
       className={`scroll-mt-24 flex h-full min-h-full flex-col ${profileSectionCardClass}`}
     >
-      <div className="flex shrink-0 items-start gap-3 border-b border-[#eef2f7] bg-[#f8faff] px-5 py-4 sm:px-6 sm:py-5">
+      <div className="flex shrink-0 items-start gap-3 border-b border-[#eef2f7] bg-white px-5 py-4 sm:px-6 sm:py-5">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.25)]">
           <FileText className="size-5" strokeWidth={2.25} aria-hidden />
         </span>

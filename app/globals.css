@@ -2684,11 +2684,6 @@ body {
     background: transparent;
     padding: 0;
     outline: none;
-    transition: transform 0.15s ease;
-  }
-
-  .org-nav-account-trigger:hover {
-    transform: translateY(-1px);
   }
 
   .org-nav-account-trigger:focus-visible {
@@ -3385,6 +3380,10 @@ body {
     flex-direction: column;
     gap: 1.15rem;
     color: #0f172a;
+  }
+
+  .profile-page-section .dealioo-billing {
+    gap: 0.75rem;
   }
 
   .dealioo-billing-card {

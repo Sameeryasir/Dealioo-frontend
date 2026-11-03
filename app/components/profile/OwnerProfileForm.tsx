@@ -131,22 +131,29 @@ function ProfileContactViewRow({
   );
 }
 
+const pageCanvasClass =
+  "flex w-full min-w-0 flex-1 flex-col bg-[#f1f5f9]";
+const pageCanvasInnerClass =
+  "flex w-full min-w-0 flex-col gap-3 px-4 py-5 sm:gap-3.5 sm:px-5 sm:py-6 lg:px-6";
+
 function ProfilePageSkeleton() {
   return (
-    <div className="space-y-5" aria-busy="true" aria-label="Loading profile">
-      <div className={`${cardClass} p-5 sm:p-6`}>
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-16 shrink-0 rounded-full bg-slate-100" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-24 rounded-full bg-slate-100" />
-            <Skeleton className="h-7 w-48 max-w-full rounded-lg bg-slate-100" />
-            <Skeleton className="h-4 w-40 max-w-full rounded-md bg-slate-100" />
+    <div className={pageCanvasClass} aria-busy="true" aria-label="Loading profile">
+      <div className={pageCanvasInnerClass}>
+        <div className={`${cardClass} p-5 sm:p-6`}>
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-16 shrink-0 rounded-full bg-slate-100" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-24 rounded-full bg-slate-100" />
+              <Skeleton className="h-7 w-48 max-w-full rounded-lg bg-slate-100" />
+              <Skeleton className="h-4 w-40 max-w-full rounded-md bg-slate-100" />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Skeleton className="h-72 w-full rounded-2xl bg-slate-100" />
-        <Skeleton className="h-72 w-full rounded-2xl bg-slate-100" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Skeleton className="h-72 w-full rounded-2xl bg-white" />
+          <Skeleton className="h-72 w-full rounded-2xl bg-white" />
+        </div>
       </div>
     </div>
   );
@@ -825,10 +832,10 @@ export function OwnerProfileForm({
     </div>
   );
 
-  return (
-    <div className={`flex flex-col ${isPageLayout ? "gap-5" : "gap-8"}`}>
-      {isPageLayout ? (
-        <>
+  if (isPageLayout) {
+    return (
+      <div className={pageCanvasClass}>
+        <div className={pageCanvasInnerClass}>
           <div className={cardClass}>
             <div className="border-b border-[#eef2f7] bg-white px-5 py-5 sm:px-6 sm:py-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -917,97 +924,97 @@ export function OwnerProfileForm({
             }}
             avatarInputRef={avatarInputRef}
           />
-        </>
-      ) : (
-        <div
-          className={
-            isDark
-              ? "overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6"
-              : "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6"
-          }
-        >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <span
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div
+        className={
+          isDark
+            ? "overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6"
+            : "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-sm sm:p-6"
+        }
+      >
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span
+              className={
+                isDark
+                  ? "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-800 text-lg font-semibold text-white ring-2 ring-zinc-700"
+                  : "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-lg font-semibold text-[#07111f] shadow-md ring-2 ring-[#dbeafe]"
+              }
+            >
+              <UserAccountAvatar user={profile} className="size-full" />
+            </span>
+            <div className="min-w-0">
+              <p
                 className={
                   isDark
-                    ? "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-800 text-lg font-semibold text-white ring-2 ring-zinc-700"
-                    : "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-lg font-semibold text-[#07111f] shadow-md ring-2 ring-[#dbeafe]"
+                    ? "text-xs font-semibold uppercase tracking-wider text-sky-300/90"
+                    : "text-xs font-semibold uppercase tracking-wider text-[#1877f2]"
                 }
               >
-                <UserAccountAvatar user={profile} className="size-full" />
-              </span>
-              <div className="min-w-0">
-                <p
-                  className={
-                    isDark
-                      ? "text-xs font-semibold uppercase tracking-wider text-sky-300/90"
-                      : "text-xs font-semibold uppercase tracking-wider text-[#1877f2]"
-                  }
-                >
-                  Account {profile.role.name}
-                </p>
-                <h2
-                  className={
-                    isDark
-                      ? "mt-1 truncate text-2xl font-semibold tracking-tight text-white"
-                      : "mt-1 truncate text-2xl font-semibold tracking-tight text-[#07111f]"
-                  }
-                >
-                  {profile.name}
-                </h2>
-                <p
-                  className={
-                    isDark
-                      ? "mt-1 truncate text-sm text-zinc-400"
-                      : "mt-1 truncate text-sm text-slate-500"
-                  }
-                >
-                  {profile.email}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <StatusPill
-                label={profile.role.name}
-                tone="neutral"
-                variant={variant}
-              />
-              <StatusPill
-                label={profile.isActive ? "Active account" : "Inactive"}
-                tone={profile.isActive ? "success" : "warning"}
-                variant={variant}
-              />
-              <StatusPill
-                label={
-                  profile.emailVerified ? "Email verified" : "Email not verified"
+                Account {profile.role.name}
+              </p>
+              <h2
+                className={
+                  isDark
+                    ? "mt-1 truncate text-2xl font-semibold tracking-tight text-white"
+                    : "mt-1 truncate text-2xl font-semibold tracking-tight text-[#07111f]"
                 }
-                tone={profile.emailVerified ? "success" : "warning"}
-                variant={variant}
-              />
-              {profile.phone.trim() ? (
-                <StatusPill
-                  label={
-                    profile.phoneVerified
-                      ? "Phone verified"
-                      : "Phone not verified"
-                  }
-                  tone={profile.phoneVerified ? "success" : "warning"}
-                  variant={variant}
-                />
-              ) : null}
+              >
+                {profile.name}
+              </h2>
+              <p
+                className={
+                  isDark
+                    ? "mt-1 truncate text-sm text-zinc-400"
+                    : "mt-1 truncate text-sm text-slate-500"
+                }
+              >
+                {profile.email}
+              </p>
             </div>
           </div>
-        </div>
-      )}
 
-      {!isPageLayout ? (
-        <>
-          {accountDetails}
-          {editForm}
-        </>
-      ) : null}
+          <div className="flex flex-wrap gap-2">
+            <StatusPill
+              label={profile.role.name}
+              tone="neutral"
+              variant={variant}
+            />
+            <StatusPill
+              label={profile.isActive ? "Active account" : "Inactive"}
+              tone={profile.isActive ? "success" : "warning"}
+              variant={variant}
+            />
+            <StatusPill
+              label={
+                profile.emailVerified ? "Email verified" : "Email not verified"
+              }
+              tone={profile.emailVerified ? "success" : "warning"}
+              variant={variant}
+            />
+            {profile.phone.trim() ? (
+              <StatusPill
+                label={
+                  profile.phoneVerified
+                    ? "Phone verified"
+                    : "Phone not verified"
+                }
+                tone={profile.phoneVerified ? "success" : "warning"}
+                variant={variant}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {accountDetails}
+      {editForm}
     </div>
   );
 }

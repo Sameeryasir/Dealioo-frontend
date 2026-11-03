@@ -606,19 +606,30 @@ export function OwnerSubscriptionSection({
     ? "inline-flex h-10 w-fit items-center justify-center rounded-lg border border-red-500/40 bg-transparent px-5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-60"
     : "inline-flex h-10 w-fit items-center justify-center rounded-full border border-red-200 bg-white px-6 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60";
 
+  const pageStateCardClass =
+    "overflow-hidden rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-[0_14px_40px_rgba(14,24,43,0.06)]";
+
   const body = loading ? (
     <div
       className={
-        isDark
-          ? "flex items-center gap-2 text-sm text-zinc-500"
-          : "flex items-center gap-2 text-sm text-brand-muted"
+        isPage
+          ? `${pageStateCardClass} flex items-center gap-2 text-sm text-brand-muted`
+          : isDark
+            ? "flex items-center gap-2 text-sm text-zinc-500"
+            : "flex items-center gap-2 text-sm text-brand-muted"
       }
     >
       <Loader2 className="size-4 animate-spin" aria-hidden />
       Loading billing…
     </div>
   ) : errorMessage && !overview ? (
-    <div className="flex flex-col gap-3">
+    <div
+      className={
+        isPage
+          ? `${pageStateCardClass} flex flex-col gap-3`
+          : "flex flex-col gap-3"
+      }
+    >
       <div
         role="alert"
         className={
@@ -644,7 +655,9 @@ export function OwnerSubscriptionSection({
       className={
         isDark
           ? "rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5"
-          : "rounded-2xl border border-[#e8edf5] bg-[#f8faff] p-5"
+          : isPage
+            ? pageStateCardClass
+            : "rounded-2xl border border-[#e8edf5] bg-[#f8faff] p-5"
       }
     >
       <p className={mutedClass}>
@@ -909,9 +922,9 @@ export function OwnerSubscriptionSection({
   );
 
   const section = isPage ? (
-    <div className={`profile-subscription-panel ${showHeading ? "mt-8" : ""}`}>
+    <div className="flex flex-col gap-3 sm:gap-3.5">
       {showHeading ? (
-        <>
+        <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_14px_40px_rgba(14,24,43,0.06)]">
           <div className="profile-details-panel-head">
             <span className="profile-details-panel-badge" aria-hidden>
               <CreditCard className="size-4" strokeWidth={2.25} />
@@ -923,11 +936,9 @@ export function OwnerSubscriptionSection({
               </p>
             </div>
           </div>
-          <div className="profile-subscription-panel-body">{body}</div>
-        </>
-      ) : (
-        body
-      )}
+        </div>
+      ) : null}
+      {body}
     </div>
   ) : (
     <div className="flex flex-col gap-4">
