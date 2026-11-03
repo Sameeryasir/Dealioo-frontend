@@ -20,6 +20,7 @@ import {
   OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  hasPositiveChartValues,
   overviewAxisInterval,
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
@@ -56,7 +57,8 @@ export function AnalyticsMetricMiniChart({
   const compactScreen = useCompactChartDots();
   const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const gradient = useLineChartGradient(strokeColor);
-  const hasData = total > 0 || data.some((row) => Number(row.value) > 0);
+  const hasData =
+    total > 0 || hasPositiveChartValues(data.map((row) => row.value));
 
   return (
     <OverviewChartShell
@@ -95,7 +97,7 @@ export function AnalyticsMetricMiniChart({
               tickLine={false}
               width={28}
             />
-            <Tooltip content={<OverviewChartTooltip />} />
+            {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
             {hasData ? (
               <>
                 <Area

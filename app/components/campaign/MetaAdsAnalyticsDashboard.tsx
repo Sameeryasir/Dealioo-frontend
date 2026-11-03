@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { overviewSeriesAnimation } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import {
   Activity,
   AlertCircle,
@@ -534,6 +535,12 @@ export function MetaAdsAnalyticsDashboard({
   }, [stats.dailyInsights, selectedCampaign]);
 
   const showChartDots = dailySeries.length > 0 && dailySeries.length <= 2;
+  const hasDailyChartActivity = dailySeries.some(
+    (row) =>
+      Number(row.spend) > 0 ||
+      Number(row.impressions) > 0 ||
+      Number(row.clicks) > 0,
+  );
 
   const ageShares = useMemo(
     () => breakdownShares(stats.breakdowns?.age),
@@ -888,51 +895,57 @@ export function MetaAdsAnalyticsDashboard({
                       tickLine={false}
                       width={40}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: "1px solid #e8edf5",
-                        fontSize: 12,
-                      }}
-                    />
-                    <Area
-                      yAxisId="spend"
-                      type="monotone"
-                      dataKey="spend"
-                      name="Spend"
-                      stroke="#1877f2"
-                      strokeWidth={2.5}
-                      fill="url(#metaSpendFill)"
-                      isAnimationActive={false}
-                      dot={showChartDots ? { r: 3 } : false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Area
-                      yAxisId="volume"
-                      type="monotone"
-                      dataKey="impressions"
-                      name="Impressions"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      fill="url(#metaImpressionsFill)"
-                      isAnimationActive={false}
-                      dot={showChartDots ? { r: 3 } : false}
-                    />
-                    <Area
-                      yAxisId="volume"
-                      type="monotone"
-                      dataKey="clicks"
-                      name="Clicks"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      fill="transparent"
-                      isAnimationActive={false}
-                      dot={showChartDots ? { r: 3 } : false}
-                    />
+                    {hasDailyChartActivity ? (
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #e8edf5",
+                          fontSize: 12,
+                        }}
+                      />
+                    ) : null}
+                    {hasDailyChartActivity ? (
+                      <>
+                        <Area
+                          yAxisId="spend"
+                          type="monotone"
+                          dataKey="spend"
+                          name="Spend"
+                          stroke="#1877f2"
+                          strokeWidth={2.5}
+                          fill="url(#metaSpendFill)"
+                          {...overviewSeriesAnimation(0)}
+                          dot={showChartDots ? { r: 3 } : false}
+                          activeDot={{ r: 4 }}
+                        />
+                        <Area
+                          yAxisId="volume"
+                          type="monotone"
+                          dataKey="impressions"
+                          name="Impressions"
+                          stroke="#8b5cf6"
+                          strokeWidth={2}
+                          fill="url(#metaImpressionsFill)"
+                          {...overviewSeriesAnimation(1)}
+                          dot={showChartDots ? { r: 3 } : false}
+                        />
+                        <Area
+                          yAxisId="volume"
+                          type="monotone"
+                          dataKey="clicks"
+                          name="Clicks"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          fill="transparent"
+                          {...overviewSeriesAnimation(2)}
+                          dot={showChartDots ? { r: 3 } : false}
+                        />
+                      </>
+                    ) : null}
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartMount>
-              {dailySeries.length === 0 ? (
+              {!hasDailyChartActivity ? (
                 <div className="absolute inset-0 z-[1] bg-white/90">
                   <EmptyChartNote
                     message={

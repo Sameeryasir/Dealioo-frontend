@@ -15,10 +15,11 @@ import { OverviewChartShell } from "@/app/components/campaign/overview/charts/Ov
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
 import {
   OVERVIEW_AD_SOURCE_COLORS,
-  OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   formatMonthLabel,
+  hasPositiveChartValues,
   overviewAxisInterval,
+  overviewSeriesAnimation,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
 import {
@@ -123,12 +124,27 @@ export function VisitorsAdSourcesMiniChart({
     : data;
 
   const hasMetaData =
-    metaTotal > 0 || data.some((row) => Number(row.meta) > 0);
+    metaTotal > 0 || hasPositiveChartValues(data.map((row) => row.meta));
   const hasGoogleData =
-    googleTotal > 0 || data.some((row) => Number(row.google) > 0);
+    googleTotal > 0 || hasPositiveChartValues(data.map((row) => row.google));
   const hasInStoreData =
     showInStore &&
-    (inStoreTotal > 0 || data.some((row) => Number(row.inStore) > 0));
+    (inStoreTotal > 0 ||
+      hasPositiveChartValues(data.map((row) => row.inStore)));
+  const hasNewVisitorsData =
+    Boolean(audience) &&
+    ((audience?.newVisitors ?? 0) > 0 ||
+      hasPositiveChartValues(chartData.map((row) => row.newVisitors)));
+  const hasRepeatVisitorsData =
+    Boolean(audience) &&
+    ((audience?.repeatVisitors ?? 0) > 0 ||
+      hasPositiveChartValues(chartData.map((row) => row.repeatVisitors)));
+  const hasAnySeries =
+    hasMetaData ||
+    hasGoogleData ||
+    hasInStoreData ||
+    hasNewVisitorsData ||
+    hasRepeatVisitorsData;
 
   let peak: { label: string; total: number; winner: SourceWinner } | null = null;
   for (const row of data) {
@@ -236,7 +252,9 @@ export function VisitorsAdSourcesMiniChart({
                     : undefined
                 }
               />
-              <Tooltip content={<OverviewChartTooltip />} />
+              {hasAnySeries ? (
+                <Tooltip content={<OverviewChartTooltip />} />
+              ) : null}
               {hasMetaData ? (
                 <Line
                   type="monotone"
@@ -248,7 +266,7 @@ export function VisitorsAdSourcesMiniChart({
                       : OVERVIEW_AD_SOURCE_COLORS.meta
                   }
                   strokeWidth={3}
-                  {...OVERVIEW_LINE_ANIMATION}
+                  {...overviewSeriesAnimation(0)}
                   dot={
                     showDots
                       ? {
@@ -281,7 +299,7 @@ export function VisitorsAdSourcesMiniChart({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeOpacity={0.92}
-                  {...OVERVIEW_LINE_ANIMATION}
+                  {...overviewSeriesAnimation(1)}
                   dot={
                     showDots
                       ? {
@@ -300,14 +318,14 @@ export function VisitorsAdSourcesMiniChart({
                   }}
                 />
               ) : null}
-              {audience ? (
+              {hasNewVisitorsData ? (
                 <Line
                   type="monotone"
                   dataKey="newVisitors"
                   name="New"
                   stroke={VISITOR_AUDIENCE_COLORS.newVisitors}
                   strokeWidth={2.5}
-                  {...OVERVIEW_LINE_ANIMATION}
+                  {...overviewSeriesAnimation(2)}
                   dot={
                     showDots
                       ? {
@@ -326,14 +344,14 @@ export function VisitorsAdSourcesMiniChart({
                   }}
                 />
               ) : null}
-              {audience ? (
+              {hasRepeatVisitorsData ? (
                 <Line
                   type="monotone"
                   dataKey="repeatVisitors"
                   name="Repeat"
                   stroke={VISITOR_AUDIENCE_COLORS.repeatVisitors}
                   strokeWidth={2.5}
-                  {...OVERVIEW_LINE_ANIMATION}
+                  {...overviewSeriesAnimation(3)}
                   dot={
                     showDots
                       ? {
@@ -359,7 +377,7 @@ export function VisitorsAdSourcesMiniChart({
                   name="In store"
                   stroke={OVERVIEW_AD_SOURCE_COLORS.inStore}
                   strokeWidth={3}
-                  {...OVERVIEW_LINE_ANIMATION}
+                  {...overviewSeriesAnimation(4)}
                   dot={
                     showDots
                       ? {

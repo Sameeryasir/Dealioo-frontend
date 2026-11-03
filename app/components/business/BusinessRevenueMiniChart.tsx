@@ -15,6 +15,7 @@ import {
   OVERVIEW_CHART_COLORS,
   OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
+  hasPositiveChartValues,
   overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -101,6 +102,9 @@ export function BusinessRevenueMiniChart({
       value: row.value / 100,
     })),
   );
+  const hasData =
+    totalRevenueCents > 0 ||
+    hasPositiveChartValues(data.map((row) => row.value));
 
   return (
     <OverviewChartShell
@@ -143,31 +147,33 @@ export function BusinessRevenueMiniChart({
                 }).format(value)
               }
             />
-            <Tooltip content={<OverviewChartTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="value"
-              name="Revenue"
-              stroke={strokeColor}
-              strokeWidth={3}
-              {...OVERVIEW_LINE_ANIMATION}
-              dot={
-                showDots
-                  ? {
-                      r: 3.5,
-                      fill: "#ffffff",
-                      stroke: strokeColor,
-                      strokeWidth: 2.5,
-                    }
-                  : false
-              }
-              activeDot={{
-                r: 6,
-                fill: strokeColor,
-                stroke: "#ffffff",
-                strokeWidth: 3,
-              }}
-            />
+            {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
+            {hasData ? (
+              <Line
+                type="monotone"
+                dataKey="value"
+                name="Revenue"
+                stroke={strokeColor}
+                strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
+                dot={
+                  showDots
+                    ? {
+                        r: 3.5,
+                        fill: "#ffffff",
+                        stroke: strokeColor,
+                        strokeWidth: 2.5,
+                      }
+                    : false
+                }
+                activeDot={{
+                  r: 6,
+                  fill: strokeColor,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
+              />
+            ) : null}
           </LineChart>
         </ResponsiveContainer>
       </div>

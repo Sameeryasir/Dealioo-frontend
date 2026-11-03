@@ -2,7 +2,10 @@
 
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
-import { OVERVIEW_CHART_COLORS } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  OVERVIEW_CHART_COLORS,
+  overviewSeriesAnimation,
+} from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { Skeleton } from "@/app/components/skeleton";
 import {
   ACTIVITY_ALL_MONTHS_ID,
@@ -1410,6 +1413,9 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
   const isFullMonthView = monthFilter !== ACTIVITY_ALL_MONTHS_ID;
   const xAxisInterval =
     chartData.length >= 28 ? 4 : chartData.length >= 16 ? 2 : 0;
+  const hasChartActivity = chartCampaigns.some((campaign) =>
+    chartData.some((row) => Number(row[`c${campaign.campaignId}`] ?? 0) > 0),
+  );
 
   return (
     <div className={`${panelCardClass} overflow-hidden px-4 py-4 sm:px-5`}>
@@ -1452,7 +1458,9 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
       >
         {isPending ? (
           <Skeleton className="h-full w-full rounded-xl" />
-        ) : chartData.length === 0 || chartCampaigns.length === 0 ? (
+        ) : chartData.length === 0 ||
+          chartCampaigns.length === 0 ||
+          !hasChartActivity ? (
           <div className="flex h-full flex-col items-center justify-center rounded-xl text-center">
             <ChartColumn className="size-8 text-slate-300" aria-hidden />
             <p className="m-0 mt-2 text-sm font-medium text-slate-500">
@@ -1589,7 +1597,7 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
                       );
                     }}
                     activeDot={false}
-                    isAnimationActive={false}
+                    {...overviewSeriesAnimation(index)}
                   />
                 );
               })}

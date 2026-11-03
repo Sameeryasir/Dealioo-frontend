@@ -46,10 +46,11 @@ import { getRestaurantActivityMonthly } from "@/app/services/activity/get-busine
 import { getBusinessMetaSpend } from "@/app/services/facebook/get-business-meta-spend";
 import { getBusinessGoogleSpend } from "@/app/services/google-ads/get-business-google-spend";
 import { useIntegrationsConnectionStatus } from "@/app/hooks/use-integrations-connection-status";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  ChartColumn,
   DollarSign,
   Megaphone,
   ScanLine,
@@ -362,6 +363,7 @@ export function BusinessActivityOverviewPanel({
         : businessActivityQueryKeys.disabled(),
     enabled: businessId != null && businessId > 0,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       getRestaurantActivityMonthly(businessId!, {
         from: periodRange.from,
@@ -575,7 +577,9 @@ export function BusinessActivityOverviewPanel({
     previousActiveGuests,
   );
 
-  const periodLoading = periodQuery.isPending;
+  const periodLoading = periodQuery.isPending && periodQuery.data == null;
+  const periodRefreshing =
+    periodQuery.isFetching && periodQuery.data != null;
 
   return (
     <article className={overviewCardClass} aria-label="Business activity">
@@ -589,25 +593,35 @@ export function BusinessActivityOverviewPanel({
       />
 
       <div className="funnel-overview-scroll">
-      <div className="relative shrink-0 border-b border-[#e8edf5] bg-white px-3 py-3.5 sm:px-4 sm:py-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <span className="inline-flex w-fit items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-              Business performance
+      <div className="sticky top-0 z-30 shrink-0 border-b border-[#e8edf5]/80 bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
+        <div className="relative flex flex-wrap items-center justify-between gap-3 px-3 py-3.5 sm:gap-4 sm:px-4 sm:py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-[0_10px_24px_rgba(24,119,242,0.35)]">
+              <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
             </span>
-            <p className="m-0 mt-1.5 text-[0.8rem] font-medium text-slate-500">
-              Campaigns, orders, members and revenue at a glance.
-            </p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.15rem]">
+                  Business performance
+                </h2>
+                <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                  Live
+                </span>
+              </div>
+              <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500 sm:text-[0.8rem]">
+                Campaigns, orders, members and revenue at a glance.
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e8edf5]/90 bg-white/90 p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02]">
+            <div className="inline-flex rounded-xl bg-[#f4f7fb] p-0.5">
               <button
                 type="button"
                 onClick={() => setCalendarMode("month")}
-                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                className={`cursor-pointer rounded-[0.65rem] px-3.5 py-1.5 text-[0.72rem] font-bold transition ${
                   calendarMode === "month"
-                    ? "bg-[#1877f2] text-white"
-                    : "text-slate-600"
+                    ? "bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]"
+                    : "text-slate-600 hover:text-[#07111f]"
                 }`}
               >
                 Month
@@ -615,15 +629,16 @@ export function BusinessActivityOverviewPanel({
               <button
                 type="button"
                 onClick={() => setCalendarMode("day")}
-                className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+                className={`cursor-pointer rounded-[0.65rem] px-3.5 py-1.5 text-[0.72rem] font-bold transition ${
                   calendarMode === "day"
-                    ? "bg-[#1877f2] text-white"
-                    : "text-slate-600"
+                    ? "bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]"
+                    : "text-slate-600 hover:text-[#07111f]"
                 }`}
               >
                 Day
               </button>
             </div>
+            <span className="hidden h-6 w-px bg-[#e8edf5] sm:block" aria-hidden />
             {calendarMode === "month" ? (
               <ActivityMonthCalendarPicker
                 value={monthFilter}
@@ -874,8 +889,14 @@ export function BusinessActivityOverviewPanel({
                       : `Activity in ${periodLabel}.`}
                 </p>
               </div>
-              <div className="grid gap-3 sm:gap-3.5 lg:grid-cols-2">
-                <div className="min-h-[300px]" key={`checkins-${periodLabel}`}>
+              <div
+                className={`grid gap-3 transition-[opacity,filter] duration-500 ease-out sm:gap-3.5 lg:grid-cols-2 ${
+                  periodRefreshing
+                    ? "pointer-events-none opacity-35 blur-[1.5px]"
+                    : "opacity-100 blur-0"
+                }`}
+              >
+                <div className="min-h-[300px]">
                   <CheckInsBarChart
                     data={visibleCheckIns}
                     caption={periodLabel}
@@ -885,7 +906,7 @@ export function BusinessActivityOverviewPanel({
                     peakDayValue={peakCheckInsDay?.value}
                   />
                 </div>
-                <div className="min-h-[300px]" key={`revenue-${periodLabel}`}>
+                <div className="min-h-[300px]">
                   <BusinessRevenueMiniChart
                     data={visibleRevenue}
                     totalRevenueCents={periodRevenueCents}
@@ -905,7 +926,7 @@ export function BusinessActivityOverviewPanel({
                     }
                   />
                 </div>
-                <div className="min-h-[300px]" key={`orders-${periodLabel}`}>
+                <div className="min-h-[300px]">
                   <BusinessMonthlyBarChart
                     title="Orders"
                     subtitle="Paid payments"
@@ -918,7 +939,7 @@ export function BusinessActivityOverviewPanel({
                     caption={periodLabel}
                   />
                 </div>
-                <div className="min-h-[300px]" key={`members-${periodLabel}`}>
+                <div className="min-h-[300px]">
                   <BusinessMembersMiniChart
                     data={visibleMembers}
                     total={visibleNewMembers}

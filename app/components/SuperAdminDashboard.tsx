@@ -3,7 +3,11 @@
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { OverviewChartShell } from "@/app/components/campaign/overview/charts/OverviewChartShell";
 import { OverviewChartTooltip } from "@/app/components/campaign/overview/charts/OverviewChartTooltip";
-import { overviewAxisInterval } from "@/app/components/campaign/overview/charts/overview-chart-config";
+import {
+  OVERVIEW_LINE_ANIMATION,
+  hasPositiveChartValues,
+  overviewAxisInterval,
+} from "@/app/components/campaign/overview/charts/overview-chart-config";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { Skeleton } from "@/app/components/skeleton";
 import { BusinessesByRegionCard } from "@/app/components/super-admin/BusinessesByRegionCard";
@@ -287,6 +291,7 @@ function PlatformTrendChart({
   const compactScreen = useCompactChartDots();
   const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const chartHeight = compactScreen ? 220 : 260;
+  const hasData = hasPositiveChartValues(data.map((row) => row.value));
 
   return (
     <div
@@ -339,33 +344,33 @@ function PlatformTrendChart({
                 : undefined
             }
           />
-          <Tooltip content={<OverviewChartTooltip />} />
-          <Line
-            type="monotone"
-            dataKey="value"
-            name={seriesName}
-            stroke={stroke}
-            strokeWidth={compactScreen ? 2.25 : 2.75}
-            dot={
-              showDots
-                ? {
-                    r: 4,
-                    fill: stroke,
-                    stroke: "#ffffff",
-                    strokeWidth: 2,
-                  }
-                : false
-            }
-            activeDot={{
-              r: compactScreen ? 5 : 6,
-              fill: stroke,
-              stroke: "#ffffff",
-              strokeWidth: 2,
-            }}
-            isAnimationActive
-            animationDuration={750}
-            animationEasing="ease-in-out"
-          />
+          {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
+          {hasData ? (
+            <Line
+              type="monotone"
+              dataKey="value"
+              name={seriesName}
+              stroke={stroke}
+              strokeWidth={compactScreen ? 2.25 : 2.75}
+              {...OVERVIEW_LINE_ANIMATION}
+              dot={
+                showDots
+                  ? {
+                      r: 4,
+                      fill: stroke,
+                      stroke: "#ffffff",
+                      strokeWidth: 2,
+                    }
+                  : false
+              }
+              activeDot={{
+                r: compactScreen ? 5 : 6,
+                fill: stroke,
+                stroke: "#ffffff",
+                strokeWidth: 2,
+              }}
+            />
+          ) : null}
         </LineChart>
       </ResponsiveContainer>
     </div>

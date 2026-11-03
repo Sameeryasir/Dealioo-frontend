@@ -21,6 +21,7 @@ import {
   OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  hasPositiveChartValues,
   overviewAxisInterval,
   shortenMonthAxisLabel,
   type MonthlyMetricPoint,
@@ -65,7 +66,8 @@ export function FunnelRevenueMiniChart({
     value: row.value / 100,
   }));
   const hasData =
-    totalRevenueCents > 0 || data.some((row) => Number(row.value) > 0);
+    totalRevenueCents > 0 ||
+    hasPositiveChartValues(data.map((row) => row.value));
 
   return (
     <OverviewChartShell
@@ -107,7 +109,7 @@ export function FunnelRevenueMiniChart({
                 formatAxisDollars(value, currencyCode)
               }
             />
-            <Tooltip content={<OverviewChartTooltip />} />
+            {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
             {hasData ? (
               <>
                 <Area

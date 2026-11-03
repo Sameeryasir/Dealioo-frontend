@@ -21,15 +21,15 @@ export function OverviewPeriodFilter({
   monthCount: number;
 }) {
   return (
-    <>
-      <div className="inline-flex rounded-full border border-[#e8edf5] bg-white p-0.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e8edf5]/90 bg-white/90 p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.02]">
+      <div className="inline-flex rounded-xl bg-[#f4f7fb] p-0.5">
         <button
           type="button"
           onClick={() => onCalendarModeChange("month")}
-          className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+          className={`cursor-pointer rounded-[0.65rem] px-3.5 py-1.5 text-[0.72rem] font-bold transition ${
             calendarMode === "month"
-              ? "bg-[#1877f2] text-white"
-              : "text-slate-600"
+              ? "bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]"
+              : "text-slate-600 hover:text-[#07111f]"
           }`}
         >
           Month
@@ -37,15 +37,16 @@ export function OverviewPeriodFilter({
         <button
           type="button"
           onClick={() => onCalendarModeChange("day")}
-          className={`cursor-pointer rounded-full px-3 py-1 text-[0.72rem] font-bold ${
+          className={`cursor-pointer rounded-[0.65rem] px-3.5 py-1.5 text-[0.72rem] font-bold transition ${
             calendarMode === "day"
-              ? "bg-[#1877f2] text-white"
-              : "text-slate-600"
+              ? "bg-[#1877f2] text-white shadow-[0_6px_14px_rgba(24,119,242,0.28)]"
+              : "text-slate-600 hover:text-[#07111f]"
           }`}
         >
           Day
         </button>
       </div>
+      <span className="hidden h-6 w-px bg-[#e8edf5] sm:block" aria-hidden />
       {calendarMode === "month" ? (
         <ActivityMonthCalendarPicker
           value={monthFilter}
@@ -61,6 +62,6 @@ export function OverviewPeriodFilter({
           monthCount={monthCount}
         />
       )}
-    </>
+    </div>
   );
 }

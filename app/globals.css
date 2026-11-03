@@ -2727,7 +2727,7 @@ body {
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 0;
-    width: min(17rem, calc(100vw - 2rem));
+    width: min(12rem, calc(100vw - 2rem));
     overflow: hidden;
     border: 1px solid #e8edf5;
     border-radius: 1rem;

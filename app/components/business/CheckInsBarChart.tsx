@@ -17,6 +17,7 @@ import {
   OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  hasPositiveChartValues,
   overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -46,6 +47,7 @@ export function CheckInsBarChart({
   const compactScreen = useCompactChartDots();
   const showDots = shouldShowOverviewChartDots(compactScreen, data.length);
   const checkInTotal = data.reduce((sum, row) => sum + row.checkIns, 0);
+  const hasData = hasPositiveChartValues(data.map((row) => row.checkIns));
   const hasChannelSplit =
     typeof scannedCount === "number" && typeof inStoreCount === "number";
   const showPeakDay =
@@ -86,31 +88,33 @@ export function CheckInsBarChart({
               tickLine={false}
               width={36}
             />
-            <Tooltip content={<OverviewChartTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="checkIns"
-              name="Check-ins"
-              stroke={OVERVIEW_CHART_COLORS.blue}
-              strokeWidth={3}
-              {...OVERVIEW_LINE_ANIMATION}
-              dot={
-                showDots
-                  ? {
-                      r: 3.5,
-                      fill: "#ffffff",
-                      stroke: OVERVIEW_CHART_COLORS.blue,
-                      strokeWidth: 2.5,
-                    }
-                  : false
-              }
-              activeDot={{
-                r: 6,
-                fill: OVERVIEW_CHART_COLORS.blue,
-                stroke: "#ffffff",
-                strokeWidth: 3,
-              }}
-            />
+            {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
+            {hasData ? (
+              <Line
+                type="monotone"
+                dataKey="checkIns"
+                name="Check-ins"
+                stroke={OVERVIEW_CHART_COLORS.blue}
+                strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
+                dot={
+                  showDots
+                    ? {
+                        r: 3.5,
+                        fill: "#ffffff",
+                        stroke: OVERVIEW_CHART_COLORS.blue,
+                        strokeWidth: 2.5,
+                      }
+                    : false
+                }
+                activeDot={{
+                  r: 6,
+                  fill: OVERVIEW_CHART_COLORS.blue,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
+              />
+            ) : null}
           </LineChart>
         </ResponsiveContainer>
       </div>

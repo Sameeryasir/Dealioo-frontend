@@ -130,9 +130,11 @@ export function AdSpendCard({
             </p>
           ) : null}
         </div>
-        <div className="funnel-overview-ad-spend-card__sparkline-slot">
-          <AdSpendSparkline accent={accent} />
-        </div>
+        {spendCents > 0 ? (
+          <div className="funnel-overview-ad-spend-card__sparkline-slot">
+            <AdSpendSparkline accent={accent} />
+          </div>
+        ) : null}
       </div>
 
       <div className="funnel-overview-ad-spend-card__footer">

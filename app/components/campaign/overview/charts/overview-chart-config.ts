@@ -45,11 +45,24 @@ export const OVERVIEW_MINI_LINE_CHART_MARGIN = {
 };
 
 export const OVERVIEW_LINE_ANIMATION = {
-  isAnimationActive: "auto" as const,
-  animationDuration: 900,
-  animationEasing: "ease-out" as const,
-  animationBegin: 0,
-};
+  isAnimationActive: true,
+  animationDuration: 1800,
+  animationEasing: "ease-in-out" as const,
+  animationBegin: 80,
+} as const;
+
+export function overviewSeriesAnimation(seriesIndex = 0) {
+  return {
+    ...OVERVIEW_LINE_ANIMATION,
+    animationBegin: 80 + Math.max(0, seriesIndex) * 180,
+  };
+}
+
+export function hasPositiveChartValues(
+  values: Array<number | null | undefined>,
+): boolean {
+  return values.some((value) => Number(value) > 0);
+}
 
 export const OVERVIEW_BAR_CHART_MARGIN = {
   top: 8,

@@ -11,7 +11,6 @@ import {
   warmRestaurantConversationMessageCache,
 } from "@/app/services/chat/chat-indexed-db";
 import { markConversationRead } from "@/app/services/chat/mark-conversation-read";
-import { filterMockGuestChatCustomers } from "./guest-chats/guest-chats-mock-data";
 import { GuestChatConversationPanel } from "./guest-chats/GuestChatConversationPanel";
 import { GuestChatSelectConversationEmptyState } from "./guest-chats/GuestChatEmptyStates";
 import { GuestChatSidebar } from "./guest-chats/GuestChatSidebar";
@@ -54,11 +53,6 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
       const live = liveUnreadByCustomerId[row.customerId];
       merged[row.customerId] =
         typeof live === "number" ? live : (row.unreadCount ?? 0);
-    }
-    for (const row of filterMockGuestChatCustomers("")) {
-      if (merged[row.customerId] == null) {
-        merged[row.customerId] = row.unreadCount ?? 0;
-      }
     }
     for (const [customerId, live] of Object.entries(liveUnreadByCustomerId)) {
       const id = Number(customerId);
@@ -163,16 +157,7 @@ export function BusinessChatsPanel({ businessId }: { businessId: number }) {
     keepCustomerIdsKey,
   ]);
 
-  const displayRows = useMemo(() => {
-    const mocks = filterMockGuestChatCustomers(search);
-    const realIds = new Set(rows.map((row) => row.customerId));
-    const mockOnly = mocks.filter((row) => !realIds.has(row.customerId));
-    return [...rows, ...mockOnly].sort(
-      (a, b) =>
-        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
-    );
-  }, [rows, search]);
-
+  const displayRows = rows;
   const filteredRows = displayRows;
 
   const selectedRow = useMemo(() => {

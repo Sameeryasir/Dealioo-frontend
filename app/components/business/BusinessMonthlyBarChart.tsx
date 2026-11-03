@@ -16,6 +16,7 @@ import {
   OVERVIEW_LINE_ANIMATION,
   OVERVIEW_MINI_LINE_CHART_MARGIN,
   OVERVIEW_MONTH_COUNT,
+  hasPositiveChartValues,
   overviewAxisInterval,
   shortenMonthAxisLabel,
 } from "@/app/components/campaign/overview/charts/overview-chart-config";
@@ -54,6 +55,9 @@ export function BusinessMonthlyBarChart({
     (sum, row) => sum + Number(row[dataKey] ?? 0),
     0,
   );
+  const hasData = hasPositiveChartValues(
+    data.map((row) => Number(row[dataKey] ?? 0)),
+  );
 
   return (
     <OverviewChartShell
@@ -87,31 +91,33 @@ export function BusinessMonthlyBarChart({
               tickLine={false}
               width={36}
             />
-            <Tooltip content={<OverviewChartTooltip />} />
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              name={seriesName}
-              stroke={barFill}
-              strokeWidth={3}
-              {...OVERVIEW_LINE_ANIMATION}
-              dot={
-                showDots
-                  ? {
-                      r: 3.5,
-                      fill: "#ffffff",
-                      stroke: barFill,
-                      strokeWidth: 2.5,
-                    }
-                  : false
-              }
-              activeDot={{
-                r: 6,
-                fill: barFill,
-                stroke: "#ffffff",
-                strokeWidth: 3,
-              }}
-            />
+            {hasData ? <Tooltip content={<OverviewChartTooltip />} /> : null}
+            {hasData ? (
+              <Line
+                type="monotone"
+                dataKey={dataKey}
+                name={seriesName}
+                stroke={barFill}
+                strokeWidth={3}
+                {...OVERVIEW_LINE_ANIMATION}
+                dot={
+                  showDots
+                    ? {
+                        r: 3.5,
+                        fill: "#ffffff",
+                        stroke: barFill,
+                        strokeWidth: 2.5,
+                      }
+                    : false
+                }
+                activeDot={{
+                  r: 6,
+                  fill: barFill,
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                }}
+              />
+            ) : null}
           </LineChart>
         </ResponsiveContainer>
       </div>

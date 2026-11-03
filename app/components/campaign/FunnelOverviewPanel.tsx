@@ -4,6 +4,7 @@ import {
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
+  ChartColumn,
   DollarSign,
   Layers,
   Percent,
@@ -67,7 +68,7 @@ import {
 } from "@/app/services/funnel/get-funnel-stats-monthly";
 import { getDealioCampaignGoogleSpend } from "@/app/services/google-ads/get-dealio-campaign-google-spend";
 import { useIntegrationsConnectionStatus } from "@/app/hooks/use-integrations-connection-status";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 const overviewCardClass =
   "relative overflow-hidden rounded-none border-0 bg-white shadow-none";
@@ -619,6 +620,7 @@ export function FunnelOverviewPanel({
     ),
     enabled: funnelReady,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       getFunnelDashboardKpis(funnelId!, {
         from: periodRange.from,
@@ -640,6 +642,7 @@ export function FunnelOverviewPanel({
     ),
     enabled: funnelReady,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       getFunnelDashboardCharts(funnelId!, {
         from: periodRange.from,
@@ -657,6 +660,7 @@ export function FunnelOverviewPanel({
     ),
     enabled: funnelReady,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       getFunnelDropoff(funnelId!, {
         from: periodRange.from,
@@ -882,8 +886,12 @@ export function FunnelOverviewPanel({
     isFunnelIdLoading ||
     (funnelId != null &&
       !overviewReady &&
-      (kpisQuery.isPending || kpisQuery.isFetching) &&
+      kpisQuery.isPending &&
+      kpisQuery.data == null &&
       !kpisQuery.isError);
+  const overviewRefreshing =
+    overviewReady &&
+    (kpisQuery.isFetching || chartsQuery.isFetching || dropoffQuery.isFetching);
   const showNoFunnelMessage = !showFullSkeleton && funnelId == null;
 
   const alertMessage =
@@ -893,9 +901,8 @@ export function FunnelOverviewPanel({
         ? "Could not load campaign overview stats for this period."
         : null;
 
-  const performanceBandClass = embedded
-    ? "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white"
-    : "funnel-overview-performance-band relative shrink-0 border-b border-[#e8edf5] bg-white";
+  const performanceBandClass =
+    "funnel-overview-performance-band sticky top-0 z-30 shrink-0 border-b border-[#e8edf5]/80 bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60";
 
   const panelBodyPadClass = "funnel-overview-body";
   const panelSkeletonPadClass = "funnel-overview-body";
@@ -903,20 +910,33 @@ export function FunnelOverviewPanel({
   const panelBody = (
     <>
       <div className={performanceBandClass}>
-        <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[#1877f2]/10 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
-          Campaign performance
-        </span>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <OverviewPeriodFilter
-            calendarMode={calendarMode}
-            onCalendarModeChange={setCalendarMode}
-            monthFilter={monthFilter}
-            onMonthFilterChange={setMonthFilter}
-            dateFilter={dateFilter}
-            onDateFilterChange={setDateFilter}
-            monthCount={dashboardMonthCount}
-          />
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-[0_10px_24px_rgba(24,119,242,0.35)]">
+            <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.15rem]">
+                Campaign performance
+              </h2>
+              <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
+                Live
+              </span>
+            </div>
+            <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500 sm:text-[0.8rem]">
+              Visitors, conversions, revenue and ad spend at a glance.
+            </p>
+          </div>
         </div>
+        <OverviewPeriodFilter
+          calendarMode={calendarMode}
+          onCalendarModeChange={setCalendarMode}
+          monthFilter={monthFilter}
+          onMonthFilterChange={setMonthFilter}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          monthCount={dashboardMonthCount}
+        />
       </div>
 
       {showNoFunnelMessage ? (
@@ -935,7 +955,6 @@ export function FunnelOverviewPanel({
 
           {!showFullSkeleton && overviewReady && kpis ? (
           <motion.div
-            key={`${periodRange.from}:${periodRange.to}`}
             className="funnel-overview-content"
             variants={funnelPanelStagger}
             initial="hidden"
@@ -1185,6 +1204,13 @@ export function FunnelOverviewPanel({
               </motion.section>
             ) : null}
 
+            <div
+              className={`transition-[opacity,filter] duration-500 ease-out ${
+                overviewRefreshing
+                  ? "pointer-events-none opacity-35 blur-[1.5px]"
+                  : "opacity-100 blur-0"
+              }`}
+            >
             {dropoffLoading ? (
               <motion.section
                 className="funnel-overview-chart-grid funnel-overview-chart-grid--dropoff-first"
@@ -1338,6 +1364,7 @@ export function FunnelOverviewPanel({
                 </motion.div>
               </motion.section>
             ) : null}
+            </div>
           </motion.div>
           ) : null}
         </div>
