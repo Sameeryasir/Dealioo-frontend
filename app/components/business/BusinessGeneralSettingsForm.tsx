@@ -40,24 +40,6 @@ type BusinessGeneralSettingsFormProps = {
   focus?: string | null;
 };
 
-const PREVIEW_TITLES: Record<
-  BusinessProfilePreviewSection,
-  { title: string; subtitle: string }
-> = {
-  general: {
-    title: "Business profile",
-    subtitle: "Manage your business information and settings",
-  },
-  members: {
-    title: "Team",
-    subtitle: "Invite teammates and manage access for this business",
-  },
-  integrations: {
-    title: "Integrations",
-    subtitle: "Connect Stripe, Meta, and Google Ads for this business.",
-  },
-};
-
 type FormSnapshot = {
   name: string;
   description: string;
@@ -127,7 +109,6 @@ export function BusinessGeneralSettingsForm({
       ? activeSection
       : "general";
   const isProfileView = previewSection === "general";
-  const previewMeta = PREVIEW_TITLES[previewSection];
 
   const { data: business, isPending, error } = useBusinessByIdQuery(
     previewSection === "general" ? businessId : null,
@@ -277,17 +258,6 @@ export function BusinessGeneralSettingsForm({
         businessId={businessId}
         onClose={() => setEditOpen(false)}
       />
-
-      {previewSection === "members" ? (
-        <header className="relative mb-5 shrink-0 pt-1">
-          <h1 className="m-0 text-[1.5rem] font-extrabold tracking-tight text-[#07111f]">
-            {previewMeta.title}
-          </h1>
-          <p className="m-0 mt-1 text-sm text-slate-500">
-            {previewMeta.subtitle}
-          </p>
-        </header>
-      ) : null}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 pb-5">
         {isProfileView ? (
