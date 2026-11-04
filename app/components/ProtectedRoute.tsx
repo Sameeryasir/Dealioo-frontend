@@ -13,9 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(() =>
-    typeof window === "undefined" ? null : hasAuthSession(),
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
     const sync = () => {

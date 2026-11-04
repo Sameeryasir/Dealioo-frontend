@@ -6,9 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 export function SuperAdminGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [allowed, setAllowed] = useState(() =>
-    typeof window === "undefined" ? false : isSuperAdminUser(),
-  );
+  const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
     const ok = isSuperAdminUser();
