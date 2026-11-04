@@ -488,13 +488,7 @@ export function SuperAdminDashboard() {
               {blankLoading ? (
                 <OverviewKpiSkeleton />
               ) : (
-                <div
-                  className={
-                    isCurrentPeriod
-                      ? styles.kpiGridFour
-                      : styles.kpiGridTwo
-                  }
-                >
+                <div className={styles.kpiGridFour}>
                   <PanelKpiCard
                     label={
                       isCurrentPeriod
@@ -520,27 +514,23 @@ export function SuperAdminDashboard() {
                     soft="#f3e8ff"
                     ready={ready}
                   />
-                  {isCurrentPeriod ? (
-                    <>
-                      <PanelKpiCard
-                        label="New plan money"
-                        kpi={kpis?.planEarnings ?? EMPTY_KPI}
-                        money
-                        icon={Wallet}
-                        accent="#1877f2"
-                        soft="#e8f2ff"
-                        ready={ready}
-                      />
-                      <PanelKpiCard
-                        label="New plans"
-                        kpi={kpis?.newPlans ?? EMPTY_KPI}
-                        icon={Sparkles}
-                        accent="#f77737"
-                        soft="#fff7ed"
-                        ready={ready}
-                      />
-                    </>
-                  ) : null}
+                  <PanelKpiCard
+                    label="New plan money"
+                    kpi={kpis?.planEarnings ?? EMPTY_KPI}
+                    money
+                    icon={Wallet}
+                    accent="#1877f2"
+                    soft="#e8f2ff"
+                    ready={ready}
+                  />
+                  <PanelKpiCard
+                    label="New plans"
+                    kpi={kpis?.newPlans ?? EMPTY_KPI}
+                    icon={Sparkles}
+                    accent="#f77737"
+                    soft="#fff7ed"
+                    ready={ready}
+                  />
                 </div>
               )}
             </div>
