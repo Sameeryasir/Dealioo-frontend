@@ -593,7 +593,7 @@ export function BusinessActivityOverviewPanel({
       />
 
       <div className="funnel-overview-scroll">
-      <div className="sticky top-0 z-30 shrink-0 border-b border-[#e8edf5]/80 bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
+      <div className="sticky top-0 z-10 shrink-0 border-b border-[#e8edf5]/50 bg-transparent backdrop-blur-md supports-[backdrop-filter]:bg-white/15">
         <div className="relative flex flex-wrap items-center justify-between gap-3 px-3 py-3.5 sm:gap-4 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-[0_10px_24px_rgba(24,119,242,0.35)]">

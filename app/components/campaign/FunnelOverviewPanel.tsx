@@ -902,7 +902,7 @@ export function FunnelOverviewPanel({
         : null;
 
   const performanceBandClass =
-    "funnel-overview-performance-band sticky top-0 z-30 shrink-0 border-b border-[#e8edf5]/80 bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60";
+    "funnel-overview-performance-band sticky top-0 z-10 shrink-0 border-b border-[#e8edf5]/50 bg-transparent backdrop-blur-md supports-[backdrop-filter]:bg-white/15";
 
   const panelBodyPadClass = "funnel-overview-body";
   const panelSkeletonPadClass = "funnel-overview-body";

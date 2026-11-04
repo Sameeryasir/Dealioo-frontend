@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 function formatUnreadBadge(total: number): string {
@@ -523,125 +524,128 @@ export default function BusinessNotifications() {
         ) : null}
       </div>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.button
-            type="button"
-            key="biz-notify-backdrop"
-            className={styles.drawerBackdrop}
-            aria-label="Close notifications"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            onClick={() => setOpen(false)}
-          />
-        ) : null}
+      {createPortal(
+        <AnimatePresence>
+          {open ? (
+            <motion.button
+              type="button"
+              key="biz-notify-backdrop"
+              className={styles.drawerBackdrop}
+              aria-label="Close notifications"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              onClick={() => setOpen(false)}
+            />
+          ) : null}
 
-        {open ? (
-          <motion.aside
-            key="biz-notify-panel"
-            className={styles.drawerPanel}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Notifications"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{
-              type: "tween",
-              duration: 0.38,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            <div className={styles.drawerHead}>
-              <div className={styles.drawerBrand}>
-                <span className={styles.drawerBellMark} aria-hidden>
-                  <Bell className="size-4" strokeWidth={2.25} />
-                </span>
-                <div className={styles.drawerHeadCopy}>
-                  <h2 className={styles.drawerTitle}>Notifications</h2>
-                  <p className={styles.drawerSub}>
-                    New updates for this business
-                  </p>
+          {open ? (
+            <motion.aside
+              key="biz-notify-panel"
+              className={styles.drawerPanel}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Notifications"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{
+                type: "tween",
+                duration: 0.38,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <div className={styles.drawerHead}>
+                <div className={styles.drawerBrand}>
+                  <span className={styles.drawerBellMark} aria-hidden>
+                    <Bell className="size-4" strokeWidth={2.25} />
+                  </span>
+                  <div className={styles.drawerHeadCopy}>
+                    <h2 className={styles.drawerTitle}>Notifications</h2>
+                    <p className={styles.drawerSub}>
+                      New updates for this business
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className={styles.drawerClose}
+                  aria-label="Close"
+                  onClick={() => setOpen(false)}
+                >
+                  <X className="size-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                className={styles.drawerClose}
-                aria-label="Close"
-                onClick={() => setOpen(false)}
-              >
-                <X className="size-5" />
-              </button>
-            </div>
 
-            <div className={styles.drawerToolbar}>
-              <p className={styles.drawerSub} style={{ margin: 0 }}>
-                {badgeTotal > 0
-                  ? `${badgeLabel} unread`
-                  : "All caught up"}
-              </p>
-              <button
-                type="button"
-                className={styles.drawerMarkAll}
-                onClick={() => void markAllAsRead()}
-                disabled={markingAllRead || badgeTotal <= 0}
-              >
-                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
-                {markingAllRead ? "Marking…" : "Mark all as read"}
-              </button>
-            </div>
+              <div className={styles.drawerToolbar}>
+                <p className={styles.drawerSub} style={{ margin: 0 }}>
+                  {badgeTotal > 0
+                    ? `${badgeLabel} unread`
+                    : "All caught up"}
+                </p>
+                <button
+                  type="button"
+                  className={styles.drawerMarkAll}
+                  onClick={() => void markAllAsRead()}
+                  disabled={markingAllRead || badgeTotal <= 0}
+                >
+                  <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                  {markingAllRead ? "Marking…" : "Mark all as read"}
+                </button>
+              </div>
 
-            <div className={styles.drawerList}>
-              {rows.length === 0 ? (
-                <p className={styles.drawerEmpty}>You&apos;re all caught up.</p>
-              ) : (
-                <section className={styles.notifyGroup}>
-                  <h3 className={styles.notifyGroupLabel}>Unread</h3>
-                  {rows.map((row) => (
-                    <button
-                      key={row.id}
-                      type="button"
-                      className={`${styles.notifyItem} w-full cursor-pointer text-left`}
-                      onClick={() => openSection(row)}
-                    >
-                      <div className={`${styles.notifyIcon} ${row.iconClass}`}>
-                        <row.Icon
-                          className="size-4"
-                          strokeWidth={2.1}
-                          aria-hidden
-                        />
-                      </div>
-                      <div className={styles.notifyCopy}>
-                        <h3 className={styles.notifyTitle}>{row.title}</h3>
-                        <p className={styles.notifyBody}>{row.body}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1.5 self-center">
-                        {row.countLabel ? (
-                          <span className={styles.drawerTabCount}>
-                            {row.countLabel}
-                          </span>
-                        ) : (
-                          <span
-                            className={styles.notifyUnreadDot}
+              <div className={styles.drawerList}>
+                {rows.length === 0 ? (
+                  <p className={styles.drawerEmpty}>You&apos;re all caught up.</p>
+                ) : (
+                  <section className={styles.notifyGroup}>
+                    <h3 className={styles.notifyGroupLabel}>Unread</h3>
+                    {rows.map((row) => (
+                      <button
+                        key={row.id}
+                        type="button"
+                        className={`${styles.notifyItem} w-full cursor-pointer text-left`}
+                        onClick={() => openSection(row)}
+                      >
+                        <div className={`${styles.notifyIcon} ${row.iconClass}`}>
+                          <row.Icon
+                            className="size-4"
+                            strokeWidth={2.1}
                             aria-hidden
                           />
-                        )}
-                        <ChevronRight
-                          className="size-4 text-[#94a3b8]"
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
-                      </div>
-                    </button>
-                  ))}
-                </section>
-              )}
-            </div>
-          </motion.aside>
-        ) : null}
-      </AnimatePresence>
+                        </div>
+                        <div className={styles.notifyCopy}>
+                          <h3 className={styles.notifyTitle}>{row.title}</h3>
+                          <p className={styles.notifyBody}>{row.body}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5 self-center">
+                          {row.countLabel ? (
+                            <span className={styles.drawerTabCount}>
+                              {row.countLabel}
+                            </span>
+                          ) : (
+                            <span
+                              className={styles.notifyUnreadDot}
+                              aria-hidden
+                            />
+                          )}
+                          <ChevronRight
+                            className="size-4 text-[#94a3b8]"
+                            strokeWidth={2.25}
+                            aria-hidden
+                          />
+                        </div>
+                      </button>
+                    ))}
+                  </section>
+                )}
+              </div>
+            </motion.aside>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 }

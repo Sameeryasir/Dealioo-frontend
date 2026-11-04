@@ -2,23 +2,21 @@
 
 import { isSuperAdminUser } from "@/app/lib/is-super-admin-user";
 import { useRouter } from "next/navigation";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
-
-const subscribeNoop = () => () => {};
+import { useEffect, useState, type ReactNode } from "react";
 
 export function SuperAdminGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const allowed = useSyncExternalStore(
-    subscribeNoop,
-    isSuperAdminUser,
-    () => false,
+  const [allowed, setAllowed] = useState(() =>
+    typeof window === "undefined" ? false : isSuperAdminUser(),
   );
 
   useEffect(() => {
-    if (!allowed) {
+    const ok = isSuperAdminUser();
+    setAllowed(ok);
+    if (!ok) {
       router.replace("/dashboard");
     }
-  }, [allowed, router]);
+  }, [router]);
 
   if (!allowed) {
     return (

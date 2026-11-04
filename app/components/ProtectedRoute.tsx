@@ -9,12 +9,13 @@ import {
   inviteTokenFromReturnTo,
   resolvePostAuthDestination,
 } from "@/app/lib/invite-auth-links";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(() =>
+    typeof window === "undefined" ? null : hasAuthSession(),
+  );
 
   useEffect(() => {
     const sync = () => {
@@ -32,7 +33,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
-  }, [pathname]);
+  }, []);
 
   if (isAuthenticated !== true) {
     return <OnboardingPageLoading />;

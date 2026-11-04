@@ -12,9 +12,9 @@ export default function AdminLayout({
 }>) {
   return (
     <ProtectedRoute>
-      <SuperAdminGuard>
-        <SuperAdminShell>{children}</SuperAdminShell>
-      </SuperAdminGuard>
+      <SuperAdminShell>
+        <SuperAdminGuard>{children}</SuperAdminGuard>
+      </SuperAdminShell>
     </ProtectedRoute>
   );
 }
