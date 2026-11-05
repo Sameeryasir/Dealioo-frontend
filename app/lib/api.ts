@@ -95,6 +95,7 @@ export async function parseApiErrorMessage(
     const errBody = (await res.json()) as {
       message?: unknown;
       code?: string;
+      errorCode?: string;
       metaError?: { message?: string; error_user_msg?: string };
     };
     const metaMessage =
@@ -114,7 +115,23 @@ export async function parseApiErrorMessage(
         fallback,
       );
     }
-    return parseApiMessage(errBody?.message, fallback);
+    const direct = parseApiMessage(errBody?.message, "");
+    if (direct) {
+      return direct;
+    }
+    if (res.status === 401) {
+      return "Session expired. Please sign in again.";
+    }
+    if (res.status === 403) {
+      return "You do not have permission to do that for this business.";
+    }
+    if (res.status === 409) {
+      return "This action was already processed. Refresh and try again if needed.";
+    }
+    if (res.status >= 500) {
+      return "Something went wrong on the server. Please try again.";
+    }
+    return fallback;
   } catch {
     return fallback;
   }

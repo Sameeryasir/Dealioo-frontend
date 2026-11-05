@@ -22,10 +22,14 @@ export type PaginatedCustomerSearchResponse = {
 };
 
 export async function searchCustomers(
+  businessId: number,
   query: string,
   page = 1,
   limit = GUEST_SEARCH_PAGE_SIZE,
 ): Promise<PaginatedCustomerSearchResponse> {
+  if (!Number.isFinite(businessId) || businessId < 1) {
+    throw new Error("Invalid business.");
+  }
   if (!hasAuthSession()) {
     throw new Error("Missing access token. Sign in again.");
   }
@@ -45,7 +49,7 @@ export async function searchCustomers(
   });
 
   const res = await authenticatedFetch(
-    `${getApiBaseUrl()}/customer/search?${params.toString()}`,
+    `${getApiBaseUrl()}/customer/business/${businessId}/scanner/guests/search?${params.toString()}`,
     {
       method: "GET",
       headers: { Accept: "application/json" },

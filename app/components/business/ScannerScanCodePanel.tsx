@@ -16,11 +16,10 @@ import {
   UserCheck,
   XCircle,
 } from "lucide-react";
-import { Html5Qrcode, type CameraDevice } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   useCallback,
-  useEffect,
   useId,
   useRef,
   useState,
@@ -33,6 +32,7 @@ import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDat
 import { ScanCustomerConfirmDialog } from "@/app/components/business/ScanCustomerConfirmDialog";
 import { ScanOrderSubtotalDialog } from "@/app/components/business/ScanOrderSubtotalDialog";
 import { ScanRewardSelectDialog } from "@/app/components/business/ScanRewardSelectDialog";
+import { useScannerCamera } from "@/app/hooks/use-scanner-camera";
 import {
   previewRedemptionQr,
   redeemExpectedOfferAmount,
@@ -61,16 +61,9 @@ type DialogStep =
   | "completeOrder"
   | "enterSubtotal"
   | "enterExtra";
-type AutoDetectStatus = "on" | "off" | "processing";
 
 const MAX_QR_IMAGE_BYTES = 8 * 1024 * 1024;
-
-function pickCameraId(cameras: CameraDevice[]): string {
-  const backCamera = cameras.find((camera) =>
-    /back|rear|environment/i.test(camera.label),
-  );
-  return backCamera?.id ?? cameras[0].id;
-}
+const QR_READER_ELEMENT_ID = "qr-reader";
 
 const WORKFLOW_STEPS = [
   {
@@ -327,7 +320,6 @@ export function ScannerScanCodePanel({
 }) {
   const preferReducedMotion = useReducedMotion() === true;
   const fileInputId = useId();
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannedRef = useRef(false);
   const pendingTokenRef = useRef("");
   const idempotencyKeyRef = useRef("");
@@ -345,70 +337,52 @@ export function ScannerScanCodePanel({
   const [pendingRedeemAmount, setPendingRedeemAmount] = useState<number | null>(
     null,
   );
-  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
-  const [autoDetectStatus, setAutoDetectStatus] =
-    useState<AutoDetectStatus>("off");
   const [decodingImage, setDecodingImage] = useState(false);
 
-  const stopScanner = useCallback(async () => {
-    const scanner = scannerRef.current;
-    if (!scanner) return;
-
-    scannerRef.current = null;
-
-    try {
-      if (scanner.isScanning) {
-        await scanner.stop();
-      }
-    } catch {
-    }
-
-    try {
-      scanner.clear();
-    } catch {
-    }
-
-    setAutoDetectStatus("off");
+  const handleCameraError = useCallback((message: string) => {
+    setErrorMessage(message);
+    setScanState("error");
   }, []);
 
-  const handlePreview = useCallback(
-    async (rawToken: string) => {
-      if (!rawToken.trim() || scannedRef.current) return;
-      scannedRef.current = true;
-      pendingTokenRef.current = rawToken.trim();
-      setScanState("loading");
-      setAutoDetectStatus("processing");
-      setErrorMessage(null);
-      setPreviewResult(null);
-      setShowPreviousRedemptions(false);
+  const handlePreview = useCallback(async (rawToken: string) => {
+    if (!rawToken.trim() || scannedRef.current) return;
+    scannedRef.current = true;
+    pendingTokenRef.current = rawToken.trim();
+    setScanState("loading");
+    setErrorMessage(null);
+    setPreviewResult(null);
+    setShowPreviousRedemptions(false);
 
-      await stopScanner();
-
-      try {
-        const result = await previewRedemptionQr(businessId, rawToken);
-        if (result.success) {
-          if (result.qrToken?.trim()) {
-            pendingTokenRef.current = result.qrToken.trim();
-          }
-          setPreviewResult(result);
-          setScanState("preview");
-          setDialogStep("confirm");
-        } else {
-          setErrorMessage(result.message);
-          setScanState("error");
+    try {
+      const result = await previewRedemptionQr(businessId, rawToken);
+      if (result.success) {
+        if (result.qrToken?.trim()) {
+          pendingTokenRef.current = result.qrToken.trim();
         }
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : "Scan failed. Try again.",
-        );
+        setPreviewResult(result);
+        setScanState("preview");
+        setDialogStep("confirm");
+      } else {
+        setErrorMessage(result.message);
         setScanState("error");
-      } finally {
-        scannedRef.current = false;
-        setAutoDetectStatus("off");
       }
-    },
-    [businessId, stopScanner],
-  );
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Scan failed. Try again.",
+      );
+      setScanState("error");
+    } finally {
+      scannedRef.current = false;
+    }
+  }, [businessId]);
+
+  const { autoDetectStatus, stopScanner, setAutoDetectStatus } =
+    useScannerCamera({
+      enabled: scanState === "scanning",
+      readerElementId: QR_READER_ELEMENT_ID,
+      onDecoded: handlePreview,
+      onCameraError: handleCameraError,
+    });
 
   const handleConfirmRedeem = useCallback(
     async (
@@ -477,111 +451,6 @@ export function ScannerScanCodePanel({
     },
     [previewResult, businessId],
   );
-
-  useEffect(() => {
-    if (scanState !== "scanning") return;
-
-    let cancelled = false;
-
-    const startCamera = async () => {
-      setAutoDetectStatus("processing");
-
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
-      if (cancelled) return;
-
-      const readerElement = document.getElementById("qr-reader");
-      if (!readerElement) {
-        setScanState("error");
-        setErrorMessage("Camera view failed to load. Refresh and try again.");
-        setAutoDetectStatus("off");
-        return;
-      }
-
-      await stopScanner();
-      if (cancelled) return;
-
-      const scanner = new Html5Qrcode("qr-reader");
-      scannerRef.current = scanner;
-
-      try {
-        let cameraConfig: string | MediaTrackConstraints = {
-          facingMode: "user",
-        };
-        try {
-          const list = await Html5Qrcode.getCameras();
-          if (cancelled) return;
-          const preferred =
-            (selectedCameraId &&
-              list.find((camera) => camera.id === selectedCameraId)?.id) ||
-            (list.length > 0 ? pickCameraId(list) : null);
-          if (preferred) {
-            setSelectedCameraId((current) => current ?? preferred);
-            cameraConfig = preferred;
-          }
-        } catch {
-        }
-
-        await scanner.start(
-          cameraConfig,
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decoded) => {
-            void handlePreview(decoded);
-          },
-          () => {},
-        );
-
-        if (cancelled) {
-          await stopScanner();
-          return;
-        }
-
-        setAutoDetectStatus("on");
-      } catch (err) {
-        if (cancelled) return;
-
-        await stopScanner();
-        setScanState("error");
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Could not access camera. Allow camera permission and try again.";
-        const lower = message.toLowerCase();
-        if (
-          lower.includes("permission") ||
-          lower.includes("notallowed") ||
-          lower.includes("denied")
-        ) {
-          setErrorMessage(
-            "Camera permission denied. Allow camera access in your browser, then try again.",
-          );
-        } else if (
-          lower.includes("notfound") ||
-          lower.includes("no camera") ||
-          lower.includes("device")
-        ) {
-          setErrorMessage(
-            "No camera is available on this device. Use Upload QR Image, or check camera access and try again.",
-          );
-        } else {
-          setErrorMessage(message);
-        }
-        setAutoDetectStatus("off");
-      }
-    };
-
-    void startCamera();
-
-    return () => {
-      cancelled = true;
-      void stopScanner();
-    };
-  }, [scanState, selectedCameraId, handlePreview, stopScanner]);
-
-  useEffect(() => {
-    return () => {
-      void stopScanner();
-    };
-  }, [stopScanner]);
 
   const startScanner = () => {
     setErrorMessage(null);
@@ -915,7 +784,7 @@ export function ScannerScanCodePanel({
                   >
                     {scanState === "scanning" ? (
                       <div
-                        id="qr-reader"
+                        id={QR_READER_ELEMENT_ID}
                         className="absolute inset-0 min-h-full overflow-hidden [&_video]:h-full [&_video]:min-h-full [&_video]:w-full [&_video]:object-cover [&_img]:hidden"
                       />
                     ) : null}

@@ -53,12 +53,12 @@ import {
 } from "@/app/lib/scanner-ui";
 import {
   GUEST_SEARCH_PAGE_SIZE,
-  searchCustomers,
   type CustomerSearchResult,
 } from "@/app/services/customer/search-customers";
 import {
   purchaseScannerDeals,
 } from "@/app/services/funnel/purchase-scanner-deals";
+import { useScannerGuestSearch } from "@/app/hooks/use-scanner-guest-search";
 import {
   getGuestProfile,
   redeemExpectedOfferAmount,
@@ -182,7 +182,7 @@ function SearchHeroCard({
               />
               <button
                 type="button"
-                disabled={!query.trim() || searching}
+                disabled={query.trim().length < 2 || searching}
                 onClick={onSearch}
                 className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${scannerPrimaryBtnClass} px-4 py-2`}
               >
@@ -687,25 +687,33 @@ export function ScannerSearchGuestPanel({
   onCreateGuest?: () => void;
   onHideScannerTabsChange?: (hide: boolean) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [activeQuery, setActiveQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [searching, setSearching] = useState(false);
+  const {
+    query,
+    setQuery,
+    activeQuery,
+    page,
+    searching,
+    errorMessage,
+    setErrorMessage,
+    results,
+    meta,
+    handleSearch: runGuestSearch,
+    handlePageChange,
+    clearResults,
+  } = useScannerGuestSearch(businessId);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [guestNotInDatabaseQuery, setGuestNotInDatabaseQuery] = useState<
     string | null
   >(null);
-  const [results, setResults] = useState<CustomerSearchResult[]>([]);
-  const [meta, setMeta] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<GuestProfile | null>(
     null,
   );
+
+  const handleSearch = useCallback(() => {
+    setGuestNotInDatabaseQuery(null);
+    setSelectedProfile(null);
+    runGuestSearch();
+  }, [runGuestSearch]);
   const [selectedDealIds, setSelectedDealIds] = useState<number[]>([]);
   const [redeemStep, setRedeemStep] = useState<
     null | "completeOrder" | "enterSubtotal" | "enterExtra"
@@ -727,54 +735,6 @@ export function ScannerSearchGuestPanel({
   const [purchasing, setPurchasing] = useState(false);
   const idempotencyKeyRef = useRef("");
   const purchaseIdempotencyKeyRef = useRef("");
-
-  const runSearch = useCallback(
-    async (searchQuery: string, searchPage: number) => {
-      const trimmed = searchQuery.trim();
-      if (!trimmed) return;
-
-      setSearching(true);
-      setErrorMessage(null);
-      setGuestNotInDatabaseQuery(null);
-      setSelectedProfile(null);
-      try {
-        const response = await searchCustomers(
-          trimmed,
-          searchPage,
-          GUEST_SEARCH_PAGE_SIZE,
-        );
-        setResults(response.data);
-        setMeta(response.meta);
-        setActiveQuery(trimmed);
-        setPage(response.meta.page);
-
-        if (response.meta.total === 0) {
-          setErrorMessage(null);
-        }
-      } catch (err) {
-        setResults([]);
-        setMeta(null);
-        setErrorMessage(
-          err instanceof Error ? err.message : "Search failed. Try again.",
-        );
-      } finally {
-        setSearching(false);
-      }
-    },
-    [],
-  );
-
-  const handleSearch = useCallback(() => {
-    void runSearch(query, 1);
-  }, [query, runSearch]);
-
-  const handlePageChange = useCallback(
-    (nextPage: number) => {
-      if (!activeQuery) return;
-      void runSearch(activeQuery, nextPage);
-    },
-    [activeQuery, runSearch],
-  );
 
   const handleSelectGuest = useCallback(
     async (guest: CustomerSearchResult) => {
@@ -1078,8 +1038,9 @@ export function ScannerSearchGuestPanel({
   const showTable =
     !selectedProfile &&
     !loadingProfile &&
+    !searching &&
     activeQuery.length > 0 &&
-    (meta?.total ?? 0) > 0;
+    ((meta?.total ?? 0) > 0 || results.length > 0);
   const rowOffset = useMemo(
     () => ((meta?.page ?? page) - 1) * (meta?.limit ?? GUEST_SEARCH_PAGE_SIZE),
     [meta, page],
@@ -1331,11 +1292,7 @@ export function ScannerSearchGuestPanel({
               <button
                 type="button"
                 onClick={() => {
-                  setActiveQuery("");
-                  setResults([]);
-                  setMeta(null);
-                  setQuery("");
-                  setErrorMessage(null);
+                  clearResults();
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3.5 py-1.5 text-[0.74rem] font-bold text-slate-700 transition hover:border-[#1777f2]/30 hover:bg-[#f4f8ff]"
               >
@@ -1894,12 +1851,8 @@ export function ScannerSearchGuestPanel({
                 searchQuery={guestNotFoundQuery}
                 onCreateGuest={onCreateGuest}
                 onSearchAgain={() => {
-                  setActiveQuery("");
-                  setResults([]);
-                  setMeta(null);
-                  setQuery("");
+                  clearResults();
                   setGuestNotInDatabaseQuery(null);
-                  setErrorMessage(null);
                 }}
               />
             ) : null}

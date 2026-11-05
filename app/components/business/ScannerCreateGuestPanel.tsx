@@ -42,7 +42,7 @@ import {
   scannerTwoColGridClass,
   scannerWorkflowCardClass,
 } from "@/app/lib/scanner-ui";
-import { createCustomer } from "@/app/services/customer/create-customer";
+import { createScannerGuest } from "@/app/services/customer/create-customer";
 import {
   purchaseScannerDeals,
   type ScannerPurchasedDeal,
@@ -334,13 +334,10 @@ export function ScannerCreateGuestPanel({
     const trimmedPhone = phone.trim();
 
     try {
-      const result = await createCustomer({
+      const result = await createScannerGuest(businessId, {
         name: trimmedName,
         email: trimmedEmail,
         phone: trimmedPhone,
-        rejectDuplicateEmail: true,
-        rejectDuplicatePhone: true,
-        businessId,
       });
       setCreatedGuestId(result.id);
       setCreatedGuestName(trimmedName);

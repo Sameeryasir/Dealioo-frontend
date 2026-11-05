@@ -1,4 +1,6 @@
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
+import { hasAuthSession } from "@/app/lib/auth-session";
+import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
 
 export type CreateCustomerPayload = {
   name: string;
@@ -11,7 +13,6 @@ export type CreateCustomerPayload = {
 
 export type CreateCustomerResponse = {
   id: number;
-  /** Backend: true only when a new guest row was inserted. */
   isNewCustomer: boolean;
 };
 
@@ -37,9 +38,11 @@ function readCustomerCreateResult(data: unknown): CreateCustomerResponse {
   };
 }
 
-export async function createCustomer(
-  payload: CreateCustomerPayload,
-): Promise<CreateCustomerResponse> {
+function requireGuestFields(payload: {
+  name?: string;
+  email?: string;
+  phone?: string;
+}): void {
   if (!payload.name?.trim()) {
     throw new Error("Name is required.");
   }
@@ -49,6 +52,12 @@ export async function createCustomer(
   if (!payload.phone?.trim()) {
     throw new Error("Phone is required.");
   }
+}
+
+export async function createCustomer(
+  payload: CreateCustomerPayload,
+): Promise<CreateCustomerResponse> {
+  requireGuestFields(payload);
 
   const res = await fetch(`${getApiBaseUrl()}/customer/create`, {
     method: "POST",
@@ -70,6 +79,42 @@ export async function createCustomer(
         : {}),
     }),
   });
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res, "Could not create customer."));
+  }
+
+  const json: unknown = await res.json();
+  return readCustomerCreateResult(json);
+}
+
+export async function createScannerGuest(
+  businessId: number,
+  payload: Pick<CreateCustomerPayload, "name" | "email" | "phone">,
+): Promise<CreateCustomerResponse> {
+  if (!Number.isFinite(businessId) || businessId < 1) {
+    throw new Error("Invalid business.");
+  }
+  if (!hasAuthSession()) {
+    throw new Error("Missing access token. Sign in again.");
+  }
+  requireGuestFields(payload);
+
+  const res = await authenticatedFetch(
+    `${getApiBaseUrl()}/customer/business/${businessId}/scanner/guests`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: payload.name.trim(),
+        email: payload.email.trim(),
+        phone: payload.phone.trim(),
+      }),
+    },
+  );
 
   if (!res.ok) {
     throw new Error(await parseApiErrorMessage(res, "Could not create customer."));
