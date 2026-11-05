@@ -3,6 +3,11 @@
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
+import { MeetingRequestAlertBadges } from "@/app/components/super-admin/MeetingRequestAlertBadges";
+import {
+  MeetingRequestQuickChips,
+  type MeetingQuickScope,
+} from "@/app/components/super-admin/MeetingRequestQuickChips";
 import {
   formatRelative,
   humanizeLabel,
@@ -68,7 +73,7 @@ import { toast } from "sonner";
 const EMPTY_MEETINGS: AdminMeetingRequest[] = [];
 const PAGE_SIZE = 10;
 
-type MeetingScope = "all" | "upcoming" | "past" | "deal_won";
+type MeetingScope = MeetingQuickScope;
 
 const SCOPE_OPTIONS: Array<{ id: MeetingScope; label: string }> = [
   { id: "all", label: "All" },
@@ -76,6 +81,17 @@ const SCOPE_OPTIONS: Array<{ id: MeetingScope; label: string }> = [
   { id: "past", label: "Past" },
   { id: "deal_won", label: "Deal won" },
 ];
+
+const SCOPE_LABELS: Record<MeetingScope, string> = {
+  all: "All",
+  upcoming: "Upcoming",
+  past: "Past",
+  deal_won: "Deal won",
+  today: "Today",
+  this_week: "This week",
+  no_show: "No-show",
+  cancelled: "Cancelled",
+};
 
 const SALES_OPTIONS: Array<{ value: MeetingSalesOutcome; label: string }> = [
   { value: "PENDING_DECISION", label: "Pending decision" },
@@ -1119,6 +1135,10 @@ export function SuperAdminMeetingsPanel() {
     upcoming: summaryQuery.data?.upcoming ?? 0,
     past: summaryQuery.data?.past ?? 0,
     dealWon: 0,
+    today: 0,
+    thisWeek: 0,
+    noShow: 0,
+    cancelled: 0,
     all: summaryQuery.data?.total ?? 0,
   };
   const summary = summaryQuery.data;
@@ -1215,6 +1235,10 @@ export function SuperAdminMeetingsPanel() {
     upcoming: counts.upcoming,
     past: counts.past,
     deal_won: counts.dealWon,
+    today: counts.today,
+    this_week: counts.thisWeek,
+    no_show: counts.noShow,
+    cancelled: counts.cancelled,
   };
 
   return (
@@ -1256,7 +1280,7 @@ export function SuperAdminMeetingsPanel() {
                 Filter
                 {scope !== "all" ? (
                   <span className="ml-1 text-[0.72rem] font-semibold text-slate-500">
-                    · {SCOPE_OPTIONS.find((option) => option.id === scope)?.label}
+                    · {SCOPE_LABELS[scope]}
                   </span>
                 ) : null}
               </button>
@@ -1401,11 +1425,16 @@ export function SuperAdminMeetingsPanel() {
 
         <div className={styles.usersDirToolbar}>
           <p className={styles.usersDirFooterMeta}>
-            Showing{" "}
-            {SCOPE_OPTIONS.find((option) => option.id === scope)?.label ??
-              "All"}{" "}
-            meetings
+            Showing {SCOPE_LABELS[scope]} meetings
           </p>
+          <MeetingRequestQuickChips
+            scope={scope}
+            counts={scopeCounts}
+            onChange={(next) => {
+              setScope(next);
+              setPage(1);
+            }}
+          />
         </div>
 
         <div className={styles.usersDirTableCard}>
@@ -1620,13 +1649,16 @@ export function SuperAdminMeetingsPanel() {
                           </span>
                         </td>
                         <td>
-                          <span className={statusPillClass}>
-                            <span
-                              className={styles.usersDirStatusDot}
-                              aria-hidden
-                            />
-                            {badge.label}
-                          </span>
+                          <div className={styles.saStatusWithBadges}>
+                            <span className={statusPillClass}>
+                              <span
+                                className={styles.usersDirStatusDot}
+                                aria-hidden
+                              />
+                              {badge.label}
+                            </span>
+                            <MeetingRequestAlertBadges meeting={meeting} />
+                          </div>
                         </td>
                         <td>
                           {meeting.salesOutcome || meeting.onboardingId ? (

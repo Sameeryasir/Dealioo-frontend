@@ -8,6 +8,8 @@ import { BusinessOptionSelect } from "@/app/components/business/BusinessOptionSe
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { Skeleton } from "@/app/components/skeleton";
+import { BusinessHealthBadges } from "@/app/components/super-admin/BusinessHealthBadges";
+import { businessNeedsAttention } from "@/app/components/super-admin/business-health";
 import {
   formatAbsoluteDate,
   initialsFromName,
@@ -53,10 +55,12 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type BusinessTab = "all" | "onboarded" | "not_onboarded";
+type BusinessTab = "all" | "onboarded" | "not_onboarded" | "needs_attention";
+
+const NEEDS_ATTENTION_FETCH_LIMIT = 100;
 
 type CreateBusinessDraft = {
   name: string;
@@ -79,6 +83,7 @@ const TAB_OPTIONS: Array<{ id: BusinessTab; label: string }> = [
   { id: "all", label: "All Businesses" },
   { id: "onboarded", label: "Completed" },
   { id: "not_onboarded", label: "In Progress" },
+  { id: "needs_attention", label: "Needs attention" },
 ];
 
 function BusinessesStatsSkeleton() {
@@ -303,6 +308,7 @@ function BusinessDetailsModal({
                     "No owner"}
                 </span>
               </div>
+              <BusinessHealthBadges business={business} showHealthy />
             </div>
           </div>
 
@@ -839,19 +845,26 @@ export function SuperAdminBusinessesPanel() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [filterHintOpen]);
 
+  const needsAttentionTab = tab === "needs_attention";
+  const fetchPage = needsAttentionTab ? 1 : page;
+  const fetchLimit = needsAttentionTab ? NEEDS_ATTENTION_FETCH_LIMIT : PAGE_SIZE;
+  const fetchOnboarding = needsAttentionTab
+    ? "all"
+    : (tab as "all" | "onboarded" | "not_onboarded");
+
   const businessesQuery = useQuery({
     queryKey: adminQueryKeys.businesses(
-      page,
+      fetchPage,
       debouncedSearch,
-      PAGE_SIZE,
-      tab,
+      fetchLimit,
+      needsAttentionTab ? "needs_attention" : fetchOnboarding,
     ),
     queryFn: () =>
       getAdminBusinesses({
-        page,
-        limit: PAGE_SIZE,
+        page: fetchPage,
+        limit: fetchLimit,
         search: debouncedSearch,
-        onboarding: tab,
+        onboarding: fetchOnboarding,
       }),
     enabled: hasAuthSession(),
     staleTime: 30_000,
@@ -872,11 +885,26 @@ export function SuperAdminBusinessesPanel() {
     },
   });
 
-  const items = businessesQuery.data?.items ?? [];
+  const rawItems = businessesQuery.data?.items ?? [];
   const meta = businessesQuery.data?.meta;
   const counts = businessesQuery.data?.counts;
-  const total = meta?.total ?? 0;
-  const totalPages = Math.max(1, meta?.totalPages ?? 1);
+
+  const attentionItems = useMemo(
+    () => rawItems.filter(businessNeedsAttention),
+    [rawItems],
+  );
+
+  const items = useMemo(() => {
+    if (!needsAttentionTab) return rawItems;
+    return attentionItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [needsAttentionTab, rawItems, attentionItems, page]);
+
+  const total = needsAttentionTab
+    ? attentionItems.length
+    : (meta?.total ?? 0);
+  const totalPages = needsAttentionTab
+    ? Math.max(1, Math.ceil(total / PAGE_SIZE))
+    : Math.max(1, meta?.totalPages ?? 1);
   const loading = businessesQuery.isLoading || businessesQuery.isFetching;
   const errorMessage = businessesQuery.error
     ? getApiErrorMessage(businessesQuery.error, "Could not load businesses.")
@@ -884,7 +912,9 @@ export function SuperAdminBusinessesPanel() {
 
   const showingStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const detailsBusiness =
-    items.find((business) => business.id === detailsBusinessId) ?? null;
+    items.find((business) => business.id === detailsBusinessId) ??
+    rawItems.find((business) => business.id === detailsBusinessId) ??
+    null;
 
   const stats = [
     {
@@ -929,6 +959,7 @@ export function SuperAdminBusinessesPanel() {
     all: counts?.all ?? 0,
     onboarded: counts?.onboarded ?? 0,
     not_onboarded: counts?.notOnboarded ?? 0,
+    needs_attention: attentionItems.length,
   };
 
   return (
@@ -1179,21 +1210,24 @@ export function SuperAdminBusinessesPanel() {
                           </div>
                         </td>
                         <td>
-                          <span
-                            className={`${styles.usersDirStatusPill} ${
-                              business.setupComplete
-                                ? ""
-                                : styles.usersDirStatusPillProgress
-                            }`}
-                          >
+                          <div className={styles.saStatusWithBadges}>
                             <span
-                              className={styles.usersDirStatusDot}
-                              aria-hidden
-                            />
-                            {business.setupComplete
-                              ? "Completed"
-                              : "In Progress"}
-                          </span>
+                              className={`${styles.usersDirStatusPill} ${
+                                business.setupComplete
+                                  ? ""
+                                  : styles.usersDirStatusPillProgress
+                              }`}
+                            >
+                              <span
+                                className={styles.usersDirStatusDot}
+                                aria-hidden
+                              />
+                              {business.setupComplete
+                                ? "Completed"
+                                : "In Progress"}
+                            </span>
+                            <BusinessHealthBadges business={business} />
+                          </div>
                         </td>
                         <td>
                           <span className={styles.usersDirDateMain}>

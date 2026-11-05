@@ -7,12 +7,14 @@ import {
   CreateAccountConfirmModal,
   type ExistingUserConflictState,
 } from "@/app/components/super-admin/CreateAccountConfirmModal";
+import { StuckOnboardingBadge } from "@/app/components/super-admin/StuckOnboardingBadge";
 import {
   formatAbsoluteDate,
   formatRelative,
   humanizeLabel,
   SA_TABLE_PAGE_SIZE,
 } from "@/app/components/super-admin/super-admin-list-helpers";
+import { isStuckOnboarding } from "@/app/components/super-admin/stuck-onboarding";
 import styles from "@/app/components/SuperAdminDashboard.module.css";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
@@ -50,12 +52,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type AccountTab = "all" | "ready" | "created";
+type AccountTab = "all" | "ready" | "created" | "stuck";
 
 const TAB_OPTIONS: Array<{ id: AccountTab; label: string }> = [
   { id: "all", label: "All" },
   { id: "ready", label: "Ready to create" },
   { id: "created", label: "Account created" },
+  { id: "stuck", label: "Stuck" },
 ];
 
 function isWonDeal(meeting: AdminMeetingRequest): boolean {
@@ -198,15 +201,20 @@ export function SuperAdminCustomerOnboardingPanel() {
   const counts = useMemo(() => {
     let ready = 0;
     let created = 0;
+    let stuck = 0;
     for (const meeting of wonDeals) {
       if (accountState(meeting) === "created") created += 1;
       else ready += 1;
+      if (isStuckOnboarding(meeting)) stuck += 1;
     }
-    return { all: wonDeals.length, ready, created };
+    return { all: wonDeals.length, ready, created, stuck };
   }, [wonDeals]);
 
   const filteredItems = useMemo(() => {
     if (tab === "all") return wonDeals;
+    if (tab === "stuck") {
+      return wonDeals.filter((meeting) => isStuckOnboarding(meeting));
+    }
     return wonDeals.filter((meeting) => accountState(meeting) === tab);
   }, [wonDeals, tab]);
 
@@ -327,6 +335,7 @@ export function SuperAdminCustomerOnboardingPanel() {
     all: counts.all,
     ready: counts.ready,
     created: counts.created,
+    stuck: counts.stuck,
   };
 
   return (
@@ -564,17 +573,22 @@ export function SuperAdminCustomerOnboardingPanel() {
                           </span>
                         </td>
                         <td>
-                          <span
-                            className={`${styles.usersDirStatusPill} ${
-                              created ? "" : styles.usersDirStatusPillInactive
-                            }`}
-                          >
+                          <div className={styles.saStatusWithBadges}>
                             <span
-                              className={styles.usersDirStatusDot}
-                              aria-hidden
-                            />
-                            {created ? "Account created" : "Ready to create"}
-                          </span>
+                              className={`${styles.usersDirStatusPill} ${
+                                created
+                                  ? ""
+                                  : styles.usersDirStatusPillInactive
+                              }`}
+                            >
+                              <span
+                                className={styles.usersDirStatusDot}
+                                aria-hidden
+                              />
+                              {created ? "Account created" : "Ready to create"}
+                            </span>
+                            <StuckOnboardingBadge meeting={meeting} />
+                          </div>
                         </td>
                         <td>
                           <div className={styles.createdStack}>

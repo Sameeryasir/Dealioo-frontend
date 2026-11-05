@@ -46,6 +46,16 @@ export type AdminMeetingRequest = {
   createdAt: string;
 };
 
+export type AdminMeetingRequestScope =
+  | "upcoming"
+  | "past"
+  | "deal_won"
+  | "today"
+  | "this_week"
+  | "no_show"
+  | "cancelled"
+  | "all";
+
 export type AdminMeetingRequestsResponse = {
   total: number;
   items: AdminMeetingRequest[];
@@ -59,6 +69,10 @@ export type AdminMeetingRequestsResponse = {
     upcoming: number;
     past: number;
     dealWon: number;
+    today: number;
+    thisWeek: number;
+    noShow: number;
+    cancelled: number;
     all: number;
   };
 };
@@ -73,7 +87,7 @@ export type AdminMeetingRequestsSummary = {
 };
 
 export async function getAdminMeetingRequests(params: {
-  scope?: "upcoming" | "past" | "deal_won" | "all";
+  scope?: AdminMeetingRequestScope;
   page?: number;
   limit?: number;
   search?: string;
@@ -102,6 +116,10 @@ export async function getAdminMeetingRequests(params: {
         upcoming: Number(data?.counts?.upcoming) || 0,
         past: Number(data?.counts?.past) || 0,
         dealWon: Number(data?.counts?.dealWon) || 0,
+        today: Number(data?.counts?.today) || 0,
+        thisWeek: Number(data?.counts?.thisWeek) || 0,
+        noShow: Number(data?.counts?.noShow) || 0,
+        cancelled: Number(data?.counts?.cancelled) || 0,
         all: Number(data?.counts?.all) || 0,
       },
     };
@@ -133,7 +151,7 @@ export async function getAdminMeetingRequestsSummary(): Promise<AdminMeetingRequ
 }
 
 export async function exportAdminMeetingRequestsCsv(params: {
-  scope?: "upcoming" | "past" | "deal_won" | "all";
+  scope?: AdminMeetingRequestScope;
   search?: string;
 }): Promise<Blob> {
   try {

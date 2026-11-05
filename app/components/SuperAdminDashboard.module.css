@@ -2909,6 +2909,7 @@
   font-weight: 400;
 }
 
+.meetingModalField input,
 .meetingModalField textarea,
 .meetingModalField select {
   width: 100%;
@@ -2922,11 +2923,53 @@
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
+.meetingModalField input:focus,
 .meetingModalField textarea:focus,
 .meetingModalField select:focus {
   outline: none;
   border-color: #1769ff;
   box-shadow: 0 0 0 3px rgba(23, 105, 255, 0.12);
+}
+
+.saQuickChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.saQuickChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+}
+
+.saQuickChip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.saQuickChipSelected {
+  border-color: #1769ff;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.saQuickChipCount {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.saQuickChipSelected .saQuickChipCount {
+  color: #3b82f6;
 }
 
 .meetingModalActions {
@@ -4954,6 +4997,47 @@
 .usersDirStatusPillProgress {
   background: #fef9c3;
   color: #a16207;
+}
+
+.saHealthBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  max-width: 14rem;
+}
+
+.saHealthBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.18rem 0.5rem;
+  white-space: nowrap;
+}
+
+.saHealthBadgeWarn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.saHealthBadgeDanger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.saHealthBadgeHealthy {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.saStatusWithBadges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
 .usersDirStatusDot {
