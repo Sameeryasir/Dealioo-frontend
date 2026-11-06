@@ -1,5 +1,3 @@
-"use client";
-
 import type { CSSProperties, FormEvent } from "react";
 import Link from "next/link";
 import { SignupFormFields } from "@/app/components/crm-template-editor/form-designs/SignupFormFields";

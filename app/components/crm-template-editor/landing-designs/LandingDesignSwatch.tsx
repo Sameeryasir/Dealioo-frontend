@@ -1,5 +1,3 @@
-"use client";
-
 import type { LandingDesignSwatchKind } from "@/app/components/crm-template-editor/landing-designs/types";
 
 const SWATCH_GRADIENTS: Record<LandingDesignSwatchKind, string> = {

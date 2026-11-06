@@ -1,5 +1,3 @@
-"use client";
-
 import type { EditorSaveStatus } from "@/app/components/crm-template-editor/editor-status";
 import { editorStatusLabel } from "@/app/components/crm-template-editor/editor-status";
 

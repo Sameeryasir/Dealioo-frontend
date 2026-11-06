@@ -1,5 +1,3 @@
-"use client";
-
 import {
   FUNNEL_PAGE_ORDER,
   TemplatePageList,

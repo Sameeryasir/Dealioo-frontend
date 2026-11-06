@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { FormFieldRow } from "@/app/components/crm-template-editor/form-designs/FormFieldRow";
 import { FormPresetExtra } from "@/app/components/crm-template-editor/form-designs/FormPresetExtra";

@@ -1,5 +1,3 @@
-"use client";
-
 import { Check } from "lucide-react";
 import { HeroDesignMiniPreview } from "@/app/components/crm-template-editor/hero-designs/HeroDesignMiniPreview";
 import type { HeroDesignStyle } from "@/app/components/crm-template-editor/hero-designs/types";

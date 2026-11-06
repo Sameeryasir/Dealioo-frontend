@@ -1,5 +1,3 @@
-"use client";
-
 import { EditorPageItem } from "@/app/components/crm-template-editor/editor-ui/EditorPageItem";
 import { FUNNEL_STEP_META } from "@/app/components/crm-template-editor/editor-ui/funnel-step-meta";
 import type { TemplatePageId } from "@/app/components/crm-template-editor/template-types";

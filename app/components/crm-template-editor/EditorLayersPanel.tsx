@@ -1,5 +1,3 @@
-"use client";
-
 import {
   LANDING_SECTION_LABELS,
   landingSectionOrder,

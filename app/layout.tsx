@@ -5,21 +5,17 @@ import { AuthProvider } from "@/app/contexts/auth-context";
 import { CredentialProvider } from "@/app/contexts/credential-context";
 import { QueryProvider } from "@/app/providers/QueryProvider";
 import { StoreProvider } from "@/app/store/StoreProvider";
+import { getSiteOrigin } from "@/app/lib/site-origin";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Poppins } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 
-/**
- * Change: removed next/script beforeInteractive Meta Pixel from RootLayout.
- * Why: beforeInteractive was tied to the layout chunk and caused ChunkLoadError
- * timeouts in dev (Fast Refresh). ProductMetaPixel + ensureProductMetaPixel()
- * already load/init the pixel safely after hydration.
- */
-
 const productMetaPixelId =
   process.env.NEXT_PUBLIC_RP_META_PIXEL_ID?.trim() ?? "";
+
+const siteOrigin = getSiteOrigin();
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -33,8 +29,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dealioo",
-  description: "Create branded deal funnels, collect payments, issue QR passes, track redemptions and automate repeat visits from one dashboard.",
+  metadataBase: new URL(siteOrigin),
+  title: {
+    default: "Dealioo",
+    template: "%s | Dealioo",
+  },
+  applicationName: "Dealioo",
+  description:
+    "Create branded deal funnels, collect payments, issue QR passes, track redemptions and automate repeat visits from one dashboard.",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",

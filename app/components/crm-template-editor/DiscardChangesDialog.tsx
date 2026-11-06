@@ -1,5 +1,3 @@
-"use client";
-
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 export type DiscardChangesDialogProps = {

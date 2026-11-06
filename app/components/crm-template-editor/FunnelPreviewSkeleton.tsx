@@ -1,5 +1,3 @@
-"use client";
-
 import { Skeleton } from "@/app/components/skeleton";
 
 export function FunnelPreviewSkeleton() {

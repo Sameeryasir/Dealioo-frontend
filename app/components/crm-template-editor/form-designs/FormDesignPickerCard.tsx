@@ -1,5 +1,3 @@
-"use client";
-
 import { Check } from "lucide-react";
 import { FormDesignMiniPreview } from "@/app/components/crm-template-editor/form-designs/FormDesignMiniPreview";
 import { getFormDesignStyle } from "@/app/components/crm-template-editor/form-designs/registry";

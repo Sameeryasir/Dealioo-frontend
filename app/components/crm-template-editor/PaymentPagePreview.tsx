@@ -1,5 +1,3 @@
-"use client";
-
 import dynamic from "next/dynamic";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { CheckoutTemplateRenderer } from "@/app/components/payment-templates/CheckoutTemplateRenderer";

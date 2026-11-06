@@ -1,25 +1,71 @@
 import { HomeAuthRedirect } from "@/app/components/landing/HomeAuthRedirect";
+import { LandingJsonLd } from "@/app/components/landing/LandingJsonLd";
 import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
+import { getSiteOrigin } from "@/app/lib/site-origin";
 import type { Metadata } from "next";
 
+const siteOrigin = getSiteOrigin();
+const homeUrl = `${siteOrigin}/`;
+
+const title = "Dealioo | AI Growth Platform for Local Businesses";
+const description =
+  "Dealioo helps local businesses create branded deal funnels, collect payments, issue QR passes, run Meta and Google Ads, track redemptions, and automate repeat visits from one dashboard.";
+
 export const metadata: Metadata = {
-  title: "Dealioo",
+  metadataBase: new URL(siteOrigin),
+  title: {
+    default: title,
+    absolute: title,
+  },
   applicationName: "Dealioo",
-  description:
-    "Dealioo helps local businesses create branded deal funnels, collect payments, issue QR passes, run Meta and Google Ads, track redemptions, and automate repeat visits from one dashboard.",
+  description,
+  keywords: [
+    "Dealioo",
+    "local business marketing",
+    "deal funnel",
+    "Meta ads",
+    "Google Ads",
+    "QR pass",
+    "customer retention",
+    "restaurant promotions",
+  ],
+  authors: [{ name: "Dealioo", url: siteOrigin }],
+  creator: "Dealioo",
+  publisher: "Dealioo",
+  category: "business",
+  alternates: {
+    canonical: homeUrl,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: "Dealioo",
+    title,
+    description,
+    url: homeUrl,
     siteName: "Dealioo",
-    description:
-      "Dealioo is the AI growth platform for local businesses — funnels, ads, payments, QR passes, and repeat-visit automation in one place.",
-    url: "https://dealioo.io",
+    locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
   },
 };
 
 export default function Home() {
   return (
     <>
+      <LandingJsonLd />
       <HomeAuthRedirect />
       <OwnerLandingPage />
     </>

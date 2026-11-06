@@ -1,5 +1,3 @@
-"use client";
-
 import type { FormDesign } from "@/app/components/crm-template-editor/form-designs/types";
 import { getFormDesignStyle } from "@/app/components/crm-template-editor/form-designs/registry";
 

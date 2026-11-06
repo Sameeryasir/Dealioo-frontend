@@ -1,5 +1,3 @@
-"use client";
-
 import { Check } from "lucide-react";
 import { LandingDesignMiniPreview } from "@/app/components/crm-template-editor/landing-designs/LandingDesignMiniPreview";
 import type { LandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/types";

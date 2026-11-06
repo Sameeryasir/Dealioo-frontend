@@ -1,5 +1,3 @@
-"use client";
-
 import type { LandingDesignStyle } from "@/app/components/crm-template-editor/landing-designs/types";
 import { editorTheme } from "@/app/components/crm-template-editor/editor-theme";
 
