@@ -5,7 +5,7 @@ import CampaignBuilderStepHost from "@/app/components/google-ads/campaign-builde
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import {
   googleBuilderPrimaryButtonClass,
   googleBuilderSecondaryButtonClass,

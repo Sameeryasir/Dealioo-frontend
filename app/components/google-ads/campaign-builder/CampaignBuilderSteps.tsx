@@ -56,7 +56,7 @@ import {
   clearStoredFunnelEtag,
   fetchFunnelByCampaignId,
 } from "@/app/services/funnel/get-funnel-by-campaign";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import {
   BudgetSlider,
   Field,

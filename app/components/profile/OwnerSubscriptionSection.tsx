@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 async function confirmUpgradePaymentIfRequired(
   paymentIntentClientSecret: string | null | undefined,

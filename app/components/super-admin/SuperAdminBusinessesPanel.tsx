@@ -56,7 +56,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type BusinessTab = "all" | "onboarded" | "not_onboarded" | "needs_attention";
 

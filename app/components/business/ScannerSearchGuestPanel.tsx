@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { DealPriceDisplay } from "@/app/components/DealPriceDisplay";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";

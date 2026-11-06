@@ -1,14 +1,15 @@
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
+import { toUserFriendlyMessage } from "@/app/lib/user-friendly-message";
 import { AutomationApiError } from "@/app/services/automation/automation-fetch";
 
 export function getApiErrorMessage(
   err: unknown,
   fallback: string,
 ): string {
-  if (err instanceof AutomationApiError) return err.message;
-  if (err instanceof Error && err.message.trim()) return err.message.trim();
-  if (typeof err === "string" && err.trim()) return err.trim();
-  return fallback;
+  if (err instanceof AutomationApiError) {
+    return toUserFriendlyMessage(err.message, fallback);
+  }
+  return toUserFriendlyMessage(err, fallback);
 }
 
 export function toastApiError(err: unknown, fallback: string): void {

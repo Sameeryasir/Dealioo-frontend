@@ -26,7 +26,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { ScanCompleteOrderDialog } from "@/app/components/business/ScanCompleteOrderDialog";
 import { GuestNotInDatabasePanel } from "@/app/components/business/GuestNotInDatabasePanel";
 import { ScanCustomerConfirmDialog } from "@/app/components/business/ScanCustomerConfirmDialog";

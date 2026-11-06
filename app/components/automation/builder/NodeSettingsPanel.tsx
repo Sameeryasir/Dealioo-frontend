@@ -16,7 +16,7 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import {
   findPrepaidBundledEmailActionIndex,
   isPrepaidBundledActionsNode,

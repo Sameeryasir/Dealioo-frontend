@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { normalizeExecutionStatusForDisplay } from "@/app/components/automation/execution-status-ui";
 import { waitForExecutionTerminal } from "@/app/lib/wait-for-execution-terminal";
 import { AutomationApiError } from "@/app/services/automation/automation-fetch";

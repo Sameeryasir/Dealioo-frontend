@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import {
   appendChatConversationMessage,

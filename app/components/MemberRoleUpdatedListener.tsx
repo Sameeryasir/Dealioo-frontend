@@ -8,7 +8,7 @@ import { getSetupUser } from "@/app/lib/setup-user";
 import { businessMemberQueryKeys } from "@/app/services/member/member-query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 export function MemberRoleUpdatedListener() {
   const { isAuthenticated, isAuthReady } = useAuth();

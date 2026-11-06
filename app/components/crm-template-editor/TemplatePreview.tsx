@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { formDesignHidesTopHero } from "@/app/components/crm-template-editor/form-design-registry";
 import { LandingPagePreview } from "@/app/components/crm-template-editor/LandingPagePreview";
 import { SignupPagePreview } from "@/app/components/crm-template-editor/SignupPagePreview";

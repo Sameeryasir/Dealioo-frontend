@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Check } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { MetaAdsConnectEmptyState } from "@/app/components/campaign/MetaAdsConnectEmptyState";
 import { MetaCampaignObjectiveDialog } from "@/app/components/campaign/meta-builder/MetaCampaignObjectiveDialog";

@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { AutomationBuilderGuideModal } from "@/app/components/automation/AutomationBuilderGuideModal";
 import { DeactivateToEditDialog } from "@/app/components/automation/DeactivateToEditDialog";
 import { AutomationExecutionsPanel } from "@/app/components/automation/AutomationExecutionsPanel";

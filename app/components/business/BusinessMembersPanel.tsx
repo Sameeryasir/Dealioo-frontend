@@ -38,7 +38,7 @@ import { subscribeBusinessMembers } from "@/app/lib/pusher-client";
 import { isPusherConfigured } from "@/app/lib/pusher-members";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import {
   cancelPendingBusinessInvitation,
   copyPendingBusinessInvitationLink,

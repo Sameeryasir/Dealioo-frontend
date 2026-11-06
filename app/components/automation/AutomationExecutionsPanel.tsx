@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createElement, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { AutomationFilterDropdown } from "@/app/components/automation/AutomationFilterDropdown";
 import { DeleteExecutionDialog } from "@/app/components/automation/DeleteExecutionDialog";
 import { ExecutionLogsDrawer } from "@/app/components/automation/ExecutionLogsDrawer";

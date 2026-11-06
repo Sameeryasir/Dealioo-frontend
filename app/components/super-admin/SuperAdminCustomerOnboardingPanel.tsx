@@ -50,7 +50,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type AccountTab = "all" | "ready" | "created" | "stuck";
 

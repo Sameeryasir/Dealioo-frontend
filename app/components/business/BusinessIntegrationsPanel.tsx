@@ -56,7 +56,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type ConnectStatus = "idle" | "loading" | "error";
 
@@ -463,7 +463,10 @@ export function BusinessIntegrationsPanel({
         setMetaConnectModalOpen(false);
         setMetaActionError(null);
         setMetaBusy("idle");
-        toast.success("Meta Ads connected.");
+        toast.success(
+          "Meta Ads is connected. You can choose your ad account next.",
+          { id: "integrations-meta-connected" },
+        );
       }
     },
     [bumpAuditLogs, refreshStatus],
@@ -534,11 +537,18 @@ export function BusinessIntegrationsPanel({
     async (phase?: "authenticated" | "complete") => {
       await refreshStatus();
       bumpAuditLogs();
-      if (phase === "complete" || phase === "authenticated") {
+      if (phase === "complete") {
         setGoogleConnectModalOpen(false);
         setGoogleActionError(null);
         setGoogleBusy("idle");
-        toast.success("Google Ads connected.");
+        toast.success(
+          "Google Ads is connected. You can choose your Ads account next.",
+          { id: "integrations-google-connected" },
+        );
+      } else if (phase === "authenticated") {
+        setGoogleConnectModalOpen(false);
+        setGoogleActionError(null);
+        setGoogleBusy("idle");
       }
     },
     [bumpAuditLogs, refreshStatus],
@@ -616,7 +626,7 @@ export function BusinessIntegrationsPanel({
       const result = await connectStripeInPopup(token, businessId);
       if (result.status === "connected") {
         await refreshStatus();
-        toast.success("Stripe connected.");
+        toast.success("Stripe is connected. You can accept payments for this business.");
       } else {
         await abortStripeConnect(businessId);
         await refreshStatus();
@@ -683,7 +693,7 @@ export function BusinessIntegrationsPanel({
         await refreshStatus();
         setStripeBusy("idle");
         bumpAuditLogs();
-        toast.success("Stripe removed.");
+        toast.success("Stripe was disconnected from this business.");
         setDisconnectTarget(null);
       } catch (e) {
         setStripeBusy("error");
@@ -706,7 +716,7 @@ export function BusinessIntegrationsPanel({
         await refreshStatus();
         setMetaBusy("idle");
         bumpAuditLogs();
-        toast.success("Meta Ads removed.");
+        toast.success("Meta Ads was disconnected from this business.");
         setDisconnectTarget(null);
       } catch (e) {
         setMetaBusy("error");
@@ -728,7 +738,7 @@ export function BusinessIntegrationsPanel({
       await refreshStatus();
       setGoogleBusy("idle");
       bumpAuditLogs();
-      toast.success("Google Ads removed.");
+      toast.success("Google Ads was disconnected from this business.");
       setDisconnectTarget(null);
     } catch (e) {
       setGoogleBusy("error");
@@ -789,7 +799,10 @@ export function BusinessIntegrationsPanel({
         setMetaConnectModalOpen(false);
         setMetaActionError(null);
         setMetaBusy("idle");
-        toast.success("Meta Ads connected.");
+        toast.success(
+          "Meta Ads is connected. You can choose your ad account next.",
+          { id: "integrations-meta-connected" },
+        );
         return;
       }
       await abortFacebookConnect(businessId);
@@ -815,7 +828,10 @@ export function BusinessIntegrationsPanel({
         setGoogleConnectModalOpen(false);
         setGoogleActionError(null);
         await refreshStatus();
-        toast.success("Google Ads connected.");
+        toast.success(
+          "Google Ads is connected. You can choose your Ads account next.",
+          { id: "integrations-google-connected" },
+        );
       } else {
         await abortGoogleAdsConnect(businessId);
         await refreshStatus();
@@ -1059,14 +1075,12 @@ export function BusinessIntegrationsPanel({
         actions={
           metaConnected ? (
             <>
-              {metaNeedsAdAccount ? (
-                <Link
-                  href={`/facebook/select-ad-account?businessId=${businessId}`}
-                  className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
-                >
-                  Choose ad account
-                </Link>
-              ) : null}
+              <Link
+                href={`/facebook/select-ad-account?businessId=${businessId}`}
+                className={`${actionBtn} border border-[#C5D8F6] bg-[#E8F1FF] text-[#1877F2] no-underline`}
+              >
+                {metaNeedsAdAccount ? "Choose ad account" : "Change account"}
+              </Link>
               <button
                 type="button"
                 onClick={() => void handleDisconnectMeta()}
@@ -1132,7 +1146,7 @@ export function BusinessIntegrationsPanel({
                 href={`/google/select-customer?businessId=${businessId}`}
                 className={`${actionBtn} border border-[#B7E0C4] bg-[#E8F5EE] text-[#188038] no-underline`}
               >
-                {googleNeedsCustomer ? "Choose Ads account" : "Change Ads account"}
+                {googleNeedsCustomer ? "Choose Ads account" : "Change account"}
               </Link>
               <button
                 type="button"

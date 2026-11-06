@@ -21,7 +21,7 @@ import type {
   BlockSection,
   WorkflowNodeKind,
 } from "@/app/components/automation/types";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 const BRANCH_PLACE_TIP =
   "Drag Branch onto the step after which you want to create it, then drop when that step highlights.";

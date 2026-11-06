@@ -27,7 +27,7 @@ import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";
 import { OffsetPagination } from "@/app/components/shared/OffsetPagination";
 import { PanelEmptyState } from "@/app/components/shared/PanelEmptyState";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { useAnchoredMenu } from "@/app/hooks/use-anchored-menu";
 import { useBusinessMembershipPermissions } from "@/app/hooks/use-business-membership-permissions";
 import { toastApiError } from "@/app/lib/toast-api-error";

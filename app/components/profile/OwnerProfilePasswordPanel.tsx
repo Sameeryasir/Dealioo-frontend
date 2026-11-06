@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type OwnerProfilePasswordPanelProps = {
   email: string;

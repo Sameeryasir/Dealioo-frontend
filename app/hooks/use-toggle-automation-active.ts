@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { toastApiError } from "@/app/lib/toast-api-error";
 import { updateAutomation } from "@/app/services/automation/automation-api";
 import { syncAutomationQueryCache } from "@/app/services/automation/automation-query-cache";

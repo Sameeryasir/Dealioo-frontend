@@ -37,7 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 const PAGE_SIZE = 10;
 

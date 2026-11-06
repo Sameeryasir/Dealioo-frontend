@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import CampaignFunnelCard from "@/app/components/CampaignFunnelCard";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AsyncErrorRetry } from "@/app/components/shared/AsyncErrorRetry";

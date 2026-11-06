@@ -70,7 +70,7 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type UserDraft = {
   name: string;

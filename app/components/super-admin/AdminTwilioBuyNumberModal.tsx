@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { parsePhoneNumber, type Country } from "react-phone-number-input";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 function formatBuyNumberDisplay(phoneNumber: string): string {
   try {

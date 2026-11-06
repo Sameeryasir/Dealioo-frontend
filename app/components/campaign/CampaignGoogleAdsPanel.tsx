@@ -9,7 +9,7 @@ import {
   ArrowRight,
   Check,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 import { DeleteConfirmationDialog } from "@/app/components/shared/DeleteConfirmationDialog";
 import type { GoogleDraftPickerAction } from "@/app/components/google-ads/campaign-builder/GoogleDraftPicker";
 import {

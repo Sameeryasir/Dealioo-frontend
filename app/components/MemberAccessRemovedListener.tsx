@@ -8,7 +8,7 @@ import { businessQueryKeys } from "@/app/services/business/business-query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 export function MemberAccessRemovedListener() {
   const { isAuthenticated, isAuthReady } = useAuth();

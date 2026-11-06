@@ -19,7 +19,7 @@ import {
 } from "@tanstack/react-query";
 import { Building2, Check, Loader2, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 type AdminTwilioAssignNumberModalProps = {
   open: boolean;

@@ -47,7 +47,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toast } from "@/app/lib/toast";
 
 const guestsCardClass =
   "overflow-hidden rounded-none border-0 bg-white shadow-none";
