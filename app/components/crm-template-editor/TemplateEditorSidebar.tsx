@@ -680,12 +680,20 @@ export function TemplateEditorSidebar({
     setOpenSectionInternal(next);
   };
 
+  const isContentFocusControlled = contentFocusProp !== undefined;
+
   useEffect(() => {
     if (forceOpenSection != null) return;
     setOpenSectionInternal(null);
-    if (contentFocusProp === undefined) setContentFocusInternal(null);
+    if (!isContentFocusControlled) setContentFocusInternal(null);
     else onContentFocusChange?.(null);
-  }, [page.id, allowedSections, forceOpenSection, contentFocusProp, onContentFocusChange]);
+  }, [
+    page.id,
+    allowedSections,
+    forceOpenSection,
+    isContentFocusControlled,
+    onContentFocusChange,
+  ]);
 
   useEffect(() => {
     if (forceOpenSection != null) {
