@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   FileText,
   GripVertical,
   Image as ImageIcon,
@@ -29,11 +28,6 @@ import {
   ZoomIn,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import {
-  CHECKOUT_TEMPLATE_OPTIONS,
-  CheckoutTemplateType,
-  normalizeCheckoutTemplate,
-} from "@/app/components/crm-template-editor/checkout-template-types";
 import { ContentTextColorPicker } from "@/app/components/crm-template-editor/ContentTextColorPicker";
 import {
   editorSidebarPickerPanelClass,
@@ -63,7 +57,6 @@ import {
 } from "@/app/components/crm-template-editor/editor-sidebar-theme";
 import { formDesignUsesSplitLayout } from "@/app/components/crm-template-editor/form-design-registry";
 import { FormDesignPickerCard } from "@/app/components/crm-template-editor/form-designs/FormDesignPickerCard";
-import { CheckoutTemplatePickerOption } from "@/app/components/crm-template-editor/CheckoutTemplatePickerOption";
 import { HeroDesignPickerOption } from "@/app/components/crm-template-editor/hero-designs/HeroDesignPickerOption";
 import { getHeroDesignStyle, normalizeHeroDesign } from "@/app/components/crm-template-editor/hero-designs/registry";
 import {
@@ -99,7 +92,6 @@ type SectionId =
   | "content"
   | "media"
   | "form"
-  | "checkout-templates"
   | "style";
 
 const SECTION_ICONS: Partial<Record<SectionId, LucideIcon>> = {
@@ -108,7 +100,6 @@ const SECTION_ICONS: Partial<Record<SectionId, LucideIcon>> = {
   content: FileText,
   media: ImageIcon,
   form: UserPlus,
-  "checkout-templates": CreditCard,
   style: Search,
 };
 
@@ -122,11 +113,6 @@ const SECTION_ICON_COLORS: Record<
   sections: { softBg: "#ffedd5", softFg: "#ea580c", solidBg: "#ea580c" },
   style: { softBg: "#fce7f3", softFg: "#db2777", solidBg: "#db2777" },
   form: { softBg: "#e0f2fe", softFg: "#0284c7", solidBg: "#0284c7" },
-  "checkout-templates": {
-    softBg: "#eef2ff",
-    softFg: "#4f46e5",
-    solidBg: "#4f46e5",
-  },
 };
 
 const SECTION_TONES: Record<
@@ -168,12 +154,6 @@ const SECTION_TONES: Record<
       "overflow-hidden rounded-[1.1rem] border border-[#7dd3fc] bg-white shadow-[0_8px_22px_rgba(2,132,199,0.1)] transition-colors duration-150",
     closedShell:
       "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#bae6fd]",
-  },
-  "checkout-templates": {
-    openShell:
-      "overflow-hidden rounded-[1.1rem] border border-[#c7d2fe] bg-white shadow-[0_8px_22px_rgba(79,70,229,0.1)] transition-colors duration-150",
-    closedShell:
-      "overflow-hidden rounded-[1.1rem] border border-[#e8edf5] bg-white shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-colors duration-150 hover:border-[#e0e7ff]",
   },
 };
 
@@ -226,7 +206,6 @@ const SECTION_HINTS: Partial<Record<SectionId, string>> = {
   content: "Edit text, colors & styles",
   media: "Images, videos & icons",
   form: "Fields & form layout",
-  "checkout-templates": "Layout & display options",
   style: "Search listing & meta",
 };
 
@@ -1337,37 +1316,6 @@ export function TemplateEditorSidebar({
                   </label>
                 </ContentFocusEditor>
               ) : null}
-            </AccordionSection>
-
-            <AccordionSection
-              id="checkout-templates"
-              title="Checkout templates"
-              hint="Payment page layout style"
-              open={isOpen("checkout-templates")}
-              onToggle={toggle}
-              variant={accordionVariant}
-            >
-              <div className="max-h-80 overflow-y-auto overscroll-y-contain pr-0.5 sm:max-h-[28rem]">
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {CHECKOUT_TEMPLATE_OPTIONS.map((opt) => {
-                    const on =
-                      normalizeCheckoutTemplate(payment.checkoutTemplate) ===
-                      opt.value;
-                    return (
-                      <CheckoutTemplatePickerOption
-                        key={opt.value}
-                        value={opt.value}
-                        label={opt.label}
-                        description={opt.description}
-                        selected={on}
-                        onSelect={() =>
-                          onChange({ checkoutTemplate: opt.value })
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </div>
             </AccordionSection>
 
             <AccordionSection

@@ -27,11 +27,10 @@ export const INSPECTOR_TAB_SECTIONS: Record<
     | "content"
     | "media"
     | "form"
-    | "checkout-templates"
     | "style"
   >
 > = {
   content: ["content", "form"],
-  style: ["templates", "media", "style", "checkout-templates"],
+  style: ["templates", "media", "style"],
   advanced: ["sections"],
 };

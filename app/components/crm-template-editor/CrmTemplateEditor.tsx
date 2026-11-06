@@ -25,6 +25,8 @@ import {
 import type { LandingContentSectionId } from "@/app/components/crm-template-editor/landing-sections";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
 import type { FunnelPageDesignTemplate } from "@/app/components/crm-template-editor/funnel-page-templates";
+import { applyCheckoutTemplateAccentToTheme } from "@/app/components/crm-template-editor/checkout-template-accents";
+import { syncFunnelPagesWithTemplate } from "@/app/components/crm-template-editor/funnel-template-sync";
 import { getLandingDesignStyle, syncCheckoutThemeWithLandingDesign } from "@/app/components/crm-template-editor/landing-designs/registry";
 import { DEFAULT_CHECKOUT_THEME } from "@/app/components/crm-template-editor/checkout-template-types";
 import { TemplatePreview } from "@/app/components/crm-template-editor/TemplatePreview";
@@ -195,10 +197,13 @@ export function CrmTemplateEditor({
 
   useEffect(() => {
     if (!isHydrated) return;
+    // Keep payment checkout + forms matched to the saved funnel page template.
     resetPagesHistory(
-      applyCampaignOfferToLandingPages(
-        funnelLoader.pages,
-        resolvedCampaignOffer,
+      syncFunnelPagesWithTemplate(
+        applyCampaignOfferToLandingPages(
+          funnelLoader.pages,
+          resolvedCampaignOffer,
+        ),
       ),
     );
     setIsDirty(false);
@@ -689,9 +694,12 @@ export function CrmTemplateEditor({
             checkoutTemplate: template.checkoutTemplate,
             formDesign: template.formDesign,
             layoutType: template.layoutType,
-            checkoutTheme: syncCheckoutThemeWithLandingDesign(
-              payment.checkoutTheme ?? DEFAULT_CHECKOUT_THEME,
-              template.landingDesign,
+            checkoutTheme: applyCheckoutTemplateAccentToTheme(
+              syncCheckoutThemeWithLandingDesign(
+                payment.checkoutTheme ?? DEFAULT_CHECKOUT_THEME,
+                template.landingDesign,
+              ),
+              template.checkoutTemplate,
             ),
           },
         };

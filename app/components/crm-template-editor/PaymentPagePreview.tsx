@@ -4,12 +4,16 @@ import dynamic from "next/dynamic";
 import type { FunnelStripePaymentContext } from "@/app/components/funnel/FunnelStripePaymentForm";
 import { CheckoutTemplateRenderer } from "@/app/components/payment-templates/CheckoutTemplateRenderer";
 import {
+  applyCheckoutTemplateAccentToTheme,
+  checkoutTemplateAccentCssVars,
+} from "@/app/components/crm-template-editor/checkout-template-accents";
+import {
   normalizeCheckoutTemplate,
   normalizeCheckoutTheme,
   CheckoutTemplateType,
   DEFAULT_CHECKOUT_THEME,
 } from "@/app/components/crm-template-editor/checkout-template-types";
-import { LandingFunnelStepShell } from "@/app/components/crm-template-editor/LandingFunnelStepShell";
+import { pageBackgroundStyle } from "@/app/components/crm-template-editor/LandingPagePreview";
 import {
   getLandingDesignStyle,
   normalizeLandingDesign,
@@ -22,7 +26,6 @@ import {
   EMPTY_CAMPAIGN_PRICING,
   type CampaignPricing,
 } from "@/app/lib/campaign-price";
-import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import type {
   LandingTemplatePage,
   PaymentTemplatePage,
@@ -80,25 +83,43 @@ export function PaymentPagePreview({
     ? getLandingDesignStyle(landingDesignId)
     : null;
 
-  const syncedPayment =
-    onLanding && landingDesignId
-      ? {
-          ...payment,
-          checkoutTheme: syncCheckoutThemeWithLandingDesign(
-            payment.checkoutTheme,
-            landingDesignId,
-          ),
-          backgroundColor:
-            landingPage.backgroundColor?.trim() ||
-            landingStyle?.backgroundDefault ||
-            payment.backgroundColor,
-        }
-      : payment;
+  // Landing owns page wash; checkout template owns CTA / accent.
+  const syncedPayment = (() => {
+    const withLanding =
+      onLanding && landingDesignId
+        ? {
+            ...payment,
+            checkoutTheme: syncCheckoutThemeWithLandingDesign(
+              payment.checkoutTheme,
+              landingDesignId,
+            ),
+            backgroundColor:
+              landingPage.backgroundColor?.trim() ||
+              landingStyle?.backgroundDefault ||
+              payment.backgroundColor,
+          }
+        : payment;
 
-  const formStyles = getCheckoutFormStyles(syncedPayment.formDesign, {
+    return {
+      ...withLanding,
+      checkoutTheme: applyCheckoutTemplateAccentToTheme(
+        withLanding.checkoutTheme,
+        withLanding.checkoutTemplate,
+      ),
+    };
+  })();
+
+  const baseFormStyles = getCheckoutFormStyles(syncedPayment.formDesign, {
     landingDesignId,
     blendWithLanding: onLanding,
   });
+  const formStyles = {
+    ...baseFormStyles,
+    cssVars: {
+      ...baseFormStyles.cssVars,
+      ...checkoutTemplateAccentCssVars(syncedPayment.checkoutTemplate),
+    },
+  };
 
   const landingBlend: CheckoutLandingBlend | null =
     onLanding && landingStyle
@@ -138,15 +159,21 @@ export function PaymentPagePreview({
     return checkout;
   }
 
+  const bg =
+    landingPage.backgroundColor?.trim() ||
+    landingStyle?.backgroundDefault ||
+    syncedPayment.backgroundColor?.trim() ||
+    syncedPayment.checkoutTheme.background;
+
   return (
-    <LandingFunnelStepShell
-      landingPage={landingPage}
-      heroImageUrl={resolveUploadImageUrl(landingPage.imageUrl)}
-      heroImageScale={landingPage.imageScale}
-      fillViewport={fillViewport}
+    <div
+      className={`flex w-full min-w-0 flex-col overflow-x-hidden px-4 pb-8 pt-6 sm:px-5 sm:pb-10 sm:pt-8 ${
+        fillViewport ? "min-h-0 flex-1" : ""
+      }`}
+      style={pageBackgroundStyle(bg, bg)}
     >
       {checkout}
-    </LandingFunnelStepShell>
+    </div>
   );
 }
 

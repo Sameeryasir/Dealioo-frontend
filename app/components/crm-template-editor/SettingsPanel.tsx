@@ -36,7 +36,6 @@ export function SettingsPanel({
     | "content"
     | "media"
     | "form"
-    | "checkout-templates"
     | "style"
     | null;
 }) {

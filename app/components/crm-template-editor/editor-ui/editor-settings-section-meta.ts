@@ -5,7 +5,6 @@ export const EDITOR_SETTINGS_SECTION_THUMBS: Partial<
     | "content"
     | "media"
     | "form"
-    | "checkout-templates"
     | "style",
     string
   >

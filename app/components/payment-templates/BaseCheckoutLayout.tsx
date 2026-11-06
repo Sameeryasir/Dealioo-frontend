@@ -36,7 +36,8 @@ function shellForVariant(
     blend?.background?.trim() ||
     page.backgroundColor?.trim() ||
     t.background;
-  const primary = blend?.primary?.trim() || t.buttonColor;
+  // CTA / shell accents follow the checkout template (not landing purple).
+  const primary = t.buttonColor?.trim() || blend?.primary?.trim() || "#18181b";
   const secondary = blend?.secondary?.trim() || primary;
   const radius = t.borderRadius;
 
@@ -44,6 +45,16 @@ function shellForVariant(
     "w-full min-w-0 rounded-2xl border border-zinc-200/90 bg-white/95 p-4 shadow-lg ring-1 ring-zinc-950/[0.04] sm:p-5";
   const innerDark =
     "w-full min-w-0 rounded-2xl border border-white/10 bg-zinc-950/70 p-4 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-5";
+
+  type ShellStyles = {
+    outer: string;
+    inner: string;
+    dark: boolean;
+    bg: string;
+    outerBackground: string | undefined;
+    radius: string | undefined;
+    showAccentBar?: boolean;
+  };
 
   switch (variant) {
     case CheckoutTemplateType.DARK:
@@ -56,7 +67,7 @@ function shellForVariant(
           ? `linear-gradient(180deg, ${bg} 0%, ${primary}33 100%)`
           : undefined,
         radius: undefined as string | undefined,
-      };
+      } satisfies ShellStyles;
     case CheckoutTemplateType.FLOATING:
       return {
         outer: "w-full min-w-0 p-3 sm:p-4",
@@ -157,13 +168,15 @@ function shellForVariant(
     case CheckoutTemplateType.BOLD:
       return {
         outer: "w-full min-w-0 p-2 sm:p-3",
+        // Thick accent ring + top brand strip so Bold reads clearly vs other shells.
         inner: isDark
-          ? "w-full min-w-0 rounded-2xl border-2 border-white/25 bg-zinc-950/80 p-5 ring-4 ring-[color:var(--cf-accent-soft)] sm:p-6"
-          : "w-full min-w-0 rounded-2xl border-2 border-[color:var(--cf-accent-muted)] bg-white p-5 shadow-xl ring-4 ring-[color:var(--cf-accent-soft)] sm:p-6",
+          ? "w-full min-w-0 overflow-hidden rounded-2xl border-2 border-white/25 bg-zinc-950/80 shadow-xl ring-4 ring-[color:var(--cf-accent-soft)]"
+          : "w-full min-w-0 overflow-hidden rounded-2xl border-2 border-[color:var(--cf-accent-muted)] bg-white shadow-xl ring-4 ring-[color:var(--cf-accent-soft)]",
         dark: isDark,
         bg,
         outerBackground: `linear-gradient(180deg, ${primary}2e 0%, ${bg} 70%)`,
         radius,
+        showAccentBar: true,
       };
     default:
       return {
@@ -289,18 +302,33 @@ export function BaseCheckoutLayout({
           boxShadow: page.checkoutTheme.shadow,
         }}
       >
-        <div className={stackClass}>
-          {variant === CheckoutTemplateType.SPLIT && summary ? (
-            <>
-              {formColumn}
-              {summary}
-            </>
-          ) : (
-            <>
-              {summary}
-              {formColumn}
-            </>
-          )}
+        {styles.showAccentBar ? (
+          <div
+            className="h-3 w-full"
+            style={{ backgroundColor: page.checkoutTheme.buttonColor }}
+            aria-hidden
+          />
+        ) : null}
+        <div
+          className={
+            styles.showAccentBar
+              ? "space-y-0 p-5 sm:p-6"
+              : undefined
+          }
+        >
+          <div className={stackClass}>
+            {variant === CheckoutTemplateType.SPLIT && summary ? (
+              <>
+                {formColumn}
+                {summary}
+              </>
+            ) : (
+              <>
+                {summary}
+                {formColumn}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
