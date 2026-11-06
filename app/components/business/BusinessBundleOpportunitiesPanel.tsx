@@ -776,7 +776,7 @@ export function BusinessBundleOpportunitiesPanel({
       ? "No campaigns this period"
       : "Select a campaign";
 
-  const performanceHref = `/business/${businessId}/dashboard/performance`;
+  const performanceHref = `/business/${businessId}/dashboard/performance?month=${encodeURIComponent(monthFilter)}`;
 
   return (
     <section className="rd-premium w-full" aria-label={ADDON_TIPS_SECTION.title}>

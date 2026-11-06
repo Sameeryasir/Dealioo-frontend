@@ -9,15 +9,12 @@ import {
 import { Skeleton } from "@/app/components/skeleton";
 import {
   ACTIVITY_ALL_MONTHS_ID,
-  activityCalendarYearMonthCount,
-  buildActivityMonthFilterOptions,
-  buildActivityMonthKey,
   currentActivityDateKey,
-  currentActivityMonthKey,
   formatActivityMonthLabel,
   resolveActivityMonthRange,
   resolveCollectiveMonthRange,
 } from "@/app/lib/activity-month-filter";
+import { usePerformanceMonthFilter } from "@/app/hooks/use-performance-month-filter";
 import { campaignDashboardHref } from "@/app/lib/campaign-dashboard-tab";
 import { formatUtcChartBucketLabel, getUserTimeZone } from "@/app/lib/datetime";
 import { useCountUp } from "@/app/hooks/use-count-up";
@@ -200,10 +197,6 @@ type PerformanceScoreBreakdown = {
   repeatPoints: number;
   avgRevPoints: number;
 };
-
-function currentPerformanceMonthKey(): string {
-  return currentActivityMonthKey();
-}
 
 const panelCardClass =
   "rounded-[1.35rem] border border-[#e8edf5] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]";
@@ -1695,15 +1688,11 @@ export function BusinessPerformancePanel({
 }: {
   businessId: number;
 }) {
-  const [monthFilter, setMonthFilter] = useState(currentPerformanceMonthKey);
+  const { monthFilter, setMonthFilter, monthOptions, dashboardMonthCount } =
+    usePerformanceMonthFilter(businessId);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  const dashboardMonthCount = useMemo(() => activityCalendarYearMonthCount(), []);
   const viewerTimeZone = useMemo(() => getUserTimeZone(), []);
-  const monthOptions = useMemo(
-    () => buildActivityMonthFilterOptions(dashboardMonthCount),
-    [dashboardMonthCount],
-  );
   const monthRange = useMemo(() => {
     if (monthFilter === ACTIVITY_ALL_MONTHS_ID) {
       return {
@@ -1940,41 +1929,41 @@ export function BusinessPerformancePanel({
   }, [chartData, monthRange.inProgress]);
 
   return (
-    <section className="rd-premium rd-premium--fill w-full" aria-label="Performance">
-      <div className="rd-page-scroll flex flex-col gap-4 px-3 py-3 sm:px-4 sm:py-4">
-        <header className={`${panelCardClass} px-4 py-4 sm:px-5`}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <Link
-                href={`/business/${businessId}/dashboard`}
-                className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-[#1877f2] no-underline"
-              >
-                <ArrowLeft className="size-3.5" aria-hidden />
-                Back to dashboard
-              </Link>
-              <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#1877f2]/12 text-[#1877f2]">
-                  <ChartColumn className="size-4" strokeWidth={2.25} aria-hidden />
-                </span>
-                <div>
-                  <h1 className="m-0 text-lg font-semibold text-[#07111f]">
-                    Performance
-                  </h1>
-                  <p className="m-0 mt-0.5 text-sm text-slate-500">
-                    Top 3 performing campaigns in {periodLabel}
-                  </p>
-                </div>
+    <section className="rd-premium w-full" aria-label="Performance">
+      <header className="sticky top-0 z-10 shrink-0 border-b border-[#e8edf5]/50 bg-transparent px-3 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-white/15 sm:px-4 sm:py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <Link
+              href={`/business/${businessId}/dashboard`}
+              className="mb-2 inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-[#1877f2] no-underline"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Back to dashboard
+            </Link>
+            <div className="flex items-center gap-2">
+              <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-[0_10px_24px_rgba(24,119,242,0.35)]">
+                <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h1 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.15rem]">
+                  Performance
+                </h1>
+                <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500 sm:text-[0.8rem]">
+                  Top 3 performing campaigns in {periodLabel}
+                </p>
               </div>
             </div>
-            <ActivityMonthCalendarPicker
-              value={monthFilter}
-              onChange={setMonthFilter}
-              compact
-              monthCount={dashboardMonthCount}
-            />
           </div>
-        </header>
+          <ActivityMonthCalendarPicker
+            value={monthFilter}
+            onChange={setMonthFilter}
+            compact
+            monthCount={dashboardMonthCount}
+          />
+        </div>
+      </header>
 
+      <div className="flex flex-col gap-4 px-3 py-3 pb-6 sm:px-4 sm:py-4 sm:pb-8">
         <PerformanceOwnerGuidance
           guidance={guidance}
           isPending={query.isPending}
