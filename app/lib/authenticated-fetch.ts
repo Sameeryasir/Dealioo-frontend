@@ -1,9 +1,9 @@
 import { fetchWithTimeout } from "@/app/lib/api";
 import {
   clearAuthSession,
-  hasAuthSession,
-  markAuthSession,
+  ensureAuthSessionHint,
 } from "@/app/lib/auth-session";
+import { isAuthRefreshUrl } from "@/app/lib/auth-refresh-url";
 import { refreshAccessToken } from "@/app/lib/refresh-access-token";
 
 export function redirectToLogin(): void {
@@ -15,6 +15,12 @@ export function redirectToLogin(): void {
 export type AuthenticatedFetchOptions = {
   redirectOnUnauthorized?: boolean;
 };
+
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+}
 
 export async function authenticatedFetch(
   input: RequestInfo | URL,
@@ -30,7 +36,7 @@ export async function authenticatedFetch(
 
   let res = await fetchWithTimeout(input, requestInit, timeoutMs);
 
-  if (res.status === 401) {
+  if (res.status === 401 && !isAuthRefreshUrl(requestUrl(input))) {
     const newToken = await refreshAccessToken();
     if (!newToken) {
       if (redirectOnUnauthorized) {
@@ -49,8 +55,8 @@ export async function authenticatedFetch(
     }
   }
 
-  if (res.ok && !hasAuthSession()) {
-    markAuthSession();
+  if (res.ok) {
+    ensureAuthSessionHint();
   }
 
   return res;

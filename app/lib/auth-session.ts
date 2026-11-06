@@ -1,3 +1,4 @@
+import { broadcastAuthSessionChanged } from "@/app/lib/auth-broadcast";
 import {
   clearSetupAccessToken,
   getSetupAccessToken,
@@ -16,10 +17,17 @@ function notifyAuthSessionChanged(): void {
   window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
 }
 
+export function ensureAuthSessionHint(): void {
+  if (hasAuthSession()) return;
+  setSetupAccessToken();
+  setSetupRefreshToken();
+}
+
 export function markAuthSession(): void {
   setSetupAccessToken();
   setSetupRefreshToken();
   notifyAuthSessionChanged();
+  broadcastAuthSessionChanged("marked");
   void import("@/app/lib/sync-product-meta-attribution")
     .then((m) => m.syncProductMetaAttributionAfterAuth())
     .catch(() => {});
@@ -36,6 +44,7 @@ export function clearAuthSession(): void {
     .then((m) => m.resetProductMetaAttributionOnLogout())
     .catch(() => {});
   notifyAuthSessionChanged();
+  broadcastAuthSessionChanged("cleared");
 }
 
 export function hasAuthSession(): boolean {

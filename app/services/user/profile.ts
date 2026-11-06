@@ -6,10 +6,6 @@ import type { VerifyOtpUser } from "@/app/services/auth/verify-otp";
 import { parseAuthUser } from "@/app/services/user/parse-auth-user";
 
 export async function getMyProfile(): Promise<VerifyOtpUser> {
-  if (!hasAuthSession()) {
-    throw new Error("Missing access token. Sign in again.");
-  }
-
   const response = await authAxios.get<unknown>("/user/me");
   const user = parseAuthUser(response.data);
   if (!user) {

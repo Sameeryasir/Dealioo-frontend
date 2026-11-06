@@ -12,7 +12,6 @@ export async function logoutSession(): Promise<void> {
       body: JSON.stringify({}),
     });
   } catch {
-    // Local session is cleared even if the server revoke fails.
   }
 
   clearAuthSession();

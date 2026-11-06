@@ -1,10 +1,7 @@
 "use client";
 
-import {
-  AUTH_SESSION_CHANGED_EVENT,
-  hasAuthSession,
-} from "@/app/lib/auth-session";
 import { OnboardingPageLoading } from "@/app/components/brand/OnboardingPageLoading";
+import { useAuth } from "@/app/contexts/auth-context";
 import {
   inviteTokenFromReturnTo,
   resolvePostAuthDestination,
@@ -12,28 +9,59 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+function SessionVerifyError({
+  message,
+  onRetry,
+}: {
+  message: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#f1f5f9] px-4 text-center">
+      <div className="max-w-md rounded-2xl border border-[#e2e8f0] bg-white px-6 py-8 shadow-sm">
+        <h1 className="m-0 text-lg font-extrabold text-[#0e182b]">
+          Couldn’t verify your session
+        </h1>
+        <p className="m-0 mt-2 text-sm font-medium text-slate-500">
+          {message?.trim() ||
+            "The server could not be reached. Check your connection and try again."}
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-flex min-w-32 cursor-pointer items-center justify-center rounded-xl bg-[#1777f2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1569e0]"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { status, errorMessage, revalidateAuthSession } = useAuth();
 
   useEffect(() => {
-    const sync = () => {
-      const authed = hasAuthSession();
-      setIsAuthenticated(authed);
-      if (!authed) {
-        window.location.assign("/auth/login");
-      }
-    };
+    if (status !== "unauthenticated") return;
+    window.location.assign("/auth/login");
+  }, [status]);
 
-    sync();
-    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
+  if (status === "loading") {
+    return <OnboardingPageLoading />;
+  }
 
-  if (isAuthenticated !== true) {
+  if (status === "error") {
+    return (
+      <SessionVerifyError
+        message={errorMessage}
+        onRetry={() => {
+          void revalidateAuthSession();
+        }}
+      />
+    );
+  }
+
+  if (status !== "authenticated") {
     return <OnboardingPageLoading />;
   }
 
@@ -43,25 +71,30 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 export function GuestOnlyRoute({ children }: { children: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { status, revalidateAuthSession } = useAuth();
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function resolve() {
-      if (!hasAuthSession()) {
-        if (!cancelled) {
-          setAllowed(true);
-        }
+      if (status === "loading") {
+        if (!cancelled) setAllowed(false);
         return;
       }
 
-      if (!cancelled) {
-        setAllowed(false);
+      if (status === "error") {
+        if (!cancelled) setAllowed(false);
+        return;
       }
 
-      // Logged-in user hit login/signup with an invite → route through
-      // accept-invitation so a different-account switch can run first.
+      if (status === "unauthenticated") {
+        if (!cancelled) setAllowed(true);
+        return;
+      }
+
+      if (!cancelled) setAllowed(false);
+
       const inviteToken =
         searchParams.get("inviteToken")?.trim() ||
         inviteTokenFromReturnTo(searchParams.get("returnTo"));
@@ -88,19 +121,25 @@ export function GuestOnlyRoute({ children }: { children: ReactNode }) {
     }
 
     void resolve();
-
-    const onSessionChange = () => {
-      void resolve();
-    };
-    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, onSessionChange);
-    window.addEventListener("storage", onSessionChange);
-
     return () => {
       cancelled = true;
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, onSessionChange);
-      window.removeEventListener("storage", onSessionChange);
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, status]);
+
+  if (status === "loading") {
+    return <OnboardingPageLoading />;
+  }
+
+  if (status === "error") {
+    return (
+      <SessionVerifyError
+        message="We couldn’t confirm whether you’re already signed in."
+        onRetry={() => {
+          void revalidateAuthSession();
+        }}
+      />
+    );
+  }
 
   if (!allowed) {
     return <OnboardingPageLoading />;
