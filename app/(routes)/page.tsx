@@ -1,6 +1,5 @@
-import { HomeAuthRedirect } from "@/app/components/landing/HomeAuthRedirect";
+import { HomeLandingGate } from "@/app/components/landing/HomeLandingGate";
 import { LandingJsonLd } from "@/app/components/landing/LandingJsonLd";
-import { OwnerLandingPage } from "@/app/components/landing/OwnerLandingPage";
 import { getSiteOrigin } from "@/app/lib/site-origin";
 import type { Metadata } from "next";
 
@@ -66,8 +65,7 @@ export default function Home() {
   return (
     <>
       <LandingJsonLd />
-      <HomeAuthRedirect />
-      <OwnerLandingPage />
+      <HomeLandingGate />
     </>
   );
 }
