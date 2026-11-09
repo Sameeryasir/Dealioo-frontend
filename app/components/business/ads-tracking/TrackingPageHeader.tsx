@@ -6,7 +6,7 @@ export function TrackingPageHeader() {
   return (
     <header className="min-w-0">
       <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
-        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1877f2] text-white shadow-[0_8px_18px_rgba(24,119,242,0.28)] sm:size-11">
+        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#1877f2] sm:size-11">
           <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">

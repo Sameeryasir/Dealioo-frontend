@@ -3,6 +3,7 @@
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
+import { formatCategoryRatingsSummary } from "@/app/components/campaign/feedback/review-categories";
 import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
@@ -104,13 +105,21 @@ function StarRow({ rating }: { rating: number }) {
 }
 
 function exportReviewsCsv(rows: CampaignReviewRecord[]) {
-  const header = ["Guest", "Email", "Rating", "Feedback", "Submitted"];
+  const header = [
+    "Guest",
+    "Email",
+    "Rating",
+    "Categories",
+    "Feedback",
+    "Submitted",
+  ];
   const lines = rows.map((review) => {
     const when = formatDateTimeShort(review.submittedAt);
     return [
       review.guestName?.trim() || "Guest",
       review.guestEmail?.trim() || "",
       String(review.rating),
+      formatCategoryRatingsSummary(review.categoryRatings),
       review.comment?.trim() || "",
       when,
     ]
@@ -533,6 +542,11 @@ function ReviewMobileCard({
           {review.guestEmail}
         </p>
       ) : null}
+      {formatCategoryRatingsSummary(review.categoryRatings) ? (
+        <p className="m-0 mt-2 text-[0.75rem] font-medium text-slate-500">
+          {formatCategoryRatingsSummary(review.categoryRatings)}
+        </p>
+      ) : null}
       {review.comment?.trim() ? (
         <p className="m-0 mt-2 text-[0.82rem] leading-relaxed text-slate-700">
           {review.comment.trim()}
@@ -658,11 +672,18 @@ function ReviewsTableSection({
                     )}
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
-                    <div className="flex items-center gap-2">
-                      <StarRow rating={review.rating} />
-                      <span className="text-xs font-semibold tabular-nums text-slate-500">
-                        {review.rating}.0
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <StarRow rating={review.rating} />
+                        <span className="text-xs font-semibold tabular-nums text-slate-500">
+                          {review.rating}.0
+                        </span>
+                      </div>
+                      {formatCategoryRatingsSummary(review.categoryRatings) ? (
+                        <span className="text-[0.7rem] font-medium text-slate-500">
+                          {formatCategoryRatingsSummary(review.categoryRatings)}
+                        </span>
+                      ) : null}
                     </div>
                   </td>
                   <td className={`${tdClass} max-w-[18rem]`}>

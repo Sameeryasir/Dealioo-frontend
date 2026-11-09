@@ -1,3 +1,5 @@
+import type { ReviewCategoryRatings } from "@/app/components/campaign/feedback/review-categories";
+import { REVIEW_CATEGORY_KEYS } from "@/app/components/campaign/feedback/review-categories";
 import { getApiBaseUrl, parseApiErrorMessage } from "@/app/lib/api";
 import { hasAuthSession } from "@/app/lib/auth-session";
 import { authenticatedFetch } from "@/app/lib/authenticated-fetch";
@@ -14,6 +16,7 @@ export type CampaignReviewSummary = {
 export type CampaignReviewRecord = {
   id: number;
   rating: number;
+  categoryRatings: ReviewCategoryRatings | null;
   comment: string | null;
   guestName: string | null;
   guestEmail: string | null;
@@ -38,7 +41,29 @@ export type PublicCampaignFeedback = {
   status: "pending" | "submitted" | "expired";
   alreadySubmitted: boolean;
   expired: boolean;
+  businessName: string | null;
+  logoUrl: string | null;
+  logoPrimaryColor: string | null;
+  logoSecondaryColor: string | null;
+  logoAccentColor: string | null;
 };
+
+function normalizeCategoryRatings(raw: unknown): ReviewCategoryRatings | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  const cleaned: ReviewCategoryRatings = {};
+  for (const key of REVIEW_CATEGORY_KEYS) {
+    const rating = Math.floor(Number(o[key]));
+    if (Number.isFinite(rating) && rating >= 1 && rating <= 5) {
+      cleaned[key] = rating;
+    }
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : null;
+}
+
+function pickOptionalString(raw: unknown): string | null {
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
 
 function normalizeSummary(raw: unknown): CampaignReviewSummary {
   if (!raw || typeof raw !== "object") {
@@ -66,6 +91,7 @@ function normalizeReview(raw: unknown): CampaignReviewRecord | null {
   return {
     id,
     rating,
+    categoryRatings: normalizeCategoryRatings(o.categoryRatings),
     comment:
       typeof o.comment === "string" && o.comment.trim()
         ? o.comment.trim()
@@ -188,17 +214,27 @@ export async function getPublicCampaignFeedback(
     status,
     alreadySubmitted: Boolean(json.alreadySubmitted),
     expired: Boolean(json.expired),
+    businessName: pickOptionalString(json.businessName),
+    logoUrl: pickOptionalString(json.logoUrl),
+    logoPrimaryColor: pickOptionalString(json.logoPrimaryColor),
+    logoSecondaryColor: pickOptionalString(json.logoSecondaryColor),
+    logoAccentColor: pickOptionalString(json.logoAccentColor),
   };
 }
 
 export async function submitPublicCampaignFeedback(
   token: string,
-  input: { rating: number; comment?: string },
+  input: {
+    rating: number;
+    comment?: string;
+    categoryRatings?: ReviewCategoryRatings;
+  },
 ): Promise<void> {
   const safe = token.trim();
   if (!safe) {
     throw new Error("Feedback link is invalid.");
   }
+  const categoryRatings = normalizeCategoryRatings(input.categoryRatings);
   const res = await fetch(
     `${getApiBaseUrl()}/campaign-reviews/feedback/${encodeURIComponent(safe)}`,
     {
@@ -207,6 +243,7 @@ export async function submitPublicCampaignFeedback(
       body: JSON.stringify({
         rating: input.rating,
         comment: input.comment?.trim() || undefined,
+        categoryRatings: categoryRatings ?? undefined,
       }),
     },
   );

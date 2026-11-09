@@ -843,7 +843,7 @@ export function BusinessMembersPanel({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1877f2] ring-1 ring-[#e8edf5]"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2]"
                   aria-hidden
                 >
                   <Users className="size-5" strokeWidth={2.25} />

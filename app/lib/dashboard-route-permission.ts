@@ -68,6 +68,9 @@ export function dashboardRouteNeed(
   }
   if (segment === "campaigns") {
     const tab = parts[2];
+    if (tab === "addons") {
+      return { kind: "permission", permission: "campaigns" };
+    }
     if (tab === "guests") {
       return { kind: "permission", permission: "campaigns_guests" };
     }

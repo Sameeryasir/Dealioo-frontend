@@ -1,13 +1,18 @@
 "use client";
 
 import DealiooLogo from "@/app/components/brand/DealiooLogo";
+import { FeedbackCategoryRatingsFields } from "@/app/components/campaign/feedback/FeedbackCategoryRatings";
+import { FeedbackStarPicker } from "@/app/components/campaign/feedback/FeedbackStarPicker";
+import type { ReviewCategoryRatings } from "@/app/components/campaign/feedback/review-categories";
+import { resolveUploadImageUrl } from "@/app/lib/resolve-upload-image-url";
 import {
   getPublicCampaignFeedback,
   submitPublicCampaignFeedback,
   type PublicCampaignFeedback,
 } from "@/app/services/campaign-review/campaign-review-api";
-import { CheckCircle2, MessageSquareQuote, Star } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { CheckCircle2, MessageSquareQuote } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 
 const LOGO_SRC = "/black-logo.png";
 
@@ -17,7 +22,9 @@ export function CampaignFeedbackForm({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<PublicCampaignFeedback | null>(null);
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
+  const [categoryRatings, setCategoryRatings] = useState<ReviewCategoryRatings>(
+    {},
+  );
   const [comment, setComment] = useState("");
   const [done, setDone] = useState(false);
 
@@ -58,6 +65,7 @@ export function CampaignFeedbackForm({ token }: { token: string }) {
       await submitPublicCampaignFeedback(token, {
         rating,
         comment: comment.trim().slice(0, 2000) || undefined,
+        categoryRatings,
       });
       setDone(true);
     } catch (err: unknown) {
@@ -69,22 +77,48 @@ export function CampaignFeedbackForm({ token }: { token: string }) {
     }
   };
 
-  const displayRating = hoverRating || rating;
   const campaignLabel = info?.campaignName?.trim() || "this experience";
+  const venueLogo = resolveUploadImageUrl(info?.logoUrl ?? null);
+  const brandStyle = useMemo(() => {
+    const primary = info?.logoPrimaryColor?.trim();
+    if (!primary) return undefined;
+    return {
+      ["--brand-primary" as string]: primary,
+      ["--brand-primary-hover" as string]:
+        info?.logoAccentColor?.trim() || primary,
+    } as CSSProperties;
+  }, [info?.logoPrimaryColor, info?.logoAccentColor]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-10 sm:px-6">
+    <div
+      className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-10 sm:px-6"
+      style={brandStyle}
+    >
       <div className="brand-auth-card animate-in fade-in duration-500">
         <div className="mb-7 flex flex-col items-center text-center">
-          <DealiooLogo
-            src={LOGO_SRC}
-            variant="light"
-            width={1389}
-            height={334}
-            className="mb-5 h-8 w-auto sm:h-9"
-            priority
-          />
-          <span className="sr-only">Dealioo</span>
+          {venueLogo ? (
+            <Image
+              src={venueLogo}
+              alt={info?.businessName?.trim() || "Business logo"}
+              width={160}
+              height={64}
+              className="mb-5 h-12 w-auto max-w-[180px] object-contain"
+              unoptimized
+              priority
+            />
+          ) : (
+            <DealiooLogo
+              src={LOGO_SRC}
+              variant="light"
+              width={1389}
+              height={334}
+              className="mb-5 h-8 w-auto sm:h-9"
+              priority
+            />
+          )}
+          <span className="sr-only">
+            {info?.businessName?.trim() || "Dealioo"}
+          </span>
           <p className="m-0 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-brand-primary">
             Guest feedback
           </p>
@@ -95,6 +129,11 @@ export function CampaignFeedbackForm({ token }: { token: string }) {
                 ? campaignLabel
                 : "Give Feedback"}
           </h1>
+          {!loading && info?.businessName?.trim() ? (
+            <p className="m-0 mt-1 text-xs font-medium text-brand-muted">
+              {info.businessName.trim()}
+            </p>
+          ) : null}
           {!loading && info && !info.expired && !done ? (
             <p className="brand-subtext mt-2 max-w-[300px]">
               {info.guestName
@@ -156,39 +195,14 @@ export function CampaignFeedbackForm({ token }: { token: string }) {
         {!loading && info && !info.expired && !done ? (
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
-              <p className="brand-label mb-2.5">Rating</p>
-              <div
-                className="flex items-center justify-center gap-1 sm:gap-1.5"
-                role="group"
-                aria-label="Star rating"
-              >
-                {Array.from({ length: 5 }).map((_, index) => {
-                  const value = index + 1;
-                  const active = value <= displayRating;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-label={`${value} star${value === 1 ? "" : "s"}`}
-                      aria-pressed={rating === value}
-                      onMouseEnter={() => setHoverRating(value)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(value)}
-                      className="cursor-pointer rounded-lg p-1.5 transition-transform duration-150 hover:scale-110 active:scale-95"
-                    >
-                      <Star
-                        className={`size-9 transition-colors duration-150 ${
-                          active
-                            ? "fill-[var(--brand-yellow)] text-[var(--brand-yellow)]"
-                            : "text-slate-300"
-                        }`}
-                        strokeWidth={1.75}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
+              <p className="brand-label mb-2.5">Overall rating</p>
+              <FeedbackStarPicker value={rating} onChange={setRating} />
             </div>
+
+            <FeedbackCategoryRatingsFields
+              value={categoryRatings}
+              onChange={setCategoryRatings}
+            />
 
             <label className="block">
               <span className="brand-label mb-2">Your thoughts (optional)</span>

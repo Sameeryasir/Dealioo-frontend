@@ -29,6 +29,7 @@ export function getVisibleCampaignHeaderTabs(options: {
     if (isOwnerLike || id === "overview") return true;
     const tabAccess: Record<CampaignDashboardTabId, boolean> = {
       overview: true,
+      addons: can("campaigns") || can("activity"),
       guests: can("campaigns_guests"),
       orders: can("campaigns_orders"),
       reviews: can("campaigns_reviews"),

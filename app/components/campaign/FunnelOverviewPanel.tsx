@@ -911,7 +911,7 @@ export function FunnelOverviewPanel({
     <>
       <div className={performanceBandClass}>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1877f2] to-[#0f5ed7] text-white shadow-[0_10px_24px_rgba(24,119,242,0.35)]">
+          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#e8f2ff] text-[#1877f2]">
             <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
           </span>
           <div className="min-w-0">

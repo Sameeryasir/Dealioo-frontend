@@ -1,5 +1,6 @@
 export const CAMPAIGN_DASHBOARD_TABS = [
   { id: "overview", label: "Overview" },
+  { id: "addons", label: "Add-ons" },
   { id: "guests", label: "Guests" },
   { id: "orders", label: "Orders" },
   { id: "funnel", label: "Funnel" },
@@ -28,6 +29,7 @@ export function campaignDashboardTabFromPathname(
   const base = campaignDashboardHref(businessId, campaignId);
   if (!pathname.startsWith(base)) return "overview";
   const rest = pathname.slice(base.length).replace(/^\//, "").split("/")[0] ?? "";
+  if (rest === "addons") return "addons";
   if (rest === "guests") return "guests";
   if (rest === "orders") return "orders";
   if (rest === "reviews") return "reviews";
