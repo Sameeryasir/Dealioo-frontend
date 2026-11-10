@@ -4,7 +4,6 @@ import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityM
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import { AdSourceBadge } from "@/app/components/shared/AdSourceBadge";
-import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelGuests } from "@/app/hooks/use-funnel-guests";
@@ -86,6 +85,34 @@ function whatsappHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 8) return null;
   return `https://wa.me/${digits}`;
+}
+
+function GuestsEmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Users;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex min-h-[min(32rem,calc(100dvh-11.5rem))] min-w-0 flex-1 flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center rounded-[1.2rem] border border-[#e8edf5] bg-white px-6 py-10 text-center sm:px-8">
+        <Icon
+          className="mb-4 size-8 text-slate-300"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+        <p className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+          {title}
+        </p>
+        <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function GuestsTableSkeleton() {
@@ -774,7 +801,7 @@ export function CampaignGuestsPanel({
       <div
         className={`rd-premium-panel__body${
           showCenteredEmpty
-            ? " rd-premium-panel__body--center min-h-[min(24rem,60vh)]"
+            ? " rd-premium-panel__body--center flex min-h-0 flex-1 flex-col"
             : ""
         }`}
       >
@@ -789,7 +816,7 @@ export function CampaignGuestsPanel({
         ) : null}
 
         {showNoFunnelMessage ? (
-          <TableNoResultsEmptyState
+          <GuestsEmptyState
             icon={Users}
             title="No funnel saved yet"
             description="Open the Funnel tab and save once to load guests."
@@ -797,7 +824,7 @@ export function CampaignGuestsPanel({
         ) : null}
 
         {showNoRecords ? (
-          <TableNoResultsEmptyState
+          <GuestsEmptyState
             icon={Search}
             title="No matching guests"
             description="Nothing matches this search, filter, or date. Try another day or month."

@@ -25,7 +25,6 @@ import { createPortal } from "react-dom";
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
 import { PerformanceDateCalendar } from "@/app/components/business/PerformanceDateCalendar";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
-import { TableNoResultsEmptyState } from "@/app/components/shared/TableNoResultsEmptyState";
 import { TableColumnHeader } from "@/app/components/TableColumnHeader";
 import { Skeleton } from "@/app/components/skeleton";
 import { useFunnelPayments } from "@/app/hooks/use-funnel-payments";
@@ -88,6 +87,34 @@ function formatPaymentStatusLabel(status: string): string {
   if (normalized === "disputed") return "Disputed";
   if (normalized === "pending") return "Pending";
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function OrdersEmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof ShoppingBag;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex min-h-[min(32rem,calc(100dvh-11.5rem))] min-w-0 flex-1 flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center rounded-[1.2rem] border border-[#e8edf5] bg-white px-6 py-10 text-center sm:px-8">
+        <Icon
+          className="mb-4 size-8 text-slate-300"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+        <p className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+          {title}
+        </p>
+        <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function OrdersTableSkeleton() {
@@ -725,7 +752,7 @@ export function FunnelOrdersPanel({
       <div
         className={`rd-premium-panel__body${
           showCenteredEmpty
-            ? " rd-premium-panel__body--center min-h-[min(24rem,60vh)]"
+            ? " rd-premium-panel__body--center flex min-h-0 flex-1 flex-col"
             : ""
         }`}
       >
@@ -740,7 +767,7 @@ export function FunnelOrdersPanel({
         ) : null}
 
         {showNoFunnelMessage ? (
-          <TableNoResultsEmptyState
+          <OrdersEmptyState
             icon={ShoppingBag}
             title="No funnel saved yet"
             description="Open the Funnel tab and save once to load orders."
@@ -748,7 +775,7 @@ export function FunnelOrdersPanel({
         ) : null}
 
         {showNoRecords ? (
-          <TableNoResultsEmptyState
+          <OrdersEmptyState
             icon={Search}
             title="No matching orders"
             description="Nothing matches this search, filter, or date. Try another day or month."

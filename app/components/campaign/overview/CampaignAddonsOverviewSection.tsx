@@ -67,23 +67,23 @@ function AddonKpiTile({
   iconBg: string;
 }) {
   return (
-    <div className="funnel-overview-kpi-tile group flex h-full min-h-[8rem] items-start gap-3.5 rounded-[1.2rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] hover:border-[#1877f2]/45 hover:shadow-[0_14px_32px_rgba(24,119,242,0.14)] sm:px-5 sm:py-5">
+    <div className="funnel-overview-kpi-tile group flex h-full min-h-0 items-center gap-3 rounded-[1rem] border border-[#e8edf5] bg-white px-3.5 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[1px] hover:border-[#1877f2]/45 hover:shadow-[0_14px_32px_rgba(24,119,242,0.14)]">
       <span
-        className={`funnel-overview-kpi-tile__icon flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+        className={`funnel-overview-kpi-tile__icon flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
       >
-        <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+        <Icon className="size-3.5" strokeWidth={2.25} aria-hidden />
       </span>
       <div className="flex min-w-0 flex-1 flex-col text-left">
-        <p className="m-0 truncate text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-600 transition group-hover:text-[#1877f2]">
+        <p className="m-0 truncate text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-600 transition group-hover:text-[#1877f2]">
           {label}
         </p>
         <p
-          className="funnel-overview-kpi-tile__value m-0 mt-1.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black tabular-nums transition group-hover:text-[#1877f2] sm:text-[1.2rem]"
+          className="funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.05rem] font-extrabold leading-none tracking-tight text-black tabular-nums transition group-hover:text-[#1877f2]"
           aria-label={`${label}: ${value}`}
         >
           {value}
         </p>
-        <p className="m-0 mt-2 truncate text-[0.72rem] font-medium text-slate-500">
+        <p className="m-0 mt-1 truncate text-[0.68rem] font-medium text-slate-500">
           {hint}
         </p>
       </div>
@@ -93,12 +93,12 @@ function AddonKpiTile({
 
 function AddonKpiSkeleton() {
   return (
-    <div className="flex h-full min-h-[8rem] items-start gap-3.5 rounded-[1.2rem] border border-[#e8edf5] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-5 sm:py-5">
-      <Skeleton funnel className="size-10 shrink-0 rounded-xl" />
+    <div className="flex h-full min-h-0 items-center gap-3 rounded-[1rem] border border-[#e8edf5] bg-white px-3.5 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02]">
+      <Skeleton funnel className="size-8 shrink-0 rounded-lg" />
       <div className="flex min-w-0 flex-1 flex-col text-left">
-        <Skeleton funnel className="h-3 w-16" />
-        <Skeleton funnel className="mt-2 h-7 w-20" />
-        <Skeleton funnel className="mt-2 h-3 w-24" />
+        <Skeleton funnel className="h-2.5 w-16" />
+        <Skeleton funnel className="mt-1.5 h-5 w-20" />
+        <Skeleton funnel className="mt-1 h-2.5 w-24" />
       </div>
     </div>
   );
@@ -248,7 +248,7 @@ export function CampaignAddonsOverviewSection({
 
   return (
     <section
-      className="flex min-w-0 w-full flex-col gap-5 sm:gap-6"
+      className={`flex min-w-0 w-full flex-col gap-5 sm:gap-6${isEmpty ? " min-h-0 flex-1" : ""}`}
       aria-label={`Add-ons for ${periodLabel}`}
     >
       {statusLabel && StatusIcon ? (
@@ -278,14 +278,20 @@ export function CampaignAddonsOverviewSection({
           </div>
         </div>
       ) : isEmpty ? (
-        <div className="rounded-[1.2rem] border border-[#e8edf5] bg-white px-5 py-12 text-center shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] sm:px-6">
-          <Layers className="mx-auto size-8 text-slate-300" aria-hidden />
-          <p className="m-0 mt-4 text-sm font-medium text-slate-600">
-            {ADDON_TIPS_SECTION.emptyDetailsTitle}
-          </p>
-          <p className="m-0 mt-2 text-xs leading-relaxed text-slate-400">
-            {ADDON_TIPS_SECTION.emptyDetailsBody}
-          </p>
+        <div className="flex min-h-[min(32rem,calc(100dvh-11.5rem))] min-w-0 flex-1 flex-col">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-[1.2rem] border border-[#e8edf5] bg-white px-6 py-10 text-center sm:px-8">
+            <Layers
+              className="mb-4 size-8 text-slate-300"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <p className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+              {ADDON_TIPS_SECTION.emptyDetailsTitle}
+            </p>
+            <p className="m-0 mt-2 max-w-md text-[0.82rem] font-medium leading-relaxed text-slate-500">
+              {ADDON_TIPS_SECTION.emptyDetailsBody}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="flex min-w-0 flex-col gap-5 sm:gap-6">

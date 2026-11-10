@@ -71,7 +71,7 @@ export function CampaignAddonsPanel({
           </div>
         </div>
 
-        <div className="funnel-overview-body">
+        <div className="funnel-overview-body flex min-h-0 flex-1 flex-col">
           <CampaignAddonsOverviewSection
             businessId={businessId}
             campaignId={campaignId}
