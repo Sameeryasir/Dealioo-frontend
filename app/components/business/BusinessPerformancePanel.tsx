@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityMonthCalendarPicker } from "@/app/components/business/ActivityMonthCalendarPicker";
+import { PerformanceEmptyPlaceholder } from "@/app/components/business/PerformanceEmptyPlaceholder";
 import { OverviewAlertDialog } from "@/app/components/campaign/OverviewAlertDialog";
 import {
   OVERVIEW_CHART_COLORS,
@@ -804,25 +805,12 @@ function BundleOpportunitiesSection({
       </div>
 
       {campaignCount === 0 ? (
-        <div className="mt-3 rounded-xl border border-dashed border-[#dbe3ef] bg-[#f8fafc] px-4 py-8 text-center">
-          <PackageSearch
-            className="mx-auto size-7 text-slate-300"
-            strokeWidth={1.75}
-            aria-hidden
+        <div className="mt-3 overflow-hidden rounded-xl border border-[#e8edf5] bg-white">
+          <PerformanceEmptyPlaceholder
+            icon={PackageSearch}
+            title={ADDON_TIPS_SECTION.emptyTitle}
+            description={ADDON_TIPS_SECTION.emptyBody}
           />
-          <p className="m-0 mt-3 text-sm font-semibold text-slate-600">
-            {ADDON_TIPS_SECTION.emptyTitle}
-          </p>
-          <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-400">
-            {ADDON_TIPS_SECTION.emptyBody}
-          </p>
-          <Link
-            href={`/business/${businessId}/dashboard/campaigns`}
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1877f2] no-underline"
-          >
-            Open campaigns
-            <ArrowRight className="size-3.5" strokeWidth={2.25} aria-hidden />
-          </Link>
         </div>
       ) : (
         <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
@@ -955,7 +943,26 @@ function ConversionPerformanceSection({
     );
   }
 
-  if (campaigns.length === 0) return null;
+  if (campaigns.length === 0) {
+    return (
+      <div className={`${panelCardClass} overflow-hidden`}>
+        <div className="border-b border-[#eef2f7] px-4 py-3 sm:px-5">
+          <h2 className="m-0 text-[0.95rem] font-semibold text-[#07111f]">
+            Conversion Performance
+          </h2>
+          <p className="m-0 mt-0.5 text-sm text-slate-500">
+            How often guests who view a deal go on to place a paid order
+            {monthInProgress ? " so far" : ""} in {monthLabel}.
+          </p>
+        </div>
+        <PerformanceEmptyPlaceholder
+          icon={Percent}
+          title="No conversion data yet"
+          description="Conversion tips appear after deals get page views and paid orders in this period."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`${panelCardClass} px-4 py-4 sm:px-5`}>
@@ -1454,15 +1461,12 @@ const CampaignPerformanceChart = memo(function CampaignPerformanceChart({
         ) : chartData.length === 0 ||
           chartCampaigns.length === 0 ||
           !hasChartActivity ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-xl text-center">
-            <ChartColumn className="size-8 text-slate-300" aria-hidden />
-            <p className="m-0 mt-2 text-sm font-medium text-slate-500">
-              No daily campaign activity in this period
-            </p>
-            <p className="m-0 mt-1 text-xs text-slate-400">
-              Trends appear after campaigns get orders or visits.
-            </p>
-          </div>
+          <PerformanceEmptyPlaceholder
+            fill
+            icon={ChartColumn}
+            title="No daily campaign activity"
+            description="Trends appear after campaigns get orders or visits in this period."
+          />
         ) : (
           <PerformanceChartMount
             drawKey={`${monthFilter}:${chartCampaigns
@@ -2129,21 +2133,11 @@ export function BusinessPerformancePanel({
               ))}
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="px-4 py-10 text-center sm:px-5">
-              <Megaphone className="mx-auto size-8 text-slate-300" aria-hidden />
-              <p className="m-0 mt-3 text-sm font-medium text-slate-600">
-                No paid campaign activity for this period.
-              </p>
-              <p className="m-0 mt-1 text-xs text-slate-400">
-                Try another month, or check back after guests pay.
-              </p>
-              <Link
-                href={`/business/${businessId}/dashboard/campaigns`}
-                className="mt-4 inline-flex rounded-full bg-[#1877f2] px-4 py-2 text-sm font-semibold text-white no-underline"
-              >
-                View campaigns
-              </Link>
-            </div>
+            <PerformanceEmptyPlaceholder
+              icon={Megaphone}
+              title="No paid campaign activity"
+              description="Try another month, or check back after guests pay for this period."
+            />
           ) : (
             <>
               <div className="space-y-3 p-4 lg:hidden">
