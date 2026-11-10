@@ -70,7 +70,7 @@ export const editorSidebarSlotClass =
   "order-2 flex min-h-0 h-full flex-col lg:order-none lg:col-start-1 lg:row-span-2 lg:row-start-1";
 
 export const editorSidebarSlotEmbeddedClass =
-  "order-2 z-[2] flex h-full min-h-0 w-fit max-w-full flex-col self-stretch border-r border-[#e8edf5] bg-white max-lg:border-b max-lg:border-[#e8edf5] lg:order-none lg:col-start-1 lg:row-start-2";
+  "order-2 z-[2] hidden h-full min-h-0 w-fit max-w-full flex-col self-stretch border-r border-[#e8edf5] bg-white lg:order-none lg:col-start-1 lg:row-start-2 lg:flex";
 
 export const editorNavbarSlotClass =
   "order-1 min-h-0 w-full shrink-0 lg:order-none lg:col-span-2 lg:col-start-2 lg:row-start-1";
@@ -82,13 +82,13 @@ export const editorCanvasSlotClass =
   "order-3 flex min-h-0 h-full min-w-0 flex-col overflow-hidden lg:order-none lg:col-start-2 lg:row-start-2";
 
 export const editorCanvasSlotEmbeddedClass =
-  "order-3 flex h-full min-h-0 w-full min-w-0 flex-col self-stretch overflow-hidden lg:order-none lg:col-start-2 lg:row-start-2";
+  "crm-editor-canvas-slot order-3 flex h-full min-h-0 w-full min-w-0 flex-col self-stretch overflow-hidden lg:order-none lg:col-start-2 lg:row-start-2";
 
 export const editorSettingsSlotClass =
   "order-4 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-3 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 
 export const editorSettingsSlotEmbeddedClass =
-  "order-4 z-[2] flex h-full min-h-0 w-fit max-w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-2 [&>aside]:h-full [&>aside]:min-h-0";
+  "crm-editor-settings-slot order-4 z-[2] hidden h-full min-h-0 w-full max-w-full flex-col self-stretch overflow-hidden border-l border-[#e8edf5] bg-white lg:order-none lg:col-start-3 lg:row-start-2 lg:flex lg:w-fit [&>aside]:h-full [&>aside]:min-h-0";
 export const editorAssistantSlotClass =
   "order-5 flex h-full min-h-0 max-h-[32vh] min-w-0 flex-col overflow-hidden overscroll-contain lg:order-none lg:col-start-4 lg:row-start-2 lg:max-h-none lg:overflow-hidden [&>aside]:h-full [&>aside]:min-h-0";
 

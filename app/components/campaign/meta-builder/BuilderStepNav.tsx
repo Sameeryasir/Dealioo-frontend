@@ -32,15 +32,18 @@ export function BuilderStepNav({
     >
       <div className="h-0.5 bg-gradient-to-r from-[#1877f2] via-[#0081fb] to-[#e1306c]" aria-hidden />
       <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 flex items-start justify-between gap-3 sm:items-center sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbeafe] bg-[#f4f8ff] shadow-[0_4px_12px_rgba(24,119,242,0.1)]">
               <MetaLogo className="size-5" />
             </span>
-            <p className="text-sm font-extrabold text-[#07111f]">Create Meta campaign</p>
+            <p className="truncate text-sm font-extrabold text-[#07111f]">
+              Create Meta campaign
+            </p>
           </div>
-          <p className="shrink-0 text-xs font-bold tabular-nums text-[#1877f2]">
-            {Math.round(progressPercent)}% complete
+          <p className="shrink-0 text-[0.7rem] font-bold tabular-nums text-[#1877f2] sm:text-xs">
+            {Math.round(progressPercent)}%
+            <span className="hidden sm:inline"> complete</span>
           </p>
         </div>
 

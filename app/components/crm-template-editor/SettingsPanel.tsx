@@ -77,7 +77,7 @@ export function SettingsPanel({
   if (embedded) {
     return (
       <aside
-        className={`${shellClass} w-[17.5rem] max-w-[17.5rem] shrink-0 bg-white`}
+        className={`${shellClass} w-full max-w-full shrink-0 bg-white lg:w-[17.5rem] lg:max-w-[17.5rem]`}
       >
         <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
           {toolbar ? (

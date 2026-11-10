@@ -110,7 +110,7 @@ export function GoogleAdsObjectiveDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-[#07111f]/40"
@@ -121,13 +121,13 @@ export function GoogleAdsObjectiveDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-[1] flex max-h-[min(90dvh,860px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#e8edf5] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]"
+        className="relative z-[1] flex max-h-[min(92dvh,860px)] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-[#e8edf5] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[#e8edf5] px-6 py-5 sm:px-8">
-          <div>
+        <div className="flex items-start justify-between gap-3 border-b border-[#e8edf5] px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
+          <div className="min-w-0">
             <h2
               id={titleId}
-              className="text-xl font-light tracking-tight text-[#07111f] sm:text-2xl"
+              className="text-lg font-light tracking-tight text-[#07111f] sm:text-2xl"
             >
               Choose your objective
             </h2>
@@ -146,7 +146,7 @@ export function GoogleAdsObjectiveDialog({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-5 sm:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-4 sm:px-8 sm:py-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {OBJECTIVES.map((objective) => {
               const Icon = objective.icon;
@@ -156,7 +156,7 @@ export function GoogleAdsObjectiveDialog({
                   key={objective.id}
                   type="button"
                   onClick={() => setSelected(objective.id)}
-                  className={`relative rounded-xl border px-4 py-4 text-left transition ${
+                  className={`relative rounded-xl border px-3 py-3.5 text-left transition sm:px-4 sm:py-4 ${
                     isSelected
                       ? "border-[#1877f2] bg-white text-[#1877f2] ring-1 ring-[#1877f2]"
                       : "border-[#e8edf5] bg-white text-[#07111f] hover:border-[#1877f2]"
@@ -196,18 +196,18 @@ export function GoogleAdsObjectiveDialog({
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-[#e8edf5] bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+        <div className="flex flex-col-reverse gap-2 border-t border-[#e8edf5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-8 sm:py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#e8edf5] px-4 py-2.5 text-sm font-light text-slate-600 transition hover:bg-[#f4f8ff]"
+            className="w-full rounded-xl border border-[#e8edf5] px-4 py-2.5 text-sm font-light text-slate-600 transition hover:bg-[#f4f8ff] sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={() => onContinue?.(selected)}
-            className="rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-light text-white transition hover:bg-[#166fe0]"
+            className="w-full rounded-xl bg-[#1877f2] px-5 py-2.5 text-sm font-light text-white transition hover:bg-[#166fe0] sm:w-auto"
           >
             Continue
           </button>

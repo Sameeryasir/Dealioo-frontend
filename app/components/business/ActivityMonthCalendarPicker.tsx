@@ -60,11 +60,8 @@ export function ActivityMonthCalendarPicker({
   onChange: (monthKey: string) => void;
   className?: string;
   compact?: boolean;
-  /** Compact pill trigger: calendar icon + selected month (e.g. "Jan 2026"). */
   iconOnly?: boolean;
-  /** When iconOnly, match selected period-pill styling. */
   active?: boolean;
-  /** Fired when the compact trigger is clicked (e.g. switch to month period). */
   onActivate?: () => void;
   showAllMonths?: boolean;
   monthCount?: number;
@@ -84,7 +81,6 @@ export function ActivityMonthCalendarPicker({
     return formatActivityMonthLabel(value);
   }, [monthOptions, value]);
 
-  // Short label for the toolbar pill (e.g. "Jan 2026") so the icon + month fit.
   const compactMonthLabel = useMemo(() => {
     if (value === ACTIVITY_ALL_MONTHS_ID) return "All months";
     const [yearRaw, monthRaw] = value.split("-");
@@ -368,7 +364,7 @@ export function ActivityMonthCalendarPicker({
                     ? "bg-[#1877f2] text-white hover:bg-[#166fe0] hover:text-white"
                     : "bg-transparent text-[#64748b] hover:bg-[#f8fbff] hover:text-[#0f172a]"
                 }`
-              : "inline-flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent px-1 py-2 text-[0.75rem] font-bold text-[#07111f] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15"
+              : "inline-flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 bg-transparent px-1 py-1 text-[0.72rem] font-bold text-[#07111f] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15 sm:w-auto sm:shrink-0 sm:justify-start sm:py-2 sm:text-[0.75rem]"
           }
         >
           <Calendar
@@ -383,7 +379,9 @@ export function ActivityMonthCalendarPicker({
             <span className="whitespace-nowrap">{compactMonthLabel}</span>
           ) : (
             <>
-              <span className="max-w-[10rem] truncate">{selectedLabel}</span>
+              <span className="min-w-0 flex-1 truncate text-left sm:max-w-[10rem] sm:flex-none">
+                {selectedLabel}
+              </span>
               <motion.span
                 animate={{ rotate: open ? 180 : 0 }}
                 transition={{ duration: 0.24, ease: automationEase }}

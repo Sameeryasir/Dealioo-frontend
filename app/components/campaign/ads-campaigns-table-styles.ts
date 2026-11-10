@@ -1,19 +1,20 @@
 export const adsCampaignsTable = {
-  searchLabel: "relative block",
+  searchLabel: "relative block w-full min-w-0 sm:w-auto",
   searchIcon:
     "pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400",
   searchInput:
-    "h-9 w-52 rounded-lg border border-[#e8edf5] bg-white pl-8 pr-3 text-xs text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-64",
+    "h-9 w-full min-w-0 rounded-lg border border-[#e8edf5] bg-white pl-8 pr-3 text-xs text-[#07111f] outline-none focus:border-[#1877f2]/40 focus:ring-2 focus:ring-[#1877f2]/15 sm:w-64",
 
-  scroll: "table-h-scroll",
-  table: "min-w-[820px] w-full border-collapse text-left text-sm",
+  scrollShell: "hidden min-w-0 md:block",
+  scroll: "table-h-scroll -mx-1 min-w-0 sm:mx-0",
+  table: "min-w-[960px] w-full border-collapse text-left text-sm",
 
   theadRow: "border-b border-[#e8edf5]",
   thSelect:
     "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 first:pl-5",
   th: "sticky top-0 z-[1] whitespace-nowrap bg-[#f8fafc] px-4 py-3 text-left align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800",
   thActions:
-    "sticky top-0 right-0 z-[2] whitespace-nowrap bg-[#f8fafc] px-4 py-3 pl-2 text-right align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 last:pr-5",
+    "sticky top-0 right-0 z-[2] whitespace-nowrap bg-[#f8fafc] px-4 py-3 pl-2 text-right align-middle text-[0.65rem] font-bold uppercase tracking-[0.12em] text-slate-800 shadow-[-8px_0_12px_-8px_rgba(15,23,42,0.18)] last:pr-5",
 
   row: "group cursor-pointer align-middle text-[#07111f] transition-colors duration-150 hover:bg-[#e8f2ff]/70",
   tdSelect: "border-b border-[#f1f5f9] px-4 py-3 text-left align-middle first:pl-5",
@@ -21,7 +22,7 @@ export const adsCampaignsTable = {
   tdNum:
     "border-b border-[#f1f5f9] px-4 py-3 text-left align-middle text-sm tabular-nums text-slate-700",
   tdActions:
-    "sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white px-4 py-3 pl-2 text-right align-middle last:pr-5 group-hover:bg-[#e8f2ff]/70",
+    "sticky right-0 z-[1] border-b border-[#f1f5f9] bg-white px-4 py-3 pl-2 text-right align-middle shadow-[-8px_0_12px_-8px_rgba(15,23,42,0.12)] last:pr-5 group-hover:bg-[#e8f2ff]/70",
 
   skeletonCell: "border-b border-[#f1f5f9] px-4 py-3",
   skeletonBar: "h-12 animate-pulse rounded-xl bg-[#f1f5f9]",

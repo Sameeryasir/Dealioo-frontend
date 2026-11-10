@@ -1250,8 +1250,8 @@ export function CampaignBuilderWizard({
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[#e8edf5] bg-white/95 px-4 py-3 backdrop-blur sm:px-8">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e8edf5] bg-white/95 px-3 py-3 backdrop-blur sm:gap-4 sm:px-8">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <span
             aria-hidden
             className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f0fe] ring-1 ring-[#d2e3fc]"
@@ -1283,22 +1283,22 @@ export function CampaignBuilderWizard({
             </p>
             <h2
               id={titleId}
-              className="truncate text-lg font-extrabold tracking-tight text-[#07111f]"
+              className="truncate text-base font-extrabold tracking-tight text-[#07111f] sm:text-lg"
             >
               {STEP_TITLES[step - 1] ?? "Create campaign"}
             </h2>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {syncingDraft ? (
             <span className="inline-flex items-center gap-1 text-xs text-slate-400">
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              Syncing
+              <span className="hidden sm:inline">Syncing</span>
             </span>
           ) : draftSavedFlash ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
               <Check className="size-3.5" aria-hidden />
-              Draft saved
+              <span className="hidden sm:inline">Draft saved</span>
             </span>
           ) : hasAutosaved ? (
             <span className="hidden text-xs text-slate-400 sm:inline">
@@ -1317,10 +1317,13 @@ export function CampaignBuilderWizard({
         </div>
       </header>
 
-      <div className="shrink-0 border-b border-[#e8edf5] bg-white px-4 py-3 sm:px-8">
+      <div className="shrink-0 border-b border-[#e8edf5] bg-white px-3 py-3 sm:px-8">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <p className="text-xs font-semibold text-slate-500">
             Step {step} of {TOTAL_WIZARD_STEPS}
+          </p>
+          <p className="text-xs font-bold tabular-nums text-[#4285F4] sm:hidden">
+            {progressPct}%
           </p>
           <p className="hidden text-xs text-slate-400 sm:block">
             Click any step to jump there and change it
@@ -1328,7 +1331,7 @@ export function CampaignBuilderWizard({
         </div>
         <div className="mx-auto mt-2 max-w-3xl">
           <div
-            className="flex flex-wrap gap-1.5"
+            className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="tablist"
             aria-label="Campaign builder steps"
           >
@@ -1352,7 +1355,7 @@ export function CampaignBuilderWizard({
                     if (!validateCurrentStepOrBlock(stepNumber)) return;
                     goToStep(stepNumber);
                   }}
-                  className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
                     isActive
                       ? "bg-[#4285F4] text-white shadow-sm"
                       : isReachable
@@ -1375,7 +1378,9 @@ export function CampaignBuilderWizard({
                       stepNumber
                     )}
                   </span>
-                  <span className="hidden truncate sm:inline">{title}</span>
+                  <span className="max-w-[7.5rem] truncate sm:max-w-none">
+                    {title}
+                  </span>
                 </button>
               );
             })}
@@ -1391,8 +1396,8 @@ export function CampaignBuilderWizard({
         </div>
       </div>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-        <div className="mx-auto max-w-3xl pb-10">
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-8 sm:py-6">
+        <div className="mx-auto w-full min-w-0 max-w-3xl pb-10">
           <AnimatePresence mode="wait">
             <div key={`${step}`}>
               {open ? (
@@ -1416,7 +1421,7 @@ export function CampaignBuilderWizard({
         </div>
       </main>
 
-      <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[#e8edf5] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[#e8edf5] bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4">
         <button
           type="button"
           onClick={handleBack}

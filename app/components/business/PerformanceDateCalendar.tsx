@@ -107,14 +107,16 @@ export function PerformanceDateCalendar({
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Choose date"
-        className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-2 text-[0.75rem] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15 ${
+        className={`inline-flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-full border px-2.5 py-1 text-[0.72rem] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877f2]/15 sm:w-auto sm:shrink-0 sm:justify-start sm:px-3 sm:py-2 sm:text-[0.75rem] ${
           open
             ? "border-[#1877f2]/35 bg-[#f4f8ff] text-[#1877f2]"
             : "border-[#e8edf5] bg-[#f8fafc] text-slate-700 hover:border-[#1877f2]/35 hover:bg-[#f4f8ff] hover:text-[#1877f2]"
         }`}
       >
         <Calendar className="size-3.5 shrink-0 text-[#1877f2]" aria-hidden />
-        <span className="max-w-[10rem] truncate">{selectedLabel}</span>
+        <span className="min-w-0 flex-1 truncate text-left sm:max-w-[10rem] sm:flex-none">
+          {selectedLabel}
+        </span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.24, ease: automationEase }}

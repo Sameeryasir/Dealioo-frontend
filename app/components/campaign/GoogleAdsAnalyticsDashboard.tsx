@@ -48,6 +48,12 @@ import { isAdminUser } from "@/app/lib/is-admin-user";
 import { AdsDatePeriodPicker } from "@/app/components/campaign/AdsDatePeriodPicker";
 import { adsInsightsPeriodsMatch } from "@/app/lib/ads-insights-period";
 import {
+  AdsCampaignMobileCard,
+  AdsCampaignMobileEmpty,
+  AdsCampaignMobileList,
+  AdsCampaignMobileSkeleton,
+} from "@/app/components/campaign/AdsCampaignMobileCards";
+import {
   adsCampaignSelectDotClass,
   adsCampaignsTable,
 } from "@/app/components/campaign/ads-campaigns-table-styles";
@@ -207,11 +213,11 @@ function Panel({
     <section
       className={`rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.04)] sm:p-5 ${className}`}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="m-0 text-base font-bold tracking-tight text-[#0F172A]">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h3 className="m-0 min-w-0 text-base font-bold tracking-tight text-[#0F172A]">
           {title}
         </h3>
-        {action}
+        {action ? <div className="w-full min-w-0 sm:w-auto">{action}</div> : null}
       </div>
       {children}
     </section>
@@ -422,21 +428,21 @@ export function GoogleAdsAnalyticsDashboard({
   ];
 
   return (
-    <div className="-mx-1 space-y-6 rounded-3xl bg-white px-1 py-1 sm:px-2 sm:py-2">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden rounded-3xl bg-white sm:space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
         <div className="min-w-0 max-w-2xl">
-          <div className="flex items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-[#e8edf5]">
-              <GoogleLogo className="size-7" />
+          <div className="flex items-start gap-3 sm:items-center">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-[#e8edf5] sm:size-12">
+              <GoogleLogo className="size-6 sm:size-7" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-2xl font-bold tracking-tight text-[#07111f] sm:text-3xl">
+              <h2 className="text-xl font-bold tracking-tight text-[#07111f] sm:text-3xl">
                 Google ads
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Track spend and performance for your linked Google Ads account.
               </p>
-              <div className="mt-3">
+              <div className="mt-3 w-full min-w-0">
                 <AdsDatePeriodPicker
                   value={period}
                   onChange={onPeriodChange}
@@ -448,7 +454,7 @@ export function GoogleAdsAnalyticsDashboard({
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           <button
             type="button"
             onClick={onCreateCampaign}
@@ -458,7 +464,7 @@ export function GoogleAdsAnalyticsDashboard({
                 ? "You do not have permission to create Google campaigns"
                 : undefined
             }
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:w-auto"
           >
             <Plus className="size-4" aria-hidden />
             Create campaign
@@ -467,7 +473,7 @@ export function GoogleAdsAnalyticsDashboard({
             type="button"
             onClick={onRefresh}
             disabled={insightsLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60 sm:w-auto"
           >
             <RefreshCw
               className={`size-4 ${insightsLoading ? "animate-spin" : ""}`}
@@ -480,7 +486,7 @@ export function GoogleAdsAnalyticsDashboard({
               href={adsConsoleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] sm:w-auto"
             >
               Open Google Ads
               <ExternalLink className="size-4" aria-hidden />
@@ -660,6 +666,219 @@ export function GoogleAdsAnalyticsDashboard({
               </label>
             }
           >
+            {bootstrapping ? (
+              <AdsCampaignMobileSkeleton count={4} />
+            ) : pageRows.length === 0 ? (
+              <AdsCampaignMobileEmpty
+                icon={<Megaphone className="size-10" aria-hidden />}
+                title="No campaigns yet"
+                description="Create a Google campaign with the guided builder, or run ads in Google Ads."
+                action={
+                  <button
+                    type="button"
+                    onClick={onCreateCampaign}
+                    disabled={!canCreateCampaign}
+                    title={
+                      !canCreateCampaign
+                        ? "You do not have permission to create Google campaigns"
+                        : undefined
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                  >
+                    <Plus className="size-4" aria-hidden />
+                    Create campaign
+                  </button>
+                }
+              />
+            ) : (
+              <AdsCampaignMobileList
+                className={bootstrapping ? "" : metricsSoftClass}
+              >
+                {pageRows.map((c) => {
+                  const isSelected = selectedCampaignId === c.id;
+                  const status = normalizeGoogleCampaignStatus(
+                    c.effectiveStatus,
+                  );
+                  const isEnabled = status === "ENABLED";
+                  const isPaused = status === "PAUSED";
+                  const rowBusy =
+                    deletingCampaignId === c.id ||
+                    statusUpdatingId === c.id ||
+                    editingCampaignId === c.id ||
+                    duplicatingCampaignId === c.id;
+                  const ctr = campaignCtr(c);
+                  const offerLink = offerLinksByGoogleCampaignId[c.id];
+                  const dealiooHref =
+                    offerLink?.funnelId != null
+                      ? `/business/${businessId}/dashboard/campaigns/${offerLink.funnelId}`
+                      : null;
+                  return (
+                    <AdsCampaignMobileCard
+                      key={`m-${c.id}`}
+                      selected={isSelected}
+                      onSelect={() => {
+                        setSelectedCampaignId((prev) =>
+                          prev === c.id ? null : c.id,
+                        );
+                      }}
+                      title={c.name}
+                      subtitle={
+                        offerLink?.funnelName || dealiooHref ? (
+                          dealiooHref ? (
+                            <Link
+                              href={dealiooHref}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex max-w-full items-center gap-1 truncate font-semibold text-[#1877f2] hover:underline"
+                            >
+                              Dealioo: {offerLink?.funnelName || "Offer"}
+                            </Link>
+                          ) : (
+                            <span className="truncate font-medium text-slate-500">
+                              Dealioo: {offerLink?.funnelName}
+                            </span>
+                          )
+                        ) : (
+                          c.id
+                        )
+                      }
+                      status={
+                        <span
+                          className={`${adsCampaignsTable.statusBadge} ${statusBadgeClass(c.effectiveStatus)}`}
+                        >
+                          {formatMetaDeliveryStatus(status)}
+                        </span>
+                      }
+                      metrics={[
+                        {
+                          label: "Spend",
+                          value: formatMetaSpend(c.insights?.spend, currency),
+                        },
+                        {
+                          label: "Clicks",
+                          value: formatMetaCount(c.insights?.clicks),
+                        },
+                        {
+                          label: "Impr.",
+                          value: formatMetaCount(c.insights?.impressions),
+                        },
+                        {
+                          label: "CTR",
+                          value:
+                            ctr == null
+                              ? "N/A"
+                              : formatMetaPercent(String(ctr)),
+                        },
+                      ]}
+                      actions={
+                        <>
+                          {canManageCampaign &&
+                          onDuplicateCampaign &&
+                          offerLinksByGoogleCampaignId[c.id]?.draftId ? (
+                            <button
+                              type="button"
+                              title="Duplicate campaign setup"
+                              disabled={rowBusy}
+                              onClick={() => onDuplicateCampaign(c)}
+                              className={adsCampaignsTable.actionBtn}
+                            >
+                              {duplicatingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Copy className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canManageCampaign &&
+                          onToggleCampaignStatus &&
+                          (isEnabled || isPaused) ? (
+                            <button
+                              type="button"
+                              title={
+                                isEnabled
+                                  ? "Pause campaign"
+                                  : "Enable campaign"
+                              }
+                              disabled={rowBusy}
+                              onClick={() =>
+                                onToggleCampaignStatus(
+                                  c,
+                                  isEnabled ? "PAUSED" : "ENABLED",
+                                )
+                              }
+                              className={adsCampaignsTable.actionBtn}
+                            >
+                              {statusUpdatingId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : isEnabled ? (
+                                <Pause className="size-4" aria-hidden />
+                              ) : (
+                                <Play className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canManageCampaign && onEditCampaign ? (
+                            <button
+                              type="button"
+                              title="Edit published campaign"
+                              disabled={rowBusy}
+                              onClick={() => {
+                                const currentStatus =
+                                  normalizeGoogleCampaignStatus(
+                                    c.effectiveStatus,
+                                  );
+                                setEditCampaign(c);
+                                setEditName(c.name?.trim() || "");
+                                setEditStatus(
+                                  currentStatus === "ENABLED"
+                                    ? "ENABLED"
+                                    : "PAUSED",
+                                );
+                                setEditBudget(c.dailyBudget?.trim() || "20");
+                              }}
+                              className={adsCampaignsTable.actionBtn}
+                            >
+                              {editingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Pencil className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canDeleteCampaign ? (
+                            <button
+                              type="button"
+                              title="Delete campaign"
+                              disabled={rowBusy}
+                              onClick={() => onDeleteCampaign(c)}
+                              className={adsCampaignsTable.actionBtnDanger}
+                            >
+                              {deletingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </AdsCampaignMobileList>
+            )}
+            <div className={adsCampaignsTable.scrollShell}>
             <div
               className={`${adsCampaignsTable.scroll} ${bootstrapping ? "" : metricsSoftClass}`}
               aria-busy={softRefreshing || undefined}
@@ -967,6 +1186,7 @@ export function GoogleAdsAnalyticsDashboard({
                 </tbody>
               </table>
             </div>
+            </div>
             <div className={adsCampaignsTable.paginationBar}>
               <p>
                 Showing {pageRows.length} of {filteredCampaigns.length} campaign
@@ -1050,7 +1270,7 @@ export function GoogleAdsAnalyticsDashboard({
           }}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-5 shadow-xl"
+            className="w-full max-w-md rounded-2xl border border-[#e8edf5] bg-white p-4 shadow-xl sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <h3
@@ -1101,7 +1321,7 @@ export function GoogleAdsAnalyticsDashboard({
               />
             </label>
 
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 flex flex-col gap-2 border-t border-[#eef2f7] pt-4 sm:flex-row sm:items-center sm:justify-between">
               {onOpenInBuilder ? (
                 <button
                   type="button"
@@ -1111,7 +1331,7 @@ export function GoogleAdsAnalyticsDashboard({
                     setEditCampaign(null);
                     onOpenInBuilder(campaign);
                   }}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] hover:bg-[#f8fbff] disabled:opacity-50"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#e8edf5] px-3 text-sm font-semibold text-[#1877f2] hover:bg-[#f8fbff] disabled:opacity-50 sm:w-auto"
                 >
                   <SlidersHorizontal className="size-4" aria-hidden />
                   Edit in builder
@@ -1119,36 +1339,36 @@ export function GoogleAdsAnalyticsDashboard({
               ) : (
                 <span />
               )}
-              <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={editingCampaignId != null}
-                onClick={() => setEditCampaign(null)}
-                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={editingCampaignId != null}
-                onClick={() => {
-                  const name = editName.trim();
-                  const amount = Number.parseFloat(editBudget);
-                  if (!name || !Number.isFinite(amount) || amount < 1) return;
-                  onEditCampaign(editCampaign, {
-                    name,
-                    status: editStatus,
-                    dailyBudget: amount,
-                  });
-                  setEditCampaign(null);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:opacity-50"
-              >
-                {editingCampaignId === editCampaign.id ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : null}
-                Save changes
-              </button>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => setEditCampaign(null)}
+                  className="h-10 rounded-xl px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={editingCampaignId != null}
+                  onClick={() => {
+                    const name = editName.trim();
+                    const amount = Number.parseFloat(editBudget);
+                    if (!name || !Number.isFinite(amount) || amount < 1) return;
+                    onEditCampaign(editCampaign, {
+                      name,
+                      status: editStatus,
+                      dailyBudget: amount,
+                    });
+                    setEditCampaign(null);
+                  }}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-3 text-sm font-semibold text-white hover:bg-[#166fe5] disabled:opacity-50"
+                >
+                  {editingCampaignId === editCampaign.id ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : null}
+                  Save changes
+                </button>
               </div>
             </div>
           </div>

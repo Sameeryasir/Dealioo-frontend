@@ -541,15 +541,15 @@ export function CampaignAdsPanel({
     <div
       className={
         embedded
-          ? `relative box-border flex w-full min-w-0 overflow-visible bg-white px-3 sm:px-5 ${
+          ? `relative box-border flex w-full min-w-0 overflow-x-hidden bg-white px-3 sm:px-5 ${
               showCenteredEmpty
                 ? "min-h-0 flex-1 items-center justify-center py-6"
-                : "shrink-0 pb-20 pt-5 sm:pb-24 sm:pt-6"
+                : "shrink-0 pb-16 pt-4 sm:pb-24 sm:pt-6"
             }`
-          : `relative box-border flex w-full min-w-0 overflow-visible bg-white px-4 sm:px-8 ${
+          : `relative box-border flex w-full min-w-0 overflow-x-hidden bg-white px-3 sm:px-8 ${
               showCenteredEmpty
                 ? "min-h-[70vh] items-center justify-center py-8"
-                : "shrink-0 py-8 pb-20 sm:py-10 sm:pb-24"
+                : "shrink-0 py-6 pb-16 sm:py-10 sm:pb-24"
             }`
       }
     >

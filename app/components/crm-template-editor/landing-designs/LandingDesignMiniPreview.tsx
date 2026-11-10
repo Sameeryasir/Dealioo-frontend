@@ -16,7 +16,7 @@ export function LandingDesignMiniPreview({
   if (wide) {
     return (
       <div
-        className="relative h-[7.25rem] w-full overflow-hidden rounded-[0.85rem] border border-black/[0.05]"
+        className="relative h-[6.25rem] w-full max-w-full overflow-hidden rounded-[0.85rem] border border-black/[0.05] sm:h-[7.25rem]"
         style={{ backgroundColor: style.backgroundDefault }}
         aria-hidden
       >

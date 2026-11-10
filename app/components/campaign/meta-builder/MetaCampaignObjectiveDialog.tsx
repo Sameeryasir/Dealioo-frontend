@@ -386,7 +386,7 @@ export function MetaCampaignObjectiveDialog({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="grid gap-8 px-6 py-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.9fr)] sm:px-8">
+          <div className="grid gap-6 px-4 py-5 sm:gap-8 sm:px-8 sm:py-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.9fr)]">
             <div className="space-y-8">
               <section>
                 <div className="mb-2 flex items-center gap-1.5">

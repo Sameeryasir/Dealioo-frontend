@@ -16,25 +16,30 @@ import {
   editorSidebarSlotEmbeddedClass,
   editorWorkspaceToolbarSlotEmbeddedClass,
 } from "@/app/components/crm-template-editor/editor-layout";
+import type { FunnelEditorMobilePanel } from "@/app/components/crm-template-editor/FunnelEditorMobileChrome";
 
 export function EditorShell({
   navbar,
   workspaceToolbar,
+  mobileChrome,
   leftSidebar,
   canvas,
   settingsPanel,
   assistantPanel,
   assistantLauncher,
   embedded = false,
+  mobilePanel = "preview",
 }: {
   navbar?: ReactNode;
   workspaceToolbar?: ReactNode;
+  mobileChrome?: ReactNode;
   leftSidebar?: ReactNode;
   canvas: ReactNode;
   settingsPanel?: ReactNode;
   assistantPanel?: ReactNode;
   assistantLauncher?: ReactNode;
   embedded?: boolean;
+  mobilePanel?: FunnelEditorMobilePanel;
 }) {
   const hasAssistant = assistantPanel != null;
   const gridClass = embedded
@@ -55,26 +60,48 @@ export function EditorShell({
     ? editorSettingsSlotEmbeddedClass
     : editorSettingsSlotClass;
 
+  const mobilePreview = mobilePanel === "preview";
+  const mobileSettings = mobilePanel === "settings";
+
   const grid = (
-    <div className={gridClass}>
+    <div
+      className={`${gridClass} ${
+        embedded
+          ? mobilePreview
+            ? "crm-editor-embedded-grid--mobile-preview"
+            : "crm-editor-embedded-grid--mobile-settings"
+          : ""
+      }`}
+    >
       {embedded && workspaceToolbar ? (
         <div className={editorWorkspaceToolbarSlotEmbeddedClass}>
           {workspaceToolbar}
+          {mobileChrome}
         </div>
       ) : null}
       {leftSidebar ? <div className={sidebarClass}>{leftSidebar}</div> : null}
       {!embedded && navbar ? (
         <div className={editorNavbarSlotClass}>{navbar}</div>
       ) : null}
-      <div className={canvasClass}>{canvas}</div>
+      <div
+        className={`${canvasClass} ${
+          embedded && mobileSettings ? "max-lg:hidden" : ""
+        }`}
+      >
+        {canvas}
+      </div>
       {settingsPanel != null || hasAssistant || assistantLauncher ? (
-        <div className={`${settingsClass} relative`}>
+        <div
+          className={`${settingsClass} relative ${
+            embedded && mobileSettings ? "max-lg:!flex" : ""
+          }`}
+        >
           {settingsPanel != null ? (
             <div
               className={
                 hasAssistant
                   ? "pointer-events-none invisible h-full min-h-0 min-w-0"
-                  : "h-full min-h-0 min-w-0"
+                  : "h-full min-h-0 min-w-0 w-full"
               }
               aria-hidden={hasAssistant}
             >
@@ -87,7 +114,7 @@ export function EditorShell({
             </div>
           ) : null}
           {!hasAssistant && assistantLauncher ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4 max-lg:hidden">
               <div className="pointer-events-auto">{assistantLauncher}</div>
             </div>
           ) : null}

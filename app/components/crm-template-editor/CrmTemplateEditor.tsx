@@ -13,6 +13,10 @@ import {
 import { DiscardChangesDialog } from "@/app/components/crm-template-editor/DiscardChangesDialog";
 import { EditorLeftSidebar } from "@/app/components/crm-template-editor/EditorLeftSidebar";
 import { EditorShell } from "@/app/components/crm-template-editor/EditorShell";
+import {
+  FunnelEditorMobileChrome,
+  type FunnelEditorMobilePanel,
+} from "@/app/components/crm-template-editor/FunnelEditorMobileChrome";
 import { SettingsPanel } from "@/app/components/crm-template-editor/SettingsPanel";
 import { TopNavigation } from "@/app/components/crm-template-editor/TopNavigation";
 import { FunnelTrackingLinkDialog } from "@/app/components/campaign/FunnelTrackingLinkDialog";
@@ -127,6 +131,8 @@ export function CrmTemplateEditor({
   const { subscription } = useMyUserSubscription();
   const showAiAssistant = isGrowthAiSubscription(subscription);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] =
+    useState<FunnelEditorMobilePanel>("preview");
 
   const { data: campaignDetail } = useCampaignByIdQuery(campaignId);
   const campaignType =
@@ -197,7 +203,6 @@ export function CrmTemplateEditor({
 
   useEffect(() => {
     if (!isHydrated) return;
-    // Keep payment checkout + forms matched to the saved funnel page template.
     resetPagesHistory(
       syncFunnelPagesWithTemplate(
         applyCampaignOfferToLandingPages(
@@ -737,9 +742,24 @@ export function CrmTemplateEditor({
       <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <EditorShell
         embedded={embedded}
+        mobilePanel={mobilePanel}
         workspaceToolbar={
           embedded ? (
             <TopNavigation {...toolbarSharedProps} embedded showPreview />
+          ) : undefined
+        }
+        mobileChrome={
+          embedded ? (
+            <FunnelEditorMobileChrome
+              activeId={activeId}
+              pageOrder={pageOrder}
+              onSelectStep={(id) => {
+                openEditorForPage(id);
+                setMobilePanel("preview");
+              }}
+              mobilePanel={mobilePanel}
+              onMobilePanelChange={setMobilePanel}
+            />
           ) : undefined
         }
         navbar={

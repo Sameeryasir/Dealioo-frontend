@@ -118,7 +118,7 @@ export function TopNavigation({
           className={ghostActionClass}
         >
           <GlobeLock className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">Unpublish</span>
+          <span className="hidden truncate sm:inline">Unpublish</span>
         </button>
       ) : (
         <button
@@ -129,7 +129,7 @@ export function TopNavigation({
           className={publishActionClass}
         >
           <Globe className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">Publish</span>
+          <span className="hidden truncate sm:inline">Publish</span>
         </button>
       )
     ) : null;
@@ -310,15 +310,15 @@ export function TopNavigation({
         </motion.div>
 
         <motion.div
-          className="flex shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-1.5"
+          className="flex max-w-[58%] shrink-0 flex-wrap items-center justify-end gap-1 sm:max-w-none sm:gap-1.5"
           variants={headerActionsVariants}
           initial="hidden"
           animate="show"
         >
-          {historyControls}
+          <div className="hidden sm:block">{historyControls}</div>
           {zoomControls}
 
-          <motion.div variants={headerActionItemVariants}>
+          <motion.div variants={headerActionItemVariants} className="hidden sm:block">
             <StatusBadge status={saveStatus} isDirty={isDirty} compact={embedded} />
           </motion.div>
 
@@ -327,7 +327,7 @@ export function TopNavigation({
               type="button"
               variants={headerActionItemVariants}
               onClick={onPreview}
-              className={`hidden sm:inline-flex ${ghostActionClass}`}
+              className={`hidden md:inline-flex ${ghostActionClass}`}
             >
               <Eye className="size-3.5" />
               Preview
@@ -335,7 +335,7 @@ export function TopNavigation({
           ) : null}
 
           {trackingLinkButton ? (
-            <motion.div variants={headerActionItemVariants}>
+            <motion.div variants={headerActionItemVariants} className="hidden sm:block">
               {trackingLinkButton}
             </motion.div>
           ) : null}
@@ -359,7 +359,8 @@ export function TopNavigation({
             ) : (
               <Save className="size-3.5" aria-hidden />
             )}
-            Save Draft
+            <span className="hidden sm:inline">Save Draft</span>
+            <span className="sm:hidden">Save</span>
           </motion.button>
         </motion.div>
       </motion.div>

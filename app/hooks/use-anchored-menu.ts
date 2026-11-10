@@ -38,18 +38,25 @@ export function useAnchoredMenu(options?: {
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const menuWidth =
-      widthMode === "anchor" ? rect.width : widthMode;
+    const viewportWidth = window.innerWidth;
+    const edgePad = viewportWidth < 640 ? 12 : 8;
+    const rawWidth = widthMode === "anchor" ? rect.width : widthMode;
+    const menuWidth = Math.min(
+      rawWidth,
+      Math.max(200, viewportWidth - edgePad * 2),
+    );
 
     let top = rect.bottom + (placement === "below" ? 6 : 4);
     if (placement === "flip" && top + estimatedHeight > window.innerHeight - 8) {
       top = Math.max(8, rect.top - estimatedHeight - 4);
     }
 
-    const left =
-      align === "right"
-        ? Math.max(8, rect.right - menuWidth)
-        : rect.left;
+    const unclampedLeft =
+      align === "right" ? rect.right - menuWidth : rect.left;
+    const left = Math.min(
+      Math.max(edgePad, unclampedLeft),
+      Math.max(edgePad, viewportWidth - menuWidth - edgePad),
+    );
 
     setMenuPosition({ top, left, width: menuWidth });
   }, [align, estimatedHeight, placement, widthMode]);

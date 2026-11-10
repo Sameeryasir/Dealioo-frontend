@@ -268,7 +268,6 @@ export function BusinessCampaignsPanel({
     return filteredCampaigns.slice(start, start + CAMPAIGNS_GRID_PAGE_SIZE);
   }, [filteredCampaigns, page]);
 
-  // Warm funnelId cache for visible cards so campaign Overview skips the summary hop.
   useEffect(() => {
     if (pagedCampaigns.length === 0) return;
     const ids = pagedCampaigns.map((c) => c.id);
@@ -337,7 +336,7 @@ export function BusinessCampaignsPanel({
 
   const campaignsToolbar = showToolbar ? (
     <div
-      className="relative shrink-0 overflow-hidden border-b border-[#e8edf5]/80 bg-white px-3 py-4 sm:px-4"
+      className="relative shrink-0 border-b border-[#e8edf5]/80 bg-white px-3 py-4 sm:px-4"
       aria-label="Campaign filters"
     >
       <span
@@ -350,16 +349,18 @@ export function BusinessCampaignsPanel({
       />
 
       <div className="relative flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex shrink-0 items-center gap-1 rounded-full border border-[#e8edf5] bg-white/80 p-1 shadow-sm ring-1 ring-black/[0.02] backdrop-blur-sm">
-            {STATUS_FILTERS.map((filter) => (
-              <FilterPill
-                key={filter.id}
-                label={filter.label}
-                active={statusFilter === filter.id}
-                onClick={() => setStatusFilter(filter.id)}
-              />
-            ))}
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:overflow-visible sm:px-0">
+            <div className="inline-flex w-max max-w-none items-center gap-1 rounded-full border border-[#e8edf5] bg-white/80 p-1 shadow-sm ring-1 ring-black/[0.02] backdrop-blur-sm">
+              {STATUS_FILTERS.map((filter) => (
+                <FilterPill
+                  key={filter.id}
+                  label={filter.label}
+                  active={statusFilter === filter.id}
+                  onClick={() => setStatusFilter(filter.id)}
+                />
+              ))}
+            </div>
           </div>
           <button
             type="button"
@@ -370,14 +371,14 @@ export function BusinessCampaignsPanel({
                 ? undefined
                 : "You need create permission to add a campaign"
             }
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2 text-[0.75rem] font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#1877f2] px-3.5 py-2.5 text-[0.75rem] font-bold text-white shadow-[0_6px_18px_rgba(24,119,242,0.3)] transition hover:bg-[#166fe5] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300 sm:w-auto sm:py-2"
           >
             <Plus className="size-3.5" strokeWidth={2.5} aria-hidden />
             Add campaign
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <div className="relative min-w-0 w-full max-w-md flex-1">
             <Search
               className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
@@ -388,10 +389,10 @@ export function BusinessCampaignsPanel({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search campaigns..."
-              className="w-full rounded-xl border border-[#e8edf5] bg-white py-2 pr-3 pl-9 text-[0.82rem] font-medium text-[#07111f] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15"
+              className="w-full rounded-xl border border-[#e8edf5] bg-white py-2.5 pr-3 pl-9 text-[0.82rem] font-medium text-[#07111f] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/45 focus:ring-2 focus:ring-[#1877f2]/15 sm:py-2"
             />
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/12">
+          <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-[#f4f8ff] px-2.5 py-1 text-[0.72rem] font-bold tabular-nums text-[#1877f2] ring-1 ring-[#1877f2]/12">
             <Sparkles className="size-3" aria-hidden />
             {hasActiveFilters
               ? `${filteredCampaigns.length} shown`

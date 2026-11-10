@@ -14,7 +14,7 @@ export const editorPanelTopFootClass =
   "editor-panel-top-foot flex w-full shrink-0 items-center";
 
 export const editorSettingsPanelShellEmbeddedClass =
-  "hidden h-full min-h-0 w-full flex-col gap-2 overflow-hidden lg:flex";
+  "flex h-full min-h-0 w-full max-w-full flex-col gap-2 overflow-hidden lg:max-w-[17.5rem]";
 
 export const editorSettingsPanelShellClass =
   "hidden h-full min-h-0 flex-col overflow-hidden border-l border-[#e8edf5] bg-white lg:flex !rounded-none !border-y-0 !border-r-0";

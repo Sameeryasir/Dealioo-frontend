@@ -46,6 +46,12 @@ import {
 } from "lucide-react";
 import { isAdminUser } from "@/app/lib/is-admin-user";
 import {
+  AdsCampaignMobileCard,
+  AdsCampaignMobileEmpty,
+  AdsCampaignMobileList,
+  AdsCampaignMobileSkeleton,
+} from "@/app/components/campaign/AdsCampaignMobileCards";
+import {
   adsCampaignSelectDotClass,
   adsCampaignsTable,
 } from "@/app/components/campaign/ads-campaigns-table-styles";
@@ -331,14 +337,14 @@ function Panel({
     <section
       className={`rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.04)] sm:p-5 ${className}`}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="m-0 inline-flex items-center gap-1 text-base font-bold tracking-tight text-[#0F172A]">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h3 className="m-0 inline-flex min-w-0 items-center gap-1 text-base font-bold tracking-tight text-[#0F172A]">
           {title}
           {showChevron ? (
             <ChevronRight className="size-4 text-slate-400" aria-hidden />
           ) : null}
         </h3>
-        {action}
+        {action ? <div className="w-full min-w-0 sm:w-auto">{action}</div> : null}
       </div>
       {children}
     </section>
@@ -354,10 +360,8 @@ function EmptyChartNote({ message }: { message: string }) {
 }
 
 function ChartMount({
-  height,
   children,
 }: {
-  height: number;
   children: ReactNode;
 }) {
   const [ready, setReady] = useState(false);
@@ -369,8 +373,7 @@ function ChartMount({
   if (!ready) {
     return (
       <div
-        className="w-full min-w-0 animate-pulse rounded-xl bg-[#f1f5f9]"
-        style={{ height }}
+        className="absolute inset-0 w-full min-w-0 animate-pulse rounded-xl bg-[#f1f5f9]"
         aria-hidden
       />
     );
@@ -631,21 +634,21 @@ export function MetaAdsAnalyticsDashboard({
   ];
 
   return (
-    <div className="-mx-1 space-y-6 rounded-3xl bg-white px-1 py-1 sm:px-2 sm:py-2">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden rounded-3xl bg-white sm:space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
         <div className="min-w-0 max-w-2xl">
-          <div className="flex items-center gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-[#e8edf5]">
-              <MetaLogo className="size-7" />
+          <div className="flex items-start gap-3 sm:items-center">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-[#e8edf5] sm:size-12">
+              <MetaLogo className="size-6 sm:size-7" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-2xl font-bold tracking-tight text-[#07111f] sm:text-3xl">
+              <h2 className="text-xl font-bold tracking-tight text-[#07111f] sm:text-3xl">
                 Meta ads
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Track spend and performance for your linked Meta ads account.
               </p>
-              <div className="mt-3">
+              <div className="mt-3 w-full min-w-0">
                 <AdsDatePeriodPicker
                   value={period}
                   onChange={onPeriodChange}
@@ -657,12 +660,12 @@ export function MetaAdsAnalyticsDashboard({
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           {canCreateCampaign ? (
             <button
               type="button"
               onClick={onCreateCampaign}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#166fe5] sm:w-auto"
             >
               <Plus className="size-4" aria-hidden />
               Create campaign
@@ -672,7 +675,7 @@ export function MetaAdsAnalyticsDashboard({
             type="button"
             onClick={onRefresh}
             disabled={insightsLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] disabled:opacity-60 sm:w-auto"
           >
             <RefreshCw
               className={`size-4 ${insightsLoading ? "animate-spin" : ""}`}
@@ -685,7 +688,7 @@ export function MetaAdsAnalyticsDashboard({
               href={adsManagerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#EEF2F7] bg-white px-4 py-2.5 text-sm font-semibold text-[#07111f] transition hover:bg-[#f4f8ff] sm:w-auto"
             >
               Open Ads Manager
               <ExternalLink className="size-4" aria-hidden />
@@ -815,16 +818,16 @@ export function MetaAdsAnalyticsDashboard({
                 <span className="size-2 rounded-full bg-emerald-500" /> Clicks
               </span>
             </div>
-            <div className="relative h-64 w-full min-w-0 min-h-[16rem]">
-              <ChartMount height={256}>
-                <ResponsiveContainer width="100%" height={256} minWidth={0}>
+            <div className="relative h-52 w-full min-w-0 sm:h-64">
+              <ChartMount>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart
                     data={
                       dailySeries.length > 0
                         ? dailySeries
                         : [{ label: "", spend: 0, impressions: 0, clicks: 0 }]
                     }
-                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                   >
                     <defs>
                       <linearGradient
@@ -981,6 +984,181 @@ export function MetaAdsAnalyticsDashboard({
               </label>
             }
           >
+            {bootstrapping ? (
+              <AdsCampaignMobileSkeleton count={4} />
+            ) : pageRows.length === 0 ? (
+              <AdsCampaignMobileEmpty
+                icon={<Megaphone className="size-10" aria-hidden />}
+                title="No campaigns yet"
+                description="Create a Meta campaign with the guided builder, or run ads in Ads Manager."
+                action={
+                  canCreateCampaign ? (
+                    <button
+                      type="button"
+                      onClick={onCreateCampaign}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#1877f2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#166fe5]"
+                    >
+                      <Plus className="size-4" aria-hidden />
+                      Create campaign
+                    </button>
+                  ) : null
+                }
+              />
+            ) : (
+              <AdsCampaignMobileList
+                className={bootstrapping ? "" : metricsSoftClass}
+              >
+                {pageRows.map((c) => {
+                  const isSelected = selectedCampaignId === c.id;
+                  const rowBusy =
+                    deletingCampaignId === c.id ||
+                    statusUpdatingId === c.id ||
+                    editingCampaignId === c.id;
+                  return (
+                    <AdsCampaignMobileCard
+                      key={`m-${c.id}`}
+                      selected={isSelected}
+                      onSelect={() => {
+                        if (isSelected) return;
+                        setSelectedCampaignId(c.id);
+                        setSelectedCampaignSnapshot(c);
+                      }}
+                      title={c.name}
+                      subtitle={c.id}
+                      media={
+                        c.imageUrl?.trim() ? (
+                          <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-[#f1f5f9] ring-1 ring-[#e8edf5]">
+                            <img
+                              src={c.imageUrl}
+                              alt=""
+                              className="size-full object-contain"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          </span>
+                        ) : (
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#f1f5f9] text-slate-400 ring-1 ring-[#e8edf5]">
+                            <ImageIcon className="size-4" aria-hidden />
+                          </span>
+                        )
+                      }
+                      status={
+                        <span
+                          className={`${adsCampaignsTable.statusBadge} ${statusBadgeClass(c.effectiveStatus)}`}
+                        >
+                          {formatMetaDeliveryStatus(c.effectiveStatus)}
+                        </span>
+                      }
+                      metrics={[
+                        {
+                          label: "Spend",
+                          value: formatMetaSpend(c.insights?.spend, currency),
+                        },
+                        {
+                          label: "Clicks",
+                          value: formatMetaCount(c.insights?.clicks),
+                        },
+                        {
+                          label: "Impr.",
+                          value: formatMetaCount(c.insights?.impressions),
+                        },
+                        {
+                          label: "CTR",
+                          value: formatMetaPercent(c.insights?.ctr),
+                        },
+                      ]}
+                      actions={
+                        <>
+                          {canManageCampaign &&
+                          onToggleCampaignStatus &&
+                          (isMetaCampaignActive(c.effectiveStatus) ||
+                            isMetaCampaignPaused(c.effectiveStatus)) ? (
+                            <button
+                              type="button"
+                              title={
+                                isMetaCampaignActive(c.effectiveStatus)
+                                  ? "Pause campaign"
+                                  : "Enable campaign"
+                              }
+                              disabled={rowBusy}
+                              onClick={() =>
+                                onToggleCampaignStatus(
+                                  c,
+                                  isMetaCampaignActive(c.effectiveStatus)
+                                    ? "PAUSED"
+                                    : "ACTIVE",
+                                )
+                              }
+                              className={adsCampaignsTable.actionBtn}
+                            >
+                              {statusUpdatingId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : isMetaCampaignActive(c.effectiveStatus) ? (
+                                <Pause className="size-4" aria-hidden />
+                              ) : (
+                                <Play className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canManageCampaign && onEditCampaign ? (
+                            <button
+                              type="button"
+                              title="Edit published campaign"
+                              disabled={rowBusy}
+                              onClick={() => {
+                                setEditCampaign(c);
+                                setEditName(c.name?.trim() || "");
+                                setEditStatus(
+                                  isMetaCampaignActive(c.effectiveStatus)
+                                    ? "ACTIVE"
+                                    : "PAUSED",
+                                );
+                                setEditBudget(
+                                  metaDailyBudgetDollars(c.dailyBudget),
+                                );
+                              }}
+                              className={adsCampaignsTable.actionBtn}
+                            >
+                              {editingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Pencil className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          {canDeleteCampaign &&
+                          c.effectiveStatus?.toUpperCase() !== "ACTIVE" ? (
+                            <button
+                              type="button"
+                              title="Delete campaign"
+                              disabled={deletingCampaignId === c.id}
+                              onClick={() => onDeleteCampaign(c)}
+                              className={adsCampaignsTable.actionBtnDanger}
+                            >
+                              {deletingCampaignId === c.id ? (
+                                <Loader2
+                                  className="size-4 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </AdsCampaignMobileList>
+            )}
+            <div className={adsCampaignsTable.scrollShell}>
             <div
               className={`${adsCampaignsTable.scroll} ${bootstrapping ? "" : metricsSoftClass}`}
               aria-busy={softRefreshing || undefined}
@@ -1246,6 +1424,7 @@ export function MetaAdsAnalyticsDashboard({
                 </tbody>
               </table>
             </div>
+            </div>
             <div className={adsCampaignsTable.paginationBar}>
               <p>
                 Showing {pageRows.length} of {totalFiltered} campaign
@@ -1330,9 +1509,9 @@ export function MetaAdsAnalyticsDashboard({
                 className={`flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6 ${metricsSoftClass}`}
                 aria-busy={softRefreshing || undefined}
               >
-                <div className="h-[9.5rem] w-[9.5rem] shrink-0">
-                  <ChartMount height={152}>
-                    <ResponsiveContainer width={152} height={152}>
+                <div className="relative h-[9.5rem] w-[9.5rem] shrink-0">
+                  <ChartMount>
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <defs>
                           <linearGradient

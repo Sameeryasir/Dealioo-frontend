@@ -13714,7 +13714,10 @@ body:has(.rd-shell--app) {
   flex: 1 1 0%;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
   min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
   padding-top: 0;
 }
 
@@ -14032,9 +14035,9 @@ body:has(.rd-shell--app) {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.55rem;
+  gap: 0.4rem;
   padding-inline: var(--funnel-overview-pad-inline);
-  padding-block: var(--funnel-overview-pad-block);
+  padding-block: 0.55rem;
 }
 
 @container funnel-overview (min-width: 34rem) {
@@ -14044,6 +14047,7 @@ body:has(.rd-shell--app) {
     align-items: center;
     justify-content: space-between;
     gap: 0.65rem;
+    padding-block: var(--funnel-overview-pad-block);
   }
 }
 
@@ -14106,7 +14110,7 @@ body:has(.rd-shell--app) {
   height: 100%;
 }
 
-@container funnel-overview (min-width: 22rem) {
+@container funnel-overview (min-width: 28rem) {
   .funnel-overview-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -14394,6 +14398,21 @@ body:has(.rd-shell--app) {
   .funnel-overview-ad-spend-card__footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 0.75rem;
+    padding: 0.75rem 0.25rem 0.85rem;
+  }
+
+  .funnel-overview-ad-spend-card__stat {
+    gap: 0.4rem;
+    padding: 0 0.4rem;
+  }
+
+  .funnel-overview-ad-spend-card__stat-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .funnel-overview-ad-spend-card__stat-value {
+    font-size: 0.85rem;
   }
 
   .funnel-overview-ad-spend-card__stat:nth-child(2n) {
@@ -14463,18 +14482,32 @@ body:has(.rd-shell--app) {
 
 .funnel-overview-highlight-card {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1.25rem;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.65rem;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
   border-radius: 1.2rem;
   border: 1px solid #e8edf5;
   background: #fff;
-  padding: 0.9rem 1.1rem;
+  padding: 0.75rem 0.85rem;
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+@container funnel-overview (min-width: 34rem) {
+  .funnel-overview-highlight-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.9rem 1.1rem;
+  }
 }
 
 .funnel-overview-chart-canvas {
@@ -16325,21 +16358,74 @@ body:has(.rd-shell--app) {
   }
 }
 
-.rd-shell--campaign-immersive .crm-editor-embedded-grid > :first-child,
-.rd-shell--campaign-immersive .crm-editor-embedded-grid > :last-child {
-  min-height: 0;
-  height: 100%;
-  align-self: stretch;
+@media (min-width: 1024px) {
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid > :first-child,
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid > :last-child {
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+  }
+
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid > :nth-child(2) {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 100%;
+    height: 100%;
+    align-self: stretch;
+    justify-self: stretch;
+  }
 }
 
-.rd-shell--campaign-immersive .crm-editor-embedded-grid > :nth-child(2) {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-  min-height: 100%;
-  height: 100%;
-  align-self: stretch;
-  justify-self: stretch;
+@media (max-width: 1023px) {
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .rd-shell--campaign-immersive .crm-editor-embedded-grid > :first-child {
+    grid-column: 1;
+    grid-row: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .rd-shell--campaign-immersive
+    .crm-editor-embedded-grid--mobile-preview
+    .crm-editor-canvas-slot,
+  .rd-shell--campaign-immersive
+    .crm-editor-embedded-grid--mobile-settings
+    .crm-editor-settings-slot {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+  }
+
+  .rd-shell--campaign-immersive
+    .crm-editor-embedded-grid--mobile-settings
+    .crm-editor-settings-slot {
+    display: flex !important;
+    border-left: none;
+  }
+
+  .rd-shell--campaign-immersive
+    .crm-editor-embedded-grid--mobile-settings
+    .crm-editor-settings-slot
+    > div {
+    width: 100%;
+  }
+
+  .rd-shell--campaign-immersive
+    .crm-editor-embedded-grid--mobile-settings
+    .crm-editor-settings-slot
+    aside {
+    width: 100% !important;
+    max-width: none !important;
+  }
 }
 
 .rd-main-scroll--campaign-immersive:has(.funnel-editor-shell) {
@@ -16568,8 +16654,11 @@ body:has(.rd-shell--app) {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   border: none;
   border-radius: 0;
   background: #ffffff;

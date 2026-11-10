@@ -263,7 +263,7 @@ function OverviewKpiBreakdown({
   const usePills = items.some((item) => item.color);
   if (usePills) {
     return (
-      <ul className="m-0 mt-1.5 flex list-none flex-nowrap items-center gap-2.5 overflow-hidden p-0">
+      <ul className="m-0 mt-1.5 flex list-none flex-wrap items-center gap-x-2.5 gap-y-1 overflow-hidden p-0">
         {items.map((item) => {
           const sourceIcon = <OverviewKpiSourceIcon label={item.label} />;
           const hasKnownSourceIcon =
@@ -273,7 +273,7 @@ function OverviewKpiBreakdown({
           return (
             <li
               key={item.label}
-              className="inline-flex min-w-0 shrink items-center gap-1"
+              className="inline-flex min-w-0 items-center gap-1"
               title={`${item.label} ${item.value}`}
               aria-label={`${item.label} ${item.value}`}
             >
@@ -386,21 +386,21 @@ function OverviewKpiTile({
 
   return (
     <div
-      className={`funnel-overview-kpi-tile group flex h-full min-h-[7.5rem] items-start gap-3 rounded-[1.2rem] border border-[#e8edf5] bg-white px-3.5 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] ${hoverBorder}`}
+      className={`funnel-overview-kpi-tile group flex h-full min-h-[7rem] min-w-0 max-w-full items-start gap-2.5 overflow-hidden rounded-[1.2rem] border border-[#e8edf5] bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.02] transition duration-200 hover:-translate-y-[2px] sm:min-h-[7.5rem] sm:gap-3 sm:px-3.5 sm:py-3.5 ${hoverBorder}`}
     >
       <span
-        className={`funnel-overview-kpi-tile__icon flex size-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+        className={`funnel-overview-kpi-tile__icon flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-10 ${iconBg}`}
       >
         <Icon className="size-4" strokeWidth={2.25} aria-hidden />
       </span>
-      <div className="flex min-w-0 flex-1 flex-col text-left">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden text-left">
         <p
           className={`m-0 truncate text-[0.68rem] font-bold uppercase tracking-[0.12em] text-slate-600 transition ${hoverText}`}
         >
           {label}
         </p>
         <p
-          className={`funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.15rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] tabular-nums ${hoverText}`}
+          className={`funnel-overview-kpi-tile__value m-0 mt-0.5 truncate text-[1.1rem] font-extrabold leading-none tracking-tight text-black transition sm:text-[1.2rem] tabular-nums ${hoverText}`}
           aria-label={`${label}: ${finalLabel}`}
         >
           {display}
@@ -902,7 +902,7 @@ export function FunnelOverviewPanel({
         : null;
 
   const performanceBandClass =
-    "funnel-overview-performance-band sticky top-0 z-10 shrink-0 border-b border-[#e8edf5]/50 bg-transparent backdrop-blur-md supports-[backdrop-filter]:bg-white/15";
+    "funnel-overview-performance-band relative z-10 shrink-0 border-b border-[#e8edf5]/50 bg-white md:sticky md:top-0 md:bg-transparent md:backdrop-blur-md md:supports-[backdrop-filter]:bg-white/15";
 
   const panelBodyPadClass = "funnel-overview-body";
   const panelSkeletonPadClass = "funnel-overview-body";
@@ -910,33 +910,35 @@ export function FunnelOverviewPanel({
   const panelBody = (
     <>
       <div className={performanceBandClass}>
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#e8f2ff] text-[#1877f2]">
-            <ChartColumn className="size-5" strokeWidth={2.25} aria-hidden />
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+          <span className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#1877f2] sm:size-11 sm:rounded-2xl">
+            <ChartColumn className="size-4 sm:size-5" strokeWidth={2.25} aria-hidden />
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="m-0 text-[1.05rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.15rem]">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h2 className="m-0 text-[0.95rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.15rem]">
                 Campaign performance
               </h2>
               <span className="inline-flex items-center rounded-full bg-[#1877f2]/10 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#1877f2] ring-1 ring-[#1877f2]/15">
                 Live
               </span>
             </div>
-            <p className="m-0 mt-0.5 truncate text-[0.78rem] font-medium text-slate-500 sm:text-[0.8rem]">
+            <p className="m-0 mt-0.5 hidden text-[0.8rem] font-medium text-slate-500 sm:block sm:truncate">
               Visitors, conversions, revenue and ad spend at a glance.
             </p>
           </div>
         </div>
-        <OverviewPeriodFilter
-          calendarMode={calendarMode}
-          onCalendarModeChange={setCalendarMode}
-          monthFilter={monthFilter}
-          onMonthFilterChange={setMonthFilter}
-          dateFilter={dateFilter}
-          onDateFilterChange={setDateFilter}
-          monthCount={dashboardMonthCount}
-        />
+        <div className="w-full min-w-0 sm:w-auto">
+          <OverviewPeriodFilter
+            calendarMode={calendarMode}
+            onCalendarModeChange={setCalendarMode}
+            monthFilter={monthFilter}
+            onMonthFilterChange={setMonthFilter}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            monthCount={dashboardMonthCount}
+          />
+        </div>
       </div>
 
       {showNoFunnelMessage ? (
@@ -967,15 +969,15 @@ export function FunnelOverviewPanel({
                 variants={funnelPanelItem}
               >
                 {peakMonth ? (
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] text-[#1877f2]">
-                      <Trophy className="size-5" strokeWidth={2.25} aria-hidden />
+                  <div className="flex min-w-0 w-full flex-1 items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] text-[#1877f2] sm:size-10">
+                      <Trophy className="size-4 sm:size-5" strokeWidth={2.25} aria-hidden />
                     </span>
-                    <div className="min-w-0">
-                      <p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-500">
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 truncate text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-500">
                         Peak month · {currentYear}
                       </p>
-                      <p className="m-0 mt-0.5 truncate text-[1.05rem] font-extrabold tracking-tight text-[#07111f]">
+                      <p className="m-0 mt-0.5 truncate text-[1rem] font-extrabold tracking-tight text-[#07111f] sm:text-[1.05rem]">
                         {formatActivityMonthLabel(peakMonth.month)}
                       </p>
                       <p className="m-0 mt-0.5 truncate text-[0.75rem] font-medium text-slate-600">
@@ -1001,9 +1003,9 @@ export function FunnelOverviewPanel({
                   </div>
                 ) : null}
                 {sourceWinner ? (
-                  <div className="flex min-w-0 items-center gap-2 rounded-xl bg-[#f8fafc] px-3 py-2 ring-1 ring-[#e8edf5]">
+                  <div className="flex w-full min-w-0 max-w-full items-center gap-2 rounded-xl bg-[#f8fafc] px-2.5 py-2 ring-1 ring-[#e8edf5] sm:w-auto sm:px-3">
                     <AdSourceWinnerIcon winner={sourceWinner} />
-                    <p className="m-0 text-[0.72rem] font-semibold text-slate-600">
+                    <p className="m-0 min-w-0 flex-1 truncate text-[0.72rem] font-semibold text-slate-600">
                       Winner ·{" "}
                       <span
                         className="font-extrabold"
