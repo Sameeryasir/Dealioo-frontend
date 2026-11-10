@@ -11,6 +11,7 @@ import {
   roleSupportsMetaCampaignModule,
 } from "@/app/lib/member-permissions";
 import { InvitePermissionSections } from "@/app/components/business/BusinessPermissionsMatrix";
+import { emailValidationMessage } from "@/app/lib/form-validation";
 import { getApiErrorMessage } from "@/app/lib/toast-api-error";
 import { inviteBusinessMember, updateActiveBusinessMember, updatePendingBusinessInvitation } from "@/app/services/member/business-members";
 import {
@@ -158,9 +159,13 @@ export function InviteMemberForm({
           permissions,
         });
       }
+      const inviteEmailError = emailValidationMessage(email);
+      if (inviteEmailError) {
+        throw new Error(inviteEmailError);
+      }
       return inviteBusinessMember({
         businessId,
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         role,
         permissions,
       });
@@ -195,8 +200,9 @@ export function InviteMemberForm({
   const showAutomationModule = roleSupportsAutomationModule(role);
   const showFunnelModule = roleSupportsFunnelModule(role);
 
+  const emailError = isEdit ? null : emailValidationMessage(email);
   const canSubmit =
-    email.trim().length > 0 &&
+    (isEdit || !emailError) &&
     permissions.length > 0 &&
     !inviteMutation.isPending;
 
@@ -362,13 +368,22 @@ export function InviteMemberForm({
               type="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (error) setError(null);
+              }}
               placeholder="teammate@company.com"
               className={fieldInputClass}
               disabled={inviteMutation.isPending || isEdit}
               readOnly={isEdit}
+              aria-invalid={Boolean(email.trim() && emailError)}
             />
           </div>
+          {!isEdit && email.trim() && emailError ? (
+            <p className="m-0 mt-1.5 text-xs font-medium text-red-600">
+              {emailError}
+            </p>
+          ) : null}
         </div>
 
         <div>

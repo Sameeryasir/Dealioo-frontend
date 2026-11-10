@@ -246,6 +246,16 @@ export function CreateFacebookCampaignDialog({
     setError(null);
 
     try {
+      if (!name.trim()) {
+        throw new Error("Enter a campaign name.");
+      }
+      if (!headline.trim()) {
+        throw new Error("Enter an ad headline.");
+      }
+      if (!destinationUrl.trim().startsWith("https://")) {
+        throw new Error("Destination URL must use HTTPS.");
+      }
+
       const budget = Number.parseFloat(dailyBudget);
       if (!Number.isFinite(budget) || budget < 1) {
         throw new Error("Daily budget must be at least 1.");

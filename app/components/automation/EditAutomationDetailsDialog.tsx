@@ -17,6 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
+import { requiredTitleValidationMessage } from "@/app/lib/form-validation";
 
 const inputClassName =
   "w-full rounded-xl border border-[#dbeafe] bg-white px-3.5 py-2.5 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-[#1877f2]/55 focus:ring-2 focus:ring-[#1877f2]/20 disabled:cursor-not-allowed disabled:opacity-60";
@@ -67,6 +68,7 @@ export function EditAutomationDetailsDialog({
   const [mounted, setMounted] = useState(false);
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
+  const [nameTouched, setNameTouched] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -76,6 +78,7 @@ export function EditAutomationDetailsDialog({
     if (!open) return;
     setName(initialName);
     setDescription(initialDescription);
+    setNameTouched(false);
   }, [open, initialName, initialDescription]);
 
   useEffect(() => {
@@ -91,10 +94,12 @@ export function EditAutomationDetailsDialog({
 
   if (!mounted || !open) return null;
 
-  const canSubmit = name.trim().length > 0 && !isSaving;
+  const nameError = requiredTitleValidationMessage(name, "Automation name");
+  const canSubmit = !nameError && !isSaving;
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    setNameTouched(true);
     if (!canSubmit) return;
     void onSave({
       name: name.trim(),
@@ -157,13 +162,20 @@ export function EditAutomationDetailsDialog({
                 id={nameId}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onBlur={() => setNameTouched(true)}
                 placeholder="Welcome New Signups"
                 maxLength={255}
                 disabled={isSaving}
                 className={inputClassName}
                 autoFocus
                 required
+                aria-invalid={Boolean(nameTouched && nameError)}
               />
+              {nameTouched && nameError ? (
+                <p className="m-0 mt-1.5 text-xs font-medium text-red-600">
+                  {nameError}
+                </p>
+              ) : null}
             </div>
 
             <div>

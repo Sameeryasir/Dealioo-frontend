@@ -46,6 +46,18 @@ export function emailValidationMessage(raw: string): string | null {
   return null;
 }
 
+export function requiredTitleValidationMessage(
+  raw: string,
+  fieldLabel: string,
+): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return `Enter ${fieldLabel.toLowerCase()}.`;
+  if (trimmed.length < 2) {
+    return `${fieldLabel} must be at least 2 characters.`;
+  }
+  return meaningfulTextValidationMessage(trimmed, fieldLabel);
+}
+
 export function phoneValidationMessage(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return "Enter a phone number.";

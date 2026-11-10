@@ -32,6 +32,7 @@ import {
   type AutomationTemplateNodeDef,
 } from "@/app/components/automation/automation-templates";
 import { flowPreviewHeaderClass } from "@/app/components/automation/builder/flow-step-colors";
+import { requiredTitleValidationMessage } from "@/app/lib/form-validation";
 import { automationEase } from "@/app/lib/motion";
 import { resolvePurposeMetaForTrigger } from "@/app/services/automation/automation-create-context";
 import { purposeToUi } from "@/app/services/automation/automation-api";
@@ -345,12 +346,15 @@ function CreateAutomationModalBody({
   );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [trigger, setTrigger] = useState<CreateTriggerOption>(TRIGGERS[0]);
   const [purpose, setPurpose] = useState<AutomationPurpose>(
     () => resolvePurposeMetaForTrigger(TRIGGERS[0]).purpose,
   );
   const purposeMeta = resolvePurposeMetaForTrigger(trigger);
   const cronAllowsPurposeChoice = isCronTrigger(trigger);
+  const nameError = requiredTitleValidationMessage(name, "Automation name");
+  const canCreateBlank = !nameError && !isSubmitting;
 
   const selectedTemplate = selectedTemplateId
     ? getAutomationTemplateById(selectedTemplateId)
@@ -628,7 +632,8 @@ function CreateAutomationModalBody({
                   className="create-automation-modal__form flex min-h-0 flex-1 flex-col overflow-hidden"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!name.trim() || isSubmitting) return;
+                    setNameTouched(true);
+                    if (nameError || isSubmitting) return;
                     void onCreate({
                       name: name.trim(),
                       description: description.trim(),
@@ -644,9 +649,16 @@ function CreateAutomationModalBody({
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        onBlur={() => setNameTouched(true)}
                         placeholder="Welcome New Signups"
                         className={fieldInputClass}
+                        aria-invalid={Boolean(nameTouched && nameError)}
                       />
+                      {nameTouched && nameError ? (
+                        <p className="m-0 mt-1.5 text-xs font-medium text-red-600">
+                          {nameError}
+                        </p>
+                      ) : null}
                     </div>
                     <div>
                       <FieldLabel icon={AlignLeft}>Description</FieldLabel>
@@ -720,7 +732,7 @@ function CreateAutomationModalBody({
                     </button>
                     <button
                       type="submit"
-                      disabled={!name.trim() || isSubmitting}
+                      disabled={!canCreateBlank}
                       className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1877f2] px-5 text-sm font-semibold text-white transition hover:bg-[#0f5ed7] disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-11 sm:min-w-[7rem] sm:w-auto"
                     >
                       <Plus className="size-4" aria-hidden strokeWidth={ICON_STROKE} />

@@ -8,6 +8,10 @@ import {
 } from "@/app/components/book-meeting/BookMeetingPhoneInput";
 import UserAccountAvatar from "@/app/components/UserAccountAvatar";
 import { useMyBusinessesQuery } from "@/app/hooks/use-my-businesses-query";
+import {
+  emailValidationMessage,
+  personNameValidationMessage,
+} from "@/app/lib/form-validation";
 import { isAdminOrSuperAdminUser } from "@/app/lib/is-admin-or-super-admin-user";
 import { mergeSetupUser, setSetupUser } from "@/app/lib/setup-user";
 import {
@@ -636,12 +640,14 @@ export function OwnerProfileForm({
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!name.trim()) {
-      setErrorMessage("Name is required.");
+    const nameError = personNameValidationMessage(name);
+    if (nameError) {
+      setErrorMessage(nameError);
       return;
     }
-    if (!email.trim()) {
-      setErrorMessage("Email is required.");
+    const emailError = emailValidationMessage(email);
+    if (emailError) {
+      setErrorMessage(emailError);
       return;
     }
     if (phone.trim() && !isValidPhoneNumber(phone.trim())) {
@@ -651,7 +657,11 @@ export function OwnerProfileForm({
 
     setSaving(true);
     try {
-      const updated = await updateMyProfile({ name, email, phone });
+      const updated = await updateMyProfile({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone,
+      });
       setSetupUser(updated);
       setProfile(updated);
       setName(updated.name);
