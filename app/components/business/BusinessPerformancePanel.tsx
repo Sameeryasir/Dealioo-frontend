@@ -943,7 +943,11 @@ function ConversionPerformanceSection({
     );
   }
 
-  if (campaigns.length === 0) {
+  const campaignsWithViews = campaigns.filter(
+    (campaign) => campaign.viewCount > 0,
+  );
+
+  if (campaigns.length === 0 || campaignsWithViews.length === 0) {
     return (
       <div className={`${panelCardClass} overflow-hidden`}>
         <div className="border-b border-[#eef2f7] px-4 py-3 sm:px-5">
@@ -957,8 +961,8 @@ function ConversionPerformanceSection({
         </div>
         <PerformanceEmptyPlaceholder
           icon={Percent}
-          title="No conversion data yet"
-          description="Conversion tips appear after deals get page views and paid orders in this period."
+          title="No data yet"
+          description="Conversion appears after deals get page views in this period."
         />
       </div>
     );
@@ -988,7 +992,7 @@ function ConversionPerformanceSection({
       </div>
 
       <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-        {campaigns.map((campaign, index) => {
+        {campaignsWithViews.map((campaign, index) => {
           const name =
             formatTitleCase(campaign.campaignName) || campaign.campaignName;
           const tone = CAMPAIGN_TONES[index % CAMPAIGN_TONES.length]!;
@@ -1000,7 +1004,6 @@ function ConversionPerformanceSection({
             campaign.viewCount,
             campaign.orderCount,
           );
-          const hasViews = campaign.viewCount > 0;
           const trusted =
             campaign.viewCount >= MIN_VIEWS_FOR_TRUSTED_CONVERSION;
           const isBest =
@@ -1030,7 +1033,7 @@ function ConversionPerformanceSection({
                   >
                     Best converter
                   </span>
-                ) : !trusted && hasViews ? (
+                ) : !trusted ? (
                   <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500">
                     Early data
                   </span>
@@ -1040,35 +1043,28 @@ function ConversionPerformanceSection({
               <p
                 className={`m-0 mt-2 text-xl font-semibold tabular-nums tracking-tight ${tone.ink}`}
               >
-                {hasViews ? rateLabel : "No views yet"}
+                {rateLabel}
               </p>
               <p className="m-0 mt-0.5 text-[0.65rem] font-medium text-slate-400">
-                {hasViews && perHundred != null
+                {perHundred != null
                   ? `About ${perHundred} out of 100 viewers paid`
-                  : `${campaign.orderCount} paid · 0 views`}
+                  : `${campaign.orderCount} paid · ${campaign.viewCount} views`}
               </p>
-              {hasViews ? (
-                <div className="mt-2.5">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${tone.line}`}
-                      style={{ width: `${barWidth}%` }}
-                      aria-hidden
-                    />
-                  </div>
-                  <p className="m-0 mt-1.5 text-[0.65rem] text-slate-400">
-                    {campaign.orderCount} paid · {campaign.viewCount} views
-                    {!trusted
-                      ? ` · need ${MIN_VIEWS_FOR_TRUSTED_CONVERSION}+ views to rank`
-                      : ""}
-                  </p>
+              <div className="mt-2.5">
+                <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full ${tone.line}`}
+                    style={{ width: `${barWidth}%` }}
+                    aria-hidden
+                  />
                 </div>
-              ) : (
-                <p className="m-0 mt-2 text-[0.65rem] text-slate-400">
-                  {campaign.orderCount} paid · 0 views — conversion can’t be
-                  calculated yet.
+                <p className="m-0 mt-1.5 text-[0.65rem] text-slate-400">
+                  {campaign.orderCount} paid · {campaign.viewCount} views
+                  {!trusted
+                    ? ` · need ${MIN_VIEWS_FOR_TRUSTED_CONVERSION}+ views to rank`
+                    : ""}
                 </p>
-              )}
+              </div>
             </div>
           );
         })}
